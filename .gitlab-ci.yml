@@ -8,7 +8,7 @@ image:
 
 variables:
   DOCKER_REGISTRY: docker.artifactory.lan.hdw.mx:80
-  ROBOCAT_DIR: robocat
+  ROBOCAT_DIR: bots/robocat
 
 stages:
   - check
@@ -51,8 +51,9 @@ robocat:test:
     - set -e
     - ln -sf /vault/secrets/config.json /kaniko/.docker/config.json
     - source $CI_PROJECT_DIR/$DOCKER_DIR/Dockerimage.properties
-    - /kaniko/executor --context $CI_PROJECT_DIR/$DOCKER_DIR/
+    - /kaniko/executor --context $CI_PROJECT_DIR/
         --insecure
+        --dockerfile $CI_PROJECT_DIR/$DOCKER_DIR/Dockerfile
         --destination $DOCKER_REGISTRY/$TARGET_IMAGE:$TARGET_IMAGE_TAG
         "$BUILD_OPTIONS"
 
@@ -72,103 +73,103 @@ robocat:test:
 docker:workflow_police:check:
   stage: check
   variables:
-    DOCKER_DIR: workflow_police
+    DOCKER_DIR: bots/workflow_polices
     BUILD_OPTIONS: --no-push
   script:
   <<: *docker_build
   rules:
     - if: $CI_MERGE_REQUEST_ID
       changes:
-        - workflow_police/*
+        - bots/workflow_polices/*
 
 # check build of robocat docker image
 docker:robocat:check:
   stage: check
   variables:
-    DOCKER_DIR: robocat
+    DOCKER_DIR: bots/robocat
     BUILD_OPTIONS: --no-push
   script:
   <<: *docker_build
   rules:
     - if: $CI_MERGE_REQUEST_ID
       changes:
-        - robocat/*
+        - bots/robocat/*
 
 # validate workflow_police helm chart
 helmchart:workflow_police:check:
   image: nx/deploy-pod:1.0
   stage: check
   variables:
-    HELMCHART_DIR: workflow_police/chart
+    HELMCHART_DIR: bots/workflow_polices/chart
   script:
   <<: *helmchart_check
   rules:
     - if: $CI_MERGE_REQUEST_ID
       changes:
-        - workflow_police/chart/*
+        - bots/workflow_polices/chart/*
 
 # validate robocat helm chart
 helmchart:robocat:check:
   image: nx/deploy-pod:1.0
   stage: check
   variables:
-    HELMCHART_DIR: robocat/chart
+    HELMCHART_DIR: bots/robocat/chart
   script:
   <<: *helmchart_check
   rules:
     - if: $CI_MERGE_REQUEST_ID
       changes:
-        - robocat/chart/*
+        - bots/robocat/chart/*
 
 # build workflow_police docker image and push to registry
 docker:workflow_police:build:
   stage: build
   variables:
-    DOCKER_DIR: workflow_police
+    DOCKER_DIR: bots/workflow_polices
   script:
   <<: *docker_build
   rules:
     - if: $CI_COMMIT_BRANCH == 'master'
       changes:
-        - workflow_police/*
+        - bots/workflow_polices/*
 
 # build robocat docker image and push to registry
 docker:robocat:build:
   stage: build
   variables:
-    DOCKER_DIR: robocat
+    DOCKER_DIR: bots/robocat
   script:
   <<: *docker_build
   rules:
     - if: $CI_COMMIT_BRANCH == 'master'
       changes:
-        - robocat/*
+        - bots/robocat/*
 
 # package workflow_police helm chart an push to repository
 helmchart:workflow_police:build:
   image: nx/deploy-pod:1.0
   stage: build
   variables:
-    HELMCHART_DIR: workflow_police/chart
+    HELMCHART_DIR: bots/workflow_polices/chart
   script:
   <<: *helmchart_deploy
   rules:
     - if: $CI_COMMIT_BRANCH == 'master'
       changes:
-        - workflow_police/chart/*
+        - bots/workflow_polices/chart/*
 
 # package robocat helm chart an push to repository
 helmchart:robocat:build:
   image: nx/deploy-pod:1.0
   stage: build
   variables:
-    HELMCHART_DIR: robocat/chart
+    HELMCHART_DIR: bots/robocat/chart
   script:
   <<: *helmchart_deploy
   rules:
     - if: $CI_COMMIT_BRANCH == 'master'
       changes:
-        - robocat/chart/*
+        - bots/robocat/chart/*
 
 # deploy workflow_police and catz to kubernetes
 k8s:workflow_police:deploy:
@@ -181,7 +182,7 @@ k8s:workflow_police:deploy:
   rules:
     - if: $CI_COMMIT_BRANCH == 'master'
       changes:
-        - workflow_police/*
-        - workflow_police/chart/*
-        - robocat/*
-        - robocat/chart/*
+        - bots/workflow_polices/*
+        - bots/workflow_polices/chart/*
+        - bots/robocat/*
+        - bots/robocat/chart/*

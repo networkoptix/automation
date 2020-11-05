@@ -6,13 +6,16 @@
 
 # Precompiled files.
 *.pyc
+__pycache__
 
 # Build and test output files
 /apidoctool/build/
 /apidoctool/out_test/
 
 # Helm chart tgz files
-workflow_police/**/*.tgz
+bots/workflow_police/**/*.tgz
 sign_over_http/dist/**
 sign_over_http/*.egg-info/**
 sign_over_http/build/**
+
+.editorconfig

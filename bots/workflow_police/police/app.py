@@ -10,9 +10,9 @@ import logging
 import argparse
 import sys
 
-import police.utils
+import automation_tools.utils
+from automation_tools.jira import JiraAccessor, JiraError
 from police.checkers import *
-from police.jira_tools import JiraAccessor, JiraError
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class WorkflowEnforcer:
         self.dry_run = dry_run
 
         self._jira = JiraAccessor(**config["jira"])
-        self._repo = police.utils.RepoAccessor(**config["repo"])
+        self._repo = automation_tools.utils.RepoAccessor(**config["repo"])
 
         self._workflow_checker = WorkflowViolationChecker()
         self._workflow_checker.register_ignore_checker(
@@ -108,7 +108,7 @@ def main():
         logger.debug(f"Logging to Graylog at {arguments.graylog}")
 
     try:
-        config = police.utils.parse_config_file(Path(arguments.config_file))
+        config = automation_tools.utils.parse_config_file(Path(arguments.config_file))
         enforcer = WorkflowEnforcer(config, arguments.dry_run)
         enforcer.run()
     except Exception as e:
