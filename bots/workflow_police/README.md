@@ -1,5 +1,5 @@
 # Description
-Docker image for workflow police bot responsible for Version Checking automation. 
+Docker image for workflow police bot responsible for Version Checking automation.
 More info: https://networkoptix.atlassian.net/wiki/spaces/SD/pages/1486749741/Automation+Workflow+Police+bot
 
 # Requirements
@@ -10,13 +10,23 @@ In order to proper use, several host directories have to be mounted inside conta
 Releases should be mapped to repository permanent branches at https://networkoptix.atlassian.net/projects/VMS?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page
 
 # Parameters
-* *config_file* yaml file with configuration options, example: https://gitlab.lan.hdw.mx/dev/tools/-/blob/master/workflow_police/config.yaml
+* *config_file* yaml file with configuration options, example: https://gitlab.lan.hdw.mx/dev/Automation/-/blob/master/bots/workflow_police/config.yaml
 * *--log-level* {CRITICAL,FATAL,ERROR,WARN,WARNING,INFO,DEBUG,NOTSET} level for logging, default INFO
 * *--dry-run* Run single iteration, don't change any states
 
 The directories must have proper UID & GID, default 1000:1000,
 the UID & GID can be configured at image build time.
 
+# Building docker image locally
+To build docker image locally (without CI), run the following command from the repo root directory:
+`docker build -f bots/workflow_police/Dockerfile -t workflow_police .`
+
 # Example
 Run in docker:
 `docker run --rm -it -v ~/.config/workflow-police/:/etc/workflow-police/ -v ~/.ssh:/home/workflow-police/.ssh workflow_police /etc/workflow-police/config.yaml --log-level DEBUG`
+
+# Development notices
+For development it is necessary to set up environment variable `PYTHONPATH`. It must contain
+`<repo_directory>/automation_tools` and `<repo_directory>/bots/workflow_police`. If VS Code (with
+Python extension) or PyCharm is used as IDE, this variable should be set automatically by ".env"
+file in the root of the repo directory.

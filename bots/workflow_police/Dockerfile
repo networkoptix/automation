@@ -1,6 +1,6 @@
 FROM python:3.8-alpine
 
-COPY requirements.txt .
+COPY ./bots/workflow_police/requirements.txt .
 RUN apk add --no-cache tini gcc musl-dev libffi-dev openssl-dev git openssh-client && \
     pip3 install -r requirements.txt && \
     apk del gcc musl-dev libffi-dev openssl-dev
@@ -15,6 +15,7 @@ RUN addgroup --gid $APP_GID workflow-police && \
 
 USER workflow-police
 
-COPY ./ /workdir/
+COPY ./bots/workflow_police/. /workdir/
+COPY ./automation_tools/. /workdir/automation_tools
 
 ENTRYPOINT ["/sbin/tini", "--", "/workdir/police.app"]

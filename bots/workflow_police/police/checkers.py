@@ -3,8 +3,8 @@ import jira
 from typing import List, Dict, Tuple, Optional
 import logging
 
-import police.utils
-from police.jira_tools import JiraAccessor, JiraError
+import automation_tools.utils
+from automation_tools.jira import JiraAccessor, JiraError
 
 
 logger = logging.getLogger(__name__)
@@ -51,8 +51,8 @@ class WrongVersionChecker:
         if VERSION_SPECIFIC_LABEL in issue.fields.labels:
             return
 
-        versions = sorted([police.utils.Version(v.name) for v in issue.fields.fixVersions], reverse=True)
-        if police.utils.Version("Future") in versions and len(versions) > 1:
+        versions = sorted([automation_tools.utils.Version(v.name) for v in issue.fields.fixVersions], reverse=True)
+        if automation_tools.utils.Version("Future") in versions and len(versions) > 1:
             return f"wrong fixVersions field value, 'Future' can't be set along with other versions"
 
         if sum(not v.is_patch for v in versions) != 1:
@@ -70,21 +70,21 @@ class WrongVersionChecker:
 
 
 class VersionMissingIssueCommitChecker:
-    def __init__(self, jira_accessor: JiraAccessor, repo: police.utils.RepoAccessor):
+    def __init__(self, jira_accessor: JiraAccessor, repo: automation_tools.utils.RepoAccessor):
         self._jira = jira_accessor
         self._repo = repo
 
     def __call__(self, issue: jira.Issue) -> Optional[str]:
         for version in issue.fields.fixVersions:
             # NOTE: checking only recent commits as an optimization
-            branch = self._jira.version_to_branch_mapping()[police.utils.Version(version.name)]
+            branch = self._jira.version_to_branch_mapping()[automation_tools.utils.Version(version.name)]
             if len(self._repo.grep_recent_commits(issue.key, branch)) == 0:
                 return f"no commits in {version.name} version (branch: {branch})"
         return
 
 
 class MasterMissingIssueCommitChecker:
-    def __init__(self, repo: police.utils.RepoAccessor):
+    def __init__(self, repo: automation_tools.utils.RepoAccessor):
         self._repo = repo
 
     def __call__(self, issue: jira.Issue) -> Optional[str]:
