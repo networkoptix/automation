@@ -73,14 +73,14 @@ robocat:test:
 docker:workflow_police:check:
   stage: check
   variables:
-    DOCKER_DIR: bots/workflow_polices
+    DOCKER_DIR: bots/workflow_police
     BUILD_OPTIONS: --no-push
   script:
   <<: *docker_build
   rules:
     - if: $CI_MERGE_REQUEST_ID
       changes:
-        - bots/workflow_polices/*
+        - bots/workflow_police/*
 
 # check build of robocat docker image
 docker:robocat:check:
@@ -100,13 +100,13 @@ helmchart:workflow_police:check:
   image: nx/deploy-pod:1.0
   stage: check
   variables:
-    HELMCHART_DIR: bots/workflow_polices/chart
+    HELMCHART_DIR: bots/workflow_police/chart
   script:
   <<: *helmchart_check
   rules:
     - if: $CI_MERGE_REQUEST_ID
       changes:
-        - bots/workflow_polices/chart/*
+        - bots/workflow_police/chart/*
 
 # validate robocat helm chart
 helmchart:robocat:check:
@@ -125,13 +125,13 @@ helmchart:robocat:check:
 docker:workflow_police:build:
   stage: build
   variables:
-    DOCKER_DIR: bots/workflow_polices
+    DOCKER_DIR: bots/workflow_police
   script:
   <<: *docker_build
   rules:
     - if: $CI_COMMIT_BRANCH == 'master'
       changes:
-        - bots/workflow_polices/*
+        - bots/workflow_police/*
 
 # build robocat docker image and push to registry
 docker:robocat:build:
@@ -150,13 +150,13 @@ helmchart:workflow_police:build:
   image: nx/deploy-pod:1.0
   stage: build
   variables:
-    HELMCHART_DIR: bots/workflow_polices/chart
+    HELMCHART_DIR: bots/workflow_police/chart
   script:
   <<: *helmchart_deploy
   rules:
     - if: $CI_COMMIT_BRANCH == 'master'
       changes:
-        - bots/workflow_polices/chart/*
+        - bots/workflow_police/chart/*
 
 # package robocat helm chart an push to repository
 helmchart:robocat:build:
@@ -182,7 +182,7 @@ k8s:workflow_police:deploy:
   rules:
     - if: $CI_COMMIT_BRANCH == 'master'
       changes:
-        - bots/workflow_polices/*
-        - bots/workflow_polices/chart/*
+        - bots/workflow_police/*
+        - bots/workflow_police/chart/*
         - bots/robocat/*
         - bots/robocat/chart/*
