@@ -41,7 +41,7 @@ robocat:test:
   script:
     - set -e
     - "HELMCHART=$(helm package $CI_PROJECT_DIR/$HELMCHART_DIR | awk -F ': ' '{print $2}')"
-    - curl -s -u "jenkins:${ARTIFACTORY_TOKEN}"
+    - curl --fail -s -u "jenkins:$(cat /vault/secrets/artifactory.token)"
         -T "${HELMCHART}"
         "http://artifactory.lan.hdw.mx/artifactory/helm-local/$(basename $HELMCHART)"
 
