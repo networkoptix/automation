@@ -71,7 +71,10 @@ class MergeRequestStub():
         return 0 if self.approved else 1
 
     def pipelines(self):
-        return [{"id": p[0], "sha": p[1][0], "status": p[1][1], "web_url": ""} for p in enumerate(self.pipelines_list)]
+        def to_json(p):
+            return {"id": p[0], "sha": p[1][0], "status": p[1][1], "web_url": ""}
+        # NOTE: Gitlab returns pipeline with the highest ID first
+        return reversed([to_json(p) for p in enumerate(reversed(self.pipelines_list))])
 
     def add_comment(self, title, message, emoji=""):
         self.comments.append((title, message, emoji))
@@ -87,5 +90,12 @@ class MergeRequestStub():
             raise gitlab.exceptions.GitlabMRClosedError()
         self.merged = True
 
-    def run_pipeline(self):
-        self.pipelines_list.insert(0, (self.sha, "running"))
+    def create_pipeline(self):
+        self.pipelines_list.insert(0, (list(self.commits_list)[0], "manual"))
+
+    def play_pipeline(self, pipeline_id):
+        # NOTE: ID of pipeline in this tests is equal to the position at the list in reverse order.
+        pos_in_list = -1 - pipeline_id
+        assert self.pipelines_list
+        assert self.pipelines_list[pos_in_list][1] == "manual", f"Got '{self.pipelines_list[pos_in_list][1]}'"
+        self.pipelines_list[pos_in_list] = (self.pipelines_list[pos_in_list][0], "running")
