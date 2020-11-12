@@ -39,6 +39,8 @@ class Bot:
                 self._handler.handle(mr)
             except gitlab.exceptions.GitlabOperationError as e:
                 logger.warning(f"{mr}: Gitlab error: {e}")
+            except robocat.merge_request.PlayPipelineError as e:
+                logger.warning(f"{mr}: Error: {e}")
 
     def get_merge_requests(self, mr_poll_rate):
         while True:
@@ -75,7 +77,7 @@ def main():
         bot = Bot(arguments.project_id, arguments.dry_run)
         bot.start(arguments.mr_poll_rate)
     except Exception as e:
-        logger.warning(f'Crashed with exception: {e}', exc_info=1)
+        logger.error(f'Crashed with exception: {e}', exc_info=1)
         sys.exit(1)
 
 
