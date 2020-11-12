@@ -90,11 +90,11 @@ class MergeRequestHandler():
 
         approvals_left = mr.approvals_left()
         if approvals_left > 0:
-            if not mr.has_conflicts and not mr.pipelines():
+            if not self._get_last_non_skipped_pipeline(mr.pipelines()):
                 return self.run_pipeline(mr, RunPipelineReason.no_pipelines_before)
             return self.handle_wait(mr, WaitReason.not_approved, approvals_left=approvals_left)
 
-        last_pipeline = next((p for p in mr.pipelines() if p["status"] not in PIPELINE_STATUSES["skipped"]), None)
+        last_pipeline = self._get_last_non_skipped_pipeline(mr.pipelines())
         inspection_result = self.inspect_pipeline(mr, last_pipeline)
 
         if inspection_result <= PipelineInspectionResult.hash_changed:
@@ -203,7 +203,12 @@ class MergeRequestHandler():
 
     def run_pipeline(self, mr, reason, details=None):
         logger.info(f"{mr}: Running pipeline ({reason})")
-        pipeline_id = mr.run_pipeline()
+
+        # NOTE: There's no need to create pipelines in other cases because they are created by Gitlab automatically.
+        if reason == RunPipelineReason.requested_by_user:
+            mr.create_pipeline()
+
+        pipeline_id = self.play_latest_pipeline(mr)
         self._pipelines_commits_count[pipeline_id] = len(mr.commits())
 
         if reason == RunPipelineReason.review_finished:
@@ -216,6 +221,12 @@ class MergeRequestHandler():
         if not mr.award_emoji.find(WAIT_EMOJI, own=True):
             mr.award_emoji.create(WAIT_EMOJI)
 
+    @staticmethod
+    def play_latest_pipeline(mr):
+        latest_pipeline_id = max(p['id'] for p in mr.pipelines())
+        mr.play_pipeline(latest_pipeline_id)
+        return latest_pipeline_id
+
     # TODO: Create own commit entity?
     @lru_cache(maxsize=512)
     def _get_commit_message(self, sha):
@@ -225,3 +236,7 @@ class MergeRequestHandler():
     def _get_commit_diff_hash(self, sha):
         diff = self._project.commits.get(sha).diff()
         return hash(json.dumps(diff, sort_keys=True))
+
+    @staticmethod
+    def _get_last_non_skipped_pipeline(pipelines):
+        return next((p for p in pipelines if p["status"] not in PIPELINE_STATUSES["skipped"]), None)

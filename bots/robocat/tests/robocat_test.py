@@ -57,7 +57,7 @@ class TestMergeRequest:
         # Pipeline started ignoring approve because there was no pipelines ran at all
         {
             "approved": False,
-            "pipelines_list": []
+            "pipelines_list": [(tests.merge_request_stub.DEFAULT_COMMIT["sha"], "manual")]
         },
         # Pipeline started even if not approved when requested
         {
@@ -78,12 +78,12 @@ class TestMergeRequest:
         # Pipeline started without rebase
         {
             "needs_rebase": True,
-            "pipelines_list": [(tests.merge_request_stub.DEFAULT_COMMIT["sha"], "skipped")]
+            "pipelines_list": [(tests.merge_request_stub.DEFAULT_COMMIT["sha"], "manual")]
         },
         # Pipeline started even if there are non-resolved discusions
         {
             "blocking_discussions_resolved": False,
-            "pipelines_list": [(tests.merge_request_stub.DEFAULT_COMMIT["sha"], "skipped")]
+            "pipelines_list": [(tests.merge_request_stub.DEFAULT_COMMIT["sha"], "manual")]
         },
         # Pipeline started if fail was in previous commit (before rebase or amend)
         {
@@ -91,6 +91,7 @@ class TestMergeRequest:
                 "11": "same_msg",
                 "22": "same_msg"},
             "pipelines_list": [
+                ("11", "manual"),
                 ("22", "failed")]
         }
     ])
@@ -135,11 +136,6 @@ class TestMergeRequest:
     @pytest.mark.parametrize("mr_state", [
         # MR not approved
         {"approved": False},
-        # MR not approved, pipeline not started
-        {
-            "approved": False,
-            "pipelines_list": [(tests.merge_request_stub.DEFAULT_COMMIT["sha"], "skipped")]
-        },
         # MR not approved, there was already ran pipeline at another commit
         {
             "approved": False,

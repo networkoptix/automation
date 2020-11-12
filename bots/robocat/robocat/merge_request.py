@@ -5,6 +5,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class PlayPipelineError(RuntimeError):
+    pass
+
+
 class AwardEmojiManager():
     def __init__(self, gitlab_award_emoji_manager, current_user, dry_run=False):
         self._gitlab_manager = gitlab_award_emoji_manager
@@ -127,14 +131,25 @@ class MergeRequest():
             squash_commit_message = f"{self._gitlab_mr.title}\n\n{self._gitlab_mr.description}"
         self._gitlab_mr.merge(squash_commit_message=squash_commit_message)
 
-    def run_pipeline(self):
+    def create_pipeline(self):
+        """Create detached pipeline for MR"""
+        # NOTE: gitlab python library doesn't support this API request.
+        url = f"/projects/{self._gitlab_mr.source_project_id}/merge_requests/{self._gitlab_mr.iid}/pipelines"
+        if self._dry_run:
+            return
+        self._gitlab_mr.manager.gitlab.http_post(url)
+
+    def play_pipeline(self, pipeline_id):
         project = self._get_project(self._gitlab_mr.source_project_id)
-        # TODO: should be changed to detached pipeline once gitlab API supports it
-        pipeline_id = None
+        pipeline = project.pipelines.get(pipeline_id)
+        if pipeline.status != "manual":
+            raise PlayPipelineError("Only manual pipelines could be played")
+
+        logger.info(f"{self}: Playing pipeline {pipeline_id}")
         if not self._dry_run:
-            pipeline_id = project.pipelines.create({'ref': self._gitlab_mr.source_branch}).id
-        logger.debug(f"Pipeline {pipeline_id} created for {self._gitlab_mr.source_branch}")
-        return pipeline_id
+            for job in pipeline.jobs.list():
+                if job.status == "manual":
+                    project.jobs.get(job.id, lazy=True).play()
 
     def _get_project(self, project_id):
         return self._gitlab_mr.manager.gitlab.projects.get(project_id, lazy=True)
