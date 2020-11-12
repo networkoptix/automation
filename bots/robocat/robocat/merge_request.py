@@ -134,13 +134,13 @@ class MergeRequest():
     def create_pipeline(self):
         """Create detached pipeline for MR"""
         # NOTE: gitlab python library doesn't support this API request.
-        url = f"/projects/{self._gitlab_mr.source_project_id}/merge_requests/{self._gitlab_mr.iid}/pipelines"
+        url = f"/projects/{self._gitlab_mr.project_id}/merge_requests/{self._gitlab_mr.iid}/pipelines"
         if self._dry_run:
             return
         self._gitlab_mr.manager.gitlab.http_post(url)
 
     def play_pipeline(self, pipeline_id):
-        project = self._get_project(self._gitlab_mr.source_project_id)
+        project = self._get_project(self._gitlab_mr.project_id)
         pipeline = project.pipelines.get(pipeline_id)
         if pipeline.status != "manual":
             raise PlayPipelineError("Only manual pipelines could be played")
