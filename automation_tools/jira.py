@@ -65,9 +65,16 @@ class JiraAccessor:
             else:
                 assert False, f"Unexpected issue {issue} status {issue.fields.status}"
 
-            self._jira.add_comment(issue, (
-                f"Workflow violation, issue returned: {reason}.\n"
-                f"More info: [{docs_link}|{docs_link}|smart-link] \n\nh5. 🚔 Workflow Police"))
+            gray_tag = "{color:#97a0af}"
+            color_tag = "{color}"
+            comment = (
+                f"Returning the issue, workflow violation found:\n\n* {reason}.\n\n"
+                f"{gray_tag}Issues closed with a resolution "
+                f"“{color_tag}{gray_tag}*{issue.fields.resolution}*{color_tag}{gray_tag}“ "
+                f"come under mandatory Workflow Police inspection. Please, consider changing resolution value "
+                f"if the issue *does not imply any code changes*.{color_tag}\n"
+                f"More info: [{docs_link}|{docs_link}|smart-link]\n\nh5. 🚔 Workflow Police")
+            self._jira.add_comment(issue, comment)
 
         except jira.exceptions.JIRAError as error:
             raise JiraError(f"Unable to reopen issue {issue.key}: {error}")

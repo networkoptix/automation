@@ -51,20 +51,22 @@ class WrongVersionChecker:
         if VERSION_SPECIFIC_LABEL in issue.fields.labels:
             return
 
+        beginning = "Wrong fixVersions field value"
         versions = sorted([automation_tools.utils.Version(v.name) for v in issue.fields.fixVersions], reverse=True)
         if automation_tools.utils.Version("Future") in versions and len(versions) > 1:
-            return f"wrong fixVersions field value, 'Future' can't be set along with other versions"
+            return f"{beginning}, 'Future' can't be set along with other versions"
 
-        if sum(not v.is_patch for v in versions) != 1:
-            return f"wrong fixVersions field value, exactly one release version required"
+        release_versions_count = sum(not v.is_patch for v in versions)
+        if release_versions_count != 1:
+            return f"{beginning}, exactly one release version required ({release_versions_count} currently set)"
 
         if versions[0].is_patch:
-            return f"wrong fixVersions field value, major version [{versions[0]}] shouldn't be a patch"
+            return f"{beginning}, major version [{versions[0]}] shouldn't be a patch"
 
         # NOTE: A string with versions (not counting patches) without gaps. E.g. 'Future 4.3 4.2 4.1 4.0'
         versions_sequence = " ".join(v.number for v in self._jira.version_to_branch_mapping().keys() if not v.is_patch)
         if " ".join(v.number for v in versions) not in versions_sequence:
-            return f"wrong fixVersions field value, there shouldn't be gaps between versions"
+            return f"{beginning}, there shouldn't be gaps between versions"
 
         return
 
@@ -79,7 +81,7 @@ class VersionMissingIssueCommitChecker:
             # NOTE: checking only recent commits as an optimization
             branch = self._jira.version_to_branch_mapping()[automation_tools.utils.Version(version.name)]
             if len(self._repo.grep_recent_commits(issue.key, branch)) == 0:
-                return f"no commits in {version.name} version (branch: {branch})"
+                return f"No commits in {version.name} version (branch: {branch})"
         return
 
 
@@ -91,7 +93,7 @@ class MasterMissingIssueCommitChecker:
         if VERSION_SPECIFIC_LABEL in issue.fields.labels:
             return
         if len(self._repo.grep_recent_commits(issue.key, "master")) == 0:
-            return f"no commits in master"
+            return f"No commits in master"
 
 
 def check_issue_type(issue: jira.Issue) -> Optional[str]:
