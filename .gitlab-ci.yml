@@ -16,6 +16,14 @@ stages:
   - test
   - deploy
 
+pep8:
+  image: cytopia/pycodestyle
+  stage: check
+  script:
+    - pycodestyle --max-line-length=120 .
+  rules:
+    - if: $CI_MERGE_REQUEST_ID || $CI_COMMIT_BRANCH == 'master'
+
 robocat:test:
   image: python:3.8
   stage: test
@@ -30,7 +38,8 @@ robocat:test:
   rules:
     - if: $CI_MERGE_REQUEST_ID || $CI_COMMIT_BRANCH == 'master'
       changes:
-        - robocat/**/*
+        - bots/robocat/**/*
+        - automation_tools/**/*
 
 .helmchart.check: &helmchart_check
   script:
