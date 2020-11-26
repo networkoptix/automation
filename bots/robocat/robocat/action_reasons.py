@@ -1,0 +1,14 @@
+import enum
+
+
+# TODO: Refactor reasons to store their context and messages.
+class ReturnToDevelopmentReason(enum.Enum):
+    conflicts = enum.auto()
+    failed_pipeline = enum.auto()
+    unresolved_threads = enum.auto()
+
+
+class WaitReason(enum.Enum):
+    no_commits = "no commits in MR"
+    not_approved = "not enough non-bot approvals"
+    pipeline_running = "pipeline is in progress"
