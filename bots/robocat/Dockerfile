@@ -17,4 +17,4 @@ USER workflow-robocat
 COPY ./bots/robocat/. /workdir/
 COPY ./automation_tools/. /workdir/automation_tools
 
-ENTRYPOINT ["/sbin/tini", "--", "/workdir/robocat.app", "--config=/workdir/config.yaml", "--dry-run", "-p", "49", "--log-level=DEBUG"]
+ENTRYPOINT ["/sbin/tini", "--", "/workdir/robocat.app", "--config=/workdir/config.yaml"]

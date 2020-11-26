@@ -67,7 +67,7 @@ class EssentialRule(BaseRule):
 
         if last_pipeline_status == PipelineStatus.failed:
             mr_manager.return_to_development(ReturnToDevelopmentReason.failed_pipeline)
-            return EssentialRuleExecutionResult.UnresolvedThreads
+            return EssentialRuleExecutionResult.PipelineFailed
 
         assert last_pipeline_status == PipelineStatus.succeded, "Unexpected pipeline status"
 

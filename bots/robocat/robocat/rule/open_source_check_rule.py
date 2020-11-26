@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class OpenSourceCheckRuleExecutionResult(RuleExecutionResult, Enum):
     NoCommits = "No commits"
     WorkInProgress = "Work in progress"
-    NotApplicable = "No changhes in open source files"
+    NotApplicable = "No changes in open source files"
     MergeAuthorized = "MR is approved by the authorized approver"
     FilesNotOk = "Open source files are not complied with the requirements"
     NotAuthorized = (
