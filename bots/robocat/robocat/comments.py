@@ -26,11 +26,55 @@ Please, resolve all discussions and [remove WIP]({_wip_url}) to continue merging
 conflicts_message = f"""Merge request returned to development.
 Please, do manual rebase and [remove WIP]({_wip_url}) to continue merging process."""
 
+has_good_changes_in_open_source = """This merge request contains changes in open source part of the
+project. No problems was revealed during autocheck.
+
+**ATTENTION**: This thread should be resolved only by @{approver}.
+"""
+
+has_bad_changes_in_open_source = """{error_message}
+
+**ATTENTION**: This thread should be resolved only by @{approver}.
+"""
+
+incorrect_mpl = """MPL check failed: line is:
+
+`{line}`
+
+expected:
+
+`{expected}`
+"""
+
+missing_mpl = """MPL check failed: line is empty, expected:
+
+`{expected}`
+"""
+
+unknown_license = "License word: **{word}** at line {line_number}"
+
+trademark_violation = "Trademark: **{word}** at line {line_number}"
+
+politeness_violation = "Bad word: **{word}** at line {line_number}"
+
+missing_empty_line = "Line is `{line}`, expected to be empty"
+
+unexpected_shebang = """Shebang is:
+
+`{line}`
+
+expected:
+
+`{shebang}`
+"""
+
+unknown_file_type = "Unknown file type: **{file}**"
+
 failed_pipeline_message = f"""Merge request returned to development.
 Please, fix the errors and [remove WIP]({_wip_url}) to continue merging process.\n
 You may rebase or run new pipeline manually if errors are resolved outside MR."""
 
-template = """### {emoji} {title}
+template = """### :{emoji}: {title}
 
 {message}
 

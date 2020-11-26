@@ -1,7 +1,7 @@
 FROM python:3.8-alpine
 
 COPY ./bots/robocat/requirements.txt .
-RUN apk add --no-cache tini && \
+RUN apk add --no-cache tini git && \
     pip3 install -r requirements.txt
 
 ARG APP_UID=1000
@@ -17,4 +17,4 @@ USER workflow-robocat
 COPY ./bots/robocat/. /workdir/
 COPY ./automation_tools/. /workdir/automation_tools
 
-ENTRYPOINT ["/sbin/tini", "--", "/workdir/robocat.app"]
+ENTRYPOINT ["/sbin/tini", "--", "/workdir/robocat.app", "--config=/workdir/config.yaml", "--dry-run", "-p", "49", "--log-level=DEBUG"]

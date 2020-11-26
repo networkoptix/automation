@@ -2,13 +2,18 @@ import gitlab
 
 import sys
 import time
+from pathlib import Path
 
 import argparse
 import logging
 import graypy
 
-import robocat.merge_request_handler
-import robocat.merge_request
+import automation_tools.utils
+from robocat.merge_request_manager import MergeRequestManager
+from robocat.merge_request import MergeRequest
+from robocat.pipeline import PlayPipelineError
+from robocat.rule.essential_rule import EssentialRule
+from robocat.rule.open_source_check_rule import OpenSourceCheckRule
 
 logger = logging.getLogger(__name__)
 
@@ -21,34 +26,50 @@ class ServiceNameFilter(logging.Filter):
 
 
 class Bot:
-    def __init__(self, project_id, dry_run):
+    def __init__(self, config, project_id, dry_run):
         self._gitlab = gitlab.Gitlab.from_config("nx_gitlab")
         self._project = self._gitlab.projects.get(project_id)
-        self._handler = robocat.merge_request_handler.MergeRequestHandler(self._project)
+        self._rule_essential = EssentialRule(project=self._project)
+
+        self._rule_open_source_check = OpenSourceCheckRule(
+                project=self._project,
+                **config['open_source_check_rule'])
 
         self._gitlab.auth()
         self._username = self._gitlab.user.username
         self._dry_run = dry_run
 
+    def handle(self, mr_manager: MergeRequestManager):
+        essential_rule_check_result = self._rule_essential.execute(mr_manager)
+        logger.debug(f"{mr_manager}: {essential_rule_check_result}")
+
+        opens_source_check_result = self._rule_open_source_check.execute(mr_manager)
+        logger.debug(f"{mr_manager}: {opens_source_check_result}")
+
+        if essential_rule_check_result and opens_source_check_result:
+            mr_manager.merge_or_rebase()
+
     def start(self, mr_poll_rate):
-        logger.info(f"Started for project [{self._project.name}] with {mr_poll_rate} secs poll rate"
-                    + (" (--dry-run)" if self._dry_run else ""))
+        logger.info(
+            f"Started for project [{self._project.name}] with {mr_poll_rate} secs poll rate"
+            f"{' (--dry-run)' if self._dry_run else ''}")
 
-        for mr in self.get_merge_requests(mr_poll_rate):
+        for mr_manager in self.get_merge_requests_manager(mr_poll_rate):
             try:
-                self._handler.handle(mr)
+                self.handle(mr_manager)
             except gitlab.exceptions.GitlabOperationError as e:
-                logger.warning(f"{mr}: Gitlab error: {e}")
-            except robocat.merge_request.PlayPipelineError as e:
-                logger.warning(f"{mr}: Error: {e}")
+                logger.warning(f"{mr_manager}: Gitlab error: {e}")
+            except PlayPipelineError as e:
+                logger.warning(f"{mr_manager}: Error: {e}")
 
-    def get_merge_requests(self, mr_poll_rate):
+    def get_merge_requests_manager(self, mr_poll_rate):
         while True:
             start_time = time.time()
             for mr in self._project.mergerequests.list(state='opened', order_by='updated_at', as_list=False):
                 if self._username not in (assignee["username"] for assignee in mr.assignees):
                     continue
-                yield robocat.merge_request.MergeRequest(mr, self._username, self._dry_run)
+                mr = MergeRequest(mr, self._username, self._dry_run)
+                yield MergeRequestManager(mr)
 
             sleep_time = max(0, start_time + mr_poll_rate - time.time())
             time.sleep(sleep_time)
@@ -56,6 +77,7 @@ class Bot:
 
 def main():
     parser = argparse.ArgumentParser(sys.argv[0])
+    parser.add_argument('-c', '--config', help="Config file with all options", default={})
     parser.add_argument('-p', '--project-id', help="ID of project in gitlab (2 for dev/nx)", type=int, required=True)
     parser.add_argument('--log-level', help="Logs level", choices=logging._nameToLevel.keys(), default=logging.INFO)
     parser.add_argument('--dry-run', help="Don't change any MR states", action="store_true")
@@ -74,7 +96,11 @@ def main():
         logger.debug(f"Logging to Graylog at {arguments.graylog}")
 
     try:
-        bot = Bot(arguments.project_id, arguments.dry_run)
+        if arguments.config:
+            config = automation_tools.utils.parse_config_file(Path(arguments.config))
+        else:
+            config = {}
+        bot = Bot(config, arguments.project_id, arguments.dry_run)
         bot.start(arguments.mr_poll_rate)
     except Exception as e:
         logger.error(f'Crashed with exception: {e}', exc_info=1)

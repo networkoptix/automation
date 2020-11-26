@@ -1,0 +1,5 @@
+# Configuration for "open source check" rule.
+open_source_check_rule:
+    approver_username: mshevchenko
+    approver_name: Mickhail Shevchenko
+

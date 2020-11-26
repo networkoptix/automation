@@ -1,42 +1,12 @@
-import robocat.comments
-
 import logging
+from typing import Set, List, Dict
+import gitlab
+
+import robocat.comments
+from robocat.pipeline import Pipeline
+from robocat.award_emoji_manager import AwardEmojiManager
 
 logger = logging.getLogger(__name__)
-
-
-class PlayPipelineError(RuntimeError):
-    pass
-
-
-class AwardEmojiManager():
-    def __init__(self, gitlab_award_emoji_manager, current_user, dry_run=False):
-        self._gitlab_manager = gitlab_award_emoji_manager
-        self._current_user = current_user
-        self._dry_run = dry_run
-
-    def list(self, own):
-        if own:
-            return [e for e in self._gitlab_manager.list(as_list=False) if e.user['username'] == self._current_user]
-        else:
-            return self._gitlab_manager.list()
-
-    def find(self, name, own):
-        return [e for e in self.list(own) if e.name == name]
-
-    def create(self, name, **kwargs):
-        logger.debug(f"Creating emoji {name}")
-        if self._dry_run:
-            return
-        return self._gitlab_manager.create({'name': name}, **kwargs)
-
-    def delete(self, name, own, **kwargs):
-        logger.debug(f"Removing {name} emoji")
-        if self._dry_run:
-            return
-
-        for emoji in self.find(name, own):
-            self._gitlab_manager.delete(emoji.id, **kwargs)
 
 
 class MergeRequest():
@@ -47,6 +17,12 @@ class MergeRequest():
 
     def __str__(self):
         return f"MR!{self.id}"
+
+    def __eq__(self, other):
+        return self._gitlab_mr.iid == other._gitlab_mr.iid
+
+    def __hash__(self):
+        return int(self._gitlab_mr.iid)
 
     @property
     def id(self):
@@ -68,15 +44,9 @@ class MergeRequest():
     def award_emoji(self):
         return AwardEmojiManager(self._gitlab_mr.awardemojis, self._current_user, self._dry_run)
 
+    @property
     def approvals_left(self):
         approvals = self._gitlab_mr.approvals.get()
-        return approvals.approvals_left  # TODO: should be removed once approval logic is fully implemented.
-
-        if approvals.approvals_left == 0:
-            return 0
-
-        if approvals.user_can_approve and not approvals.user_has_approved:
-            return approvals.approvals_left - 1
         return approvals.approvals_left
 
     @property
@@ -88,37 +58,20 @@ class MergeRequest():
         return self._gitlab_mr.blocking_discussions_resolved
 
     @property
-    def merge_status(self):
-        return self._gitlab_mr.merge_status
-
-    @property
     def sha(self):
         return self._gitlab_mr.sha
 
-    def commits(self):
-        return [commit.id for commit in self._gitlab_mr.commits()]
-
-    def pipelines(self):
+    def raw_pipelines_data(self) -> List[Dict]:
         return self._gitlab_mr.pipelines()
 
-    def add_comment(self, title, message, emoji=""):
-        logger.debug(f"{self}: Adding comment with title: {title}")
-        if not self._dry_run:
-            self._gitlab_mr.notes.create({'body':  robocat.comments.template.format(**locals())})
-
-    def set_wip(self):
-        logger.debug(f"{self}: Set WIP")
-        if not self._dry_run:
-            self._gitlab_mr.notes.create({'body': "/wip"})
-
-    def refetch(self, include_rebase_in_progress=False):
-        project = self._get_project(self._gitlab_mr.project_id)
-        self._gitlab_mr = project.mergerequests.get(self.id, include_rebase_in_progress=include_rebase_in_progress)
+    def pipeline(self, pipeline_id) -> Pipeline:
+        project = self.get_project()
+        return Pipeline(project.pipelines.get(pipeline_id), self._dry_run)
 
     def rebase(self):
         logger.debug(f"{self}: Rebasing")
         if self._dry_run:
-            return False
+            return
         self._gitlab_mr.rebase()
 
     def merge(self):
@@ -133,23 +86,70 @@ class MergeRequest():
 
     def create_pipeline(self):
         """Create detached pipeline for MR"""
-        # NOTE: gitlab python library doesn't support this API request.
-        url = f"/projects/{self._gitlab_mr.project_id}/merge_requests/{self._gitlab_mr.iid}/pipelines"
         if self._dry_run:
             return
+        # NOTE: gitlab python library doesn't support this API request.
+        url = f"/projects/{self._gitlab_mr.project_id}/merge_requests/{self._gitlab_mr.iid}/pipelines"
         self._gitlab_mr.manager.gitlab.http_post(url)
 
-    def play_pipeline(self, pipeline_id):
-        project = self._get_project(self._gitlab_mr.project_id)
-        pipeline = project.pipelines.get(pipeline_id)
-        if pipeline.status != "manual":
-            raise PlayPipelineError("Only manual pipelines could be played")
-
-        logger.info(f"{self}: Playing pipeline {pipeline_id}")
-        if not self._dry_run:
-            for job in pipeline.jobs.list():
-                if job.status == "manual":
-                    project.jobs.get(job.id, lazy=True).play()
-
-    def _get_project(self, project_id):
+    def get_project(self):
+        project_id = self._gitlab_mr.project_id
         return self._gitlab_mr.manager.gitlab.projects.get(project_id, lazy=True)
+
+    def create_discussion(self, body: str, position: dict = None) -> bool:
+        logger.debug(f"{self}: Creating discussion")
+        if self._dry_run:
+            return True
+
+        try:
+            self._gitlab_mr.discussions.create({"body": body, "position": position})
+        except gitlab.exceptions.GitlabError as e:
+            # This is workaround for the case when gitlab refuses to create discussion at the
+            # position explicitly stated with "new_line" and "new_path" parameters. TODO: Fix this
+            # workaround - find a way to reliably create a discussion, bonded to the file and line
+            # number. Stating "old_path" and "old_line" fields in the "position" parameter can
+            # help, but there is a problem of detection what "old_line" should be and also there
+            # could be problems in the case when the file is removed/renamed.
+            if position is not None and "new_line" in position and "new_path" in position:
+                logger.info(
+                    f"{self}: Cannot create a discussion at line number "
+                    f"{position['new_line']} for file {position['new_path']}: {e}.")
+            else:
+                logger.warning(f"{self}: Cannot create a discussion: {e}.")
+            return False
+        return True
+
+    @property
+    def approved_by(self) -> Set[str]:
+        approvals = self._gitlab_mr.approvals.get()
+        return {approver["user"]["username"] for approver in approvals.approved_by}
+
+    @property
+    def assignees(self) -> Set[str]:
+        return {assignee["username"] for assignee in self._gitlab_mr.assignees}
+
+    def set_assignees(self, assignees: Set[str]) -> None:
+        logger.debug(f"{self}: Updating assignees list: {assignees}")
+        if self._dry_run:
+            return
+        project = self.get_project()
+        assignee_ids = list()
+        for assignee in assignees:
+            user_ids = [user.id for user in project.members.list(query=assignee)]
+            if not user_ids:
+                logger.warning(f"Can't find user id for user {assignee}.")
+            assignee_ids += user_ids
+        self._gitlab_mr.assignee_ids = assignee_ids
+        self._gitlab_mr.save()
+
+    @property
+    def latest_diff(self):
+        lateset_diffs_list = self._gitlab_mr.diffs.list(per_page=1)
+        assert len(lateset_diffs_list) > 0, (
+            f"No diffs in {self}. "
+            "We should not call this method for merge requests without commits")
+        return lateset_diffs_list[0]
+
+    def create_note(self, body: str) -> None:
+        if not self._dry_run:
+            self._gitlab_mr.notes.create({'body': body})
