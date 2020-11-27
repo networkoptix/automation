@@ -22,7 +22,7 @@ class MergeRequestManagerMock():
 
 @dataclass
 class UserManagerMock():
-    members: list = field(default_factory=lambda: [
+    users: list = field(default_factory=lambda: [
         UserManagerMock.UserMock(id=1, name="user1"),
         UserManagerMock.UserMock(id=2, name="user2"),
         UserManagerMock.UserMock(id=10, name="mshevchenko")
@@ -33,13 +33,11 @@ class UserManagerMock():
         id: int = 1
         name: str = "foobar"
 
-    def list(self, query: None, **_):
-        if query is None:
-            return self.members
-        return [u for u in self.members if u.name == query]
+    def list(self, search=None, **_):
+        if search is not None:
+            return [u for u in self.users if u.name == search]
 
-    def get(self, user_id, **_):
-        return [u for u in self.members if u.id == user_id][0]
+        return self.users
 
 
 @dataclass
@@ -53,7 +51,7 @@ class ProjectMock:
         default_factory=PipelineManagerMock, init=False)
     jobs: JobsManagerMock = field(default_factory=JobsManagerMock, init=False)
     commits: CommitsManagerMock = field(default_factory=CommitsManagerMock, init=False)
-    members: UserManagerMock = field(
+    users: UserManagerMock = field(
         default_factory=UserManagerMock, init=False)
     files: FileManagerMock = field(
         default_factory=FileManagerMock, init=False)
