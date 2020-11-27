@@ -55,6 +55,8 @@ class MergeRequestChangesCommitMessageChanged(MergeRequestChanges):
     commits_changed: bool = True
 
 
+# NOTE: Hash and eq methods for this object should return different values for different object
+# instances on order to lru_cache is working right.
 class MergeRequestManager:
     def __init__(self, mr: MergeRequest):
         logger.debug(f"Initialize MR manager for {mr.id}: '{mr.title}'")
@@ -101,7 +103,7 @@ class MergeRequestManager:
             result &= requirements.mandatory_approvers.issubset(approved_by)
         return result
 
-    @lru_cache(maxsize=16)
+    @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
     def _cached_approvals_left(self):
         return self._mr.approvals_left
 
@@ -134,7 +136,7 @@ class MergeRequestManager:
         self._run_pipeline(RunPipelineReason.no_pipelines_before)
         return True
 
-    @lru_cache(maxsize=16)
+    @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
     def _get_last_pipeline(self, include_skipped=False) -> Pipeline:
         pipeline_ids = [
             p['id'] for p in self._mr.raw_pipelines_data()
@@ -227,7 +229,7 @@ class MergeRequestManager:
 
         if reason == ReturnToDevelopmentReason.failed_pipeline:
             last_pipeline = self._get_last_pipeline()
-            title = f"Pipeline [{last_pipeline.id}] ({last_pipeline.web_url}) failed"
+            title = f"Pipeline [{last_pipeline.id}]({last_pipeline.web_url}) failed"
             message = robocat.comments.failed_pipeline_message
         elif reason == ReturnToDevelopmentReason.conflicts:
             title = "Conflicts with target branch"
@@ -301,13 +303,13 @@ class MergeRequestManager:
 
     # TODO: Move to "Project" class (a warping around gitlab Project object).
     @staticmethod
-    @lru_cache(maxsize=512)
+    @lru_cache(maxsize=512)  # Long term cache. Use the same data in different bot "handle" calls.
     def _get_commit_message(mr, sha):
         project = mr.get_project()
         return project.commits.get(sha).message
 
     @staticmethod
-    @lru_cache(maxsize=512)
+    @lru_cache(maxsize=512)  # Long term cache. Use the same data in different bot "handle" calls.
     def _get_commit_diff_hash(mr, sha):
         project = mr.get_project()
         diff = project.commits.get(sha).diff()
