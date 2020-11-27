@@ -29,13 +29,15 @@ class BaseRule(metaclass=ABCMeta):
         return False
 
     # TODO: The next to methods should be moved to separate class "Project".
-    @lru_cache(maxsize=32)
+    @lru_cache(maxsize=64)  # Long term cache. Use the same data in different bot "handle" calls.
     def get_file_content(self, sha: str, file: str) -> str:
         logger.debug(f"Getting file content: {sha}, {file}")
         file_handler = self._project.files.get(file_path=file, ref=sha)
         return file_handler.decode().decode('utf-8')
 
-    @lru_cache(maxsize=512)
+    # Data from this cache is deleted when the object destroyed, but the object itself lives  as
+    # long as the program runs.
+    @lru_cache(maxsize=512)  # Long term cache. Use the same data in different bot "handle" calls.
     def get_mr_changes(self, mr_id: int, sha: str) -> List[Dict]:  # pylint: disable=unused-argument
         # "sha" argument is used by lru_cache magic.
         gitlab_mr = self._project.mergerequests.get(mr_id, lazy=True)

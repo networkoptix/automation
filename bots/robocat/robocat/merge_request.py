@@ -14,6 +14,7 @@ class MergeRequest():
         self._gitlab_mr = gitlab_mr
         self._current_user = current_user
         self._dry_run = dry_run
+        self._award_emoji = AwardEmojiManager(gitlab_mr.awardemojis, current_user, dry_run)
 
     def __str__(self):
         return f"MR!{self.id}"
@@ -42,7 +43,7 @@ class MergeRequest():
 
     @property
     def award_emoji(self):
-        return AwardEmojiManager(self._gitlab_mr.awardemojis, self._current_user, self._dry_run)
+        return self._award_emoji
 
     @property
     def approvals_left(self):

@@ -35,7 +35,7 @@ config: |
   [global]
   default = nx_gitlab
   ssl_verify = true
-  timeout = 7
+  timeout = 20
 
   [nx_gitlab]
   url = https://gitlab.lan.hdw.mx/
