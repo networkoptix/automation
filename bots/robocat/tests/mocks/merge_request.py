@@ -168,7 +168,7 @@ class MergeRequestMock:
             self._register_commit(commit_data)
 
         for assignee in self.assignees:
-            assignee = self.project.members.list(query=assignee["username"])[0]
+            assignee = self.project.users.list(username=assignee["username"])[0]
             self.assignee_ids.append(assignee.id)
 
     def _register_commit(self, commit_data):
@@ -217,8 +217,9 @@ class MergeRequestMock:
         return {"changes": [{"new_path": f, "deleted_file": False} for f in files]}
 
     def save(self):
+        users = self.project.users.list()
         for assignee_id in self.assignee_ids:
-            assignee = self.project.members.get(assignee_id)
+            assignee = [u for u in users if u.id == assignee_id][0]
             self.assignees.append({"username": assignee.name})
 
     def comments(self):

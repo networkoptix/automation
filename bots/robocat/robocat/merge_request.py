@@ -136,7 +136,7 @@ class MergeRequest():
         project = self.get_project()
         assignee_ids = list()
         for assignee in assignees:
-            user_ids = [user.id for user in project.members.list(query=assignee)]
+            user_ids = [user.id for user in project.users.list(search=assignee)]
             if not user_ids:
                 logger.warning(f"Can't find user id for user {assignee}.")
             assignee_ids += user_ids
