@@ -57,12 +57,23 @@ class VersionsManagerMock:
 
     @dataclass
     class VersionMock:
+        head_commit_sha: str
+        diffs: list = field(default_factory=list)
         base_commit_sha: str = "1"
         start_commit_sha: str = "1"
-        head_commit_sha: str = DEFAULT_COMMIT["sha"]
+        id: int = 0
 
     def list(self, **_):
         return [self.VersionMock(head_commit_sha=self.merge_request.commits_list[-1]["sha"])]
+
+    def get(self, id, **_):
+        files = []
+        for c in self.merge_request.commits_list:
+            files.extend(c["files"])
+        return self.VersionMock(
+            id=id,
+            head_commit_sha=self.merge_request.commits_list[-1]["sha"],
+            diffs=[{"new_path": f, "deleted_file": False} for f in files])
 
 
 @dataclass

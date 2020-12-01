@@ -35,10 +35,9 @@ class BaseRule(metaclass=ABCMeta):
         file_handler = self._project.files.get(file_path=file, ref=sha)
         return file_handler.decode().decode('utf-8')
 
-    # Data from this cache is deleted when the object destroyed, but the object itself lives  as
-    # long as the program runs.
+    # Returns changes for the last version of the merge request. "sha" argument is used by
+    # lru_cache magic.
     @lru_cache(maxsize=512)  # Long term cache. Use the same data in different bot "handle" calls.
     def get_mr_changes(self, mr_id: int, sha: str) -> List[Dict]:  # pylint: disable=unused-argument
-        # "sha" argument is used by lru_cache magic.
         gitlab_mr = self._project.mergerequests.get(mr_id, lazy=True)
         return gitlab_mr.changes()["changes"]

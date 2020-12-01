@@ -5,7 +5,11 @@ from typing import List
 from itertools import chain
 import enum
 
-OPEN_SOURCE_PATH_PREFIX = "open/"
+# Paths configuration.
+OPENSOURCE_ROOT = "open"
+EXCLUDED_DIRS = {"artifacts/nx_kit/src/json11", "licenses"}
+EXCLUDED_FILES = {"readme.md"}
+
 MPL = (
     'Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/')
 SHEBANG_SUFFICIES_MAP = {"sh": "#!/bin/bash"}
@@ -61,8 +65,17 @@ class OpenSourceFileChecker:
         self._lines = file_content.splitlines()
 
     @staticmethod
-    def is_file_open_source(file):
-        return file.startswith(OPEN_SOURCE_PATH_PREFIX)
+    def is_check_needed(file_path: str):
+        if not file_path.startswith(f"{OPENSOURCE_ROOT}/"):
+            return False
+
+        if any(d for d in EXCLUDED_DIRS if file_path.startswith(f"{OPENSOURCE_ROOT}/{d}/")):
+            return False
+
+        if any(f for f in EXCLUDED_FILES if file_path == f"{OPENSOURCE_ROOT}/{f}"):
+            return False
+
+        return True
 
     def file_errors(self) -> List[FileError]:
         check_params = self._get_check_params()
