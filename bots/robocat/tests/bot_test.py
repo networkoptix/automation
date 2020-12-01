@@ -21,12 +21,12 @@ class TestBot:
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_readme"],
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/readme.md"]
+                "files": ["open/dontreadme.md"]
             }],
-            "pipelines_list": [(FILE_COMMITS_SHA["good_readme"], "success")]
+            "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
         },
     ])
     def test_autoreturn_to_develop(self, bot, mr, mr_manager):
@@ -59,13 +59,13 @@ class TestBot:
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_readme"],
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/readme.md"]
+                "files": ["open/dontreadme.md"]
             }],
             "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
-            "pipelines_list": [(FILE_COMMITS_SHA["good_readme"], "success")]
+            "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
         },
     ])
     def test_merge(self, bot, mr, mr_manager):
@@ -79,13 +79,13 @@ class TestBot:
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_readme"],
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/readme.md"]
+                "files": ["open/dontreadme.md"]
             }],
             "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
-            "pipelines_list": [(FILE_COMMITS_SHA["good_readme"], "success")]
+            "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
         },
     ])
     def test_rebase(self, bot, mr, mr_manager):

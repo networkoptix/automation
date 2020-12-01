@@ -30,21 +30,29 @@ BAD_README_RAW_DATA_2 = """# Nx Meta VMP Open Source Components
 @dataclass
 class FileManagerMock():
     commit_files: dict = field(default_factory=lambda: {
-        FILE_COMMITS_SHA["good_readme"]: [
+        FILE_COMMITS_SHA["good_dontreadme"]: [
             FileManagerMock.ProjectFileMock(
-                path="open/readme.md", raw_data=GOOD_README_RAW_DATA),
+                path="open/dontreadme.md", raw_data=GOOD_README_RAW_DATA),
         ],
-        FILE_COMMITS_SHA["bad_readme"]: [
+        FILE_COMMITS_SHA["bad_dontreadme"]: [
             FileManagerMock.ProjectFileMock(
-                path="open/readme.md", raw_data=BAD_README_RAW_DATA),
+                path="open/dontreadme.md", raw_data=BAD_README_RAW_DATA),
         ],
-        FILE_COMMITS_SHA["new_bad_readme"]: [
+        FILE_COMMITS_SHA["new_bad_dontreadme"]: [
             FileManagerMock.ProjectFileMock(
-                path="open/readme.md", raw_data=BAD_README_RAW_DATA_2),
+                path="open/dontreadme.md", raw_data=BAD_README_RAW_DATA_2),
         ],
         FILE_COMMITS_SHA["no_open_source_files"]: [
             FileManagerMock.ProjectFileMock(
-                path="readme.md", raw_data=BAD_README_RAW_DATA),
+                path="dontreadme.md", raw_data=BAD_README_RAW_DATA),
+        ],
+        FILE_COMMITS_SHA["excluded_open_source_files"]: [
+            FileManagerMock.ProjectFileMock(
+                path="open/readme.md", raw_data=BAD_README_RAW_DATA),
+            FileManagerMock.ProjectFileMock(
+                path="open/licenses/some_file.md", raw_data=BAD_README_RAW_DATA),
+            FileManagerMock.ProjectFileMock(
+                path="open/artifacts/nx_kit/src/json11/a/b/c.c", raw_data=BAD_README_RAW_DATA),
         ],
     })
 

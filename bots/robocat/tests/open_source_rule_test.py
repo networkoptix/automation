@@ -16,7 +16,19 @@ class TestOpenSourcelRule:
                 "sha": FILE_COMMITS_SHA["no_open_source_files"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["readme.md"]
+                "files": ["dontreadme.md"]
+            }]
+        },
+        {
+            "commits_list": [{
+                "sha": FILE_COMMITS_SHA["excluded_open_source_files"],
+                "message": "msg",
+                "diffs": [],
+                "files": [
+                    "open/readme.md",
+                    "open/licenses/some_file.md",
+                    "open/artifacts/nx_kit/src/json11/a/b/c.c",
+                ]
             }]
         },
     ])
@@ -27,19 +39,19 @@ class TestOpenSourcelRule:
     @pytest.mark.parametrize("mr_state", [
         {
             "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_readme"],
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/readme.md"]
+                "files": ["open/dontreadme.md"]
             }],
             "assignees": [{"username": "user1"}]
         },
         {
             "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_readme"],
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/readme.md"]
+                "files": ["open/dontreadme.md"]
             }],
             "assignees": [{"username": "user1"}, {"username": DEFAULT_OPEN_SOURCE_APPROVER}]
         },
@@ -56,10 +68,10 @@ class TestOpenSourcelRule:
         {
             "blocking_discussions_resolved": True,
             "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_readme"],
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/readme.md"]
+                "files": ["open/dontreadme.md"]
             }],
         },
     ])
@@ -101,10 +113,10 @@ class TestOpenSourcelRule:
             "blocking_discussions_resolved": True,
             "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
             "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_readme"],
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/readme.md"]
+                "files": ["open/dontreadme.md"]
             }],
         },
         # Merge allowed even if there are bad files, but merge request approved by an eligible
@@ -138,8 +150,8 @@ class TestOpenSourcelRule:
         # Add commit to mr with the sane file, but without bad words - no new comments must be
         # added.
         updated_bad_opensource_commit = BAD_OPENSOURCE_COMMIT.copy()
-        updated_bad_opensource_commit["sha"] = FILE_COMMITS_SHA["good_readme"]
-        updated_bad_opensource_commit["files"] = ["open/readme.md"]
+        updated_bad_opensource_commit["sha"] = FILE_COMMITS_SHA["good_dontreadme"]
+        updated_bad_opensource_commit["files"] = ["open/dontreadme.md"]
         mr.commits_list.append(updated_bad_opensource_commit)
         mr._register_commit(updated_bad_opensource_commit)
 
@@ -157,8 +169,8 @@ class TestOpenSourcelRule:
         # Add commit to mr with the same "bad" file - comments only for new bad words should be
         # added.
         updated_bad_opensource_commit = BAD_OPENSOURCE_COMMIT.copy()
-        updated_bad_opensource_commit["sha"] = FILE_COMMITS_SHA["new_bad_readme"]
-        updated_bad_opensource_commit["files"] = ["open/readme.md"]
+        updated_bad_opensource_commit["sha"] = FILE_COMMITS_SHA["new_bad_dontreadme"]
+        updated_bad_opensource_commit["files"] = ["open/dontreadme.md"]
         mr.commits_list.append(updated_bad_opensource_commit)
         mr._register_commit(updated_bad_opensource_commit)
 

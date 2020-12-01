@@ -109,7 +109,7 @@ class OpenSourceCheckRule(BaseRule):
         changes = self.get_mr_changes(mr_manager.mr_id, mr_manager.mr_last_commit_id)
         opensource_files = [
             c["new_path"] for c in changes
-            if not c["deleted_file"] and OpenSourceFileChecker.is_file_open_source(c["new_path"])]
+            if not c["deleted_file"] and OpenSourceFileChecker.is_check_needed(c["new_path"])]
         return opensource_files
 
     def _are_files_ok(self, mr_manager: MergeRequestManager) -> bool:
