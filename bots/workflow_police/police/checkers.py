@@ -51,8 +51,19 @@ class WrongVersionChecker:
         if VERSION_SPECIFIC_LABEL in issue.fields.labels:
             return
 
+        allowed_versions = [
+            set(['4.1_patch', '4.2', 'master']),
+            set(['4.2', 'master']),
+            set(['4.2_patch', 'master']),
+            set(['master']),
+            set(['future'])
+        ]
+        if set([v.name for v in issue.fields.fixVersions]) in allowed_versions:
+            return
+
         beginning = "Wrong fixVersions field value"
         versions = sorted([automation_tools.utils.Version(v.name) for v in issue.fields.fixVersions], reverse=True)
+
         if automation_tools.utils.Version("Future") in versions and len(versions) > 1:
             return f"{beginning}, 'Future' can't be set along with other versions"
 
