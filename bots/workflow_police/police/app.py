@@ -41,6 +41,7 @@ class WorkflowEnforcer:
         self._workflow_checker.register_ignore_checker(check_issue_not_fixed)
 
         self._workflow_checker.register_reopen_checker(WrongVersionChecker(self._jira))
+        self._workflow_checker.register_reopen_checker(BranchMissingChecker(self._jira, self._repo))
         self._workflow_checker.register_reopen_checker(VersionMissingIssueCommitChecker(self._jira, self._repo))
         self._workflow_checker.register_reopen_checker(MasterMissingIssueCommitChecker(self._repo))
 

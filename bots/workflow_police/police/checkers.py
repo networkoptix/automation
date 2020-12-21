@@ -82,6 +82,20 @@ class WrongVersionChecker:
         return
 
 
+class BranchMissingChecker:
+    def __init__(self, jira_accessor: JiraAccessor, repo: automation_tools.utils.RepoAccessor):
+        self._jira = jira_accessor
+        self._repo = repo
+
+    def __call__(self, issue: jira.Issue) -> Optional[str]:
+        for version in issue.fields.fixVersions:
+            # NOTE: checking only recent commits as an optimization
+            branch = self._jira.version_to_branch_mapping()[automation_tools.utils.Version(version.name)]
+            if not self._repo.check_branch_exists(branch):
+                return f"Branch {branch} (version: {version}) doesn't exist"
+        return
+
+
 class VersionMissingIssueCommitChecker:
     def __init__(self, jira_accessor: JiraAccessor, repo: automation_tools.utils.RepoAccessor):
         self._jira = jira_accessor

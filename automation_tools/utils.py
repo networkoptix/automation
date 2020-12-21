@@ -50,6 +50,13 @@ class RepoAccessor:
     def grep_recent_commits(self, substring: str, branch: str) -> List:
         return list(self.repo.iter_commits(f"origin/{branch}", grep=substring, since='18 month ago'))
 
+    def check_branch_exists(self, branch: str) -> bool:
+        try:
+            repo.rev_parse("origin/{branch}")
+            return True
+        except git.BadName as e:
+            return False
+
 
 def parse_config_file(filepath: Path):
     if filepath.suffix == '.json':
