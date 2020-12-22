@@ -52,7 +52,7 @@ class RepoAccessor:
 
     def check_branch_exists(self, branch: str) -> bool:
         try:
-            repo.rev_parse("origin/{branch}")
+            self.repo.rev_parse(f"origin/{branch}")
             return True
         except git.BadName as e:
             return False
