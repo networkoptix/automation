@@ -370,7 +370,7 @@ class TestFollowupRule:
                     "(cherry picked from commit ca374322a8ce3f481d5d472ba27a394a69ffacea)"),
             }],
         }),
-        # Closes more than one issue.
+        # Closes more than one issue (detection from description).
         ([
             {
                 "key": "VMS-666",
@@ -388,6 +388,27 @@ class TestFollowupRule:
             "state": "merged",
             "title": "VMS-666: Test mr",
             "description": "Closes VMS-666, Closes VMS-667",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash_commit_sha": DEFAULT_COMMIT["sha"],
+            "target_branch": "vms_4.1",
+        }),
+        # Closes more than one issue (detection from title).
+        ([
+            {
+                "key": "VMS-666",
+                "branches": ["master", "vms_4.1"],
+                "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
+                "state": "In Review",
+            },
+            {
+                "key": "VMS-667",
+                "branches": ["master", "vms_4.1"],
+                "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
+                "state": "In Review",
+            }
+        ], {
+            "state": "merged",
+            "title": "VMS-666, VMS-667: Test mr",
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "vms_4.1",

@@ -396,7 +396,8 @@ class MergeRequestManager:
             # TODO: Add comment to MR informing the user that we can't find any attached issue and
             # that he or she should double-check if it is normal.
             logger.info(
-                "{self}: Can't detect attached issue for the merge request. Skipping cherry-pick.")
+                f"{self}: Can't detect attached issue for the merge request. "
+                "Skipping cherry-pick.")
             return None
 
         if self._is_followup_mr():

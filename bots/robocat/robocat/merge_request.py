@@ -191,9 +191,10 @@ class MergeRequest:
         if keys_from_description:
             return keys_from_description
 
-        key_from_title = re.match(r"^(\w+-\d+)\:", self._gitlab_mr.title)
-        if key_from_title:
-            return [key_from_title[1]]
+        title_issues_part, _, _ = self._gitlab_mr.title.partition(":")
+        keys_from_title = re.findall(r"\b(\w+-\d+)\b", title_issues_part)
+        if keys_from_title:
+            return keys_from_title
 
         return []
 
