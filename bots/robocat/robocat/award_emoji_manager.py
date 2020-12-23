@@ -15,6 +15,11 @@ class AwardEmojiManager():
     AUTOCHECK_FAILED_EMOJI = "stop_sign"
     AUTOCHECK_OK_EMOJI = "white_check_mark"
     MERGED_EMOJI = "white_check_mark"
+    FOLLOWUP_CREATED_EMOJI = "arrow_heading_down"
+    FOLOWUP_CREATION_FAILED_EMOJI = "x"
+    FOLLOWUP_MERGE_REQUEST_EMOJI = "fast_forward"
+    CHERRY_PICK_EMOJI = "cherries"
+    UNFINISHED_PROCESSING_EMOJI = "point_up"
 
     def __init__(self, gitlab_award_emoji_manager, current_user, dry_run=False):
         self._gitlab_manager = gitlab_award_emoji_manager

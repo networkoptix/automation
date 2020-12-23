@@ -27,7 +27,7 @@ conflicts_message = f"""Merge request returned to development.
 Please, do manual rebase and [remove WIP]({_wip_url}) to continue merging process."""
 
 has_good_changes_in_open_source = """This merge request contains changes in open source part of the
-project. No problems was revealed during autocheck.
+project. No problems were revealed during autocheck.
 
 **ATTENTION**: This thread should be resolved only by @{approver}.
 """
@@ -82,3 +82,23 @@ template = """### :{emoji}: {title}
 
 ###### Robocat @ [Workflow Police](https://networkoptix.atlassian.net/wiki/spaces/SD/pages/1486749741/Automation+Workflow+Police+bot)
 """  # noqa
+
+followup_merge_request_message = """Follow-up merge request {url} is created for merging changes
+added in this merge request into `{branch}` branch.
+
+**ATTENTION**: This merge request was automatically created and must be reviewed by a human before
+merging.
+"""
+
+failed_followup_merge_request_message = """Failed to create follow-up merge request for merging
+changes added in this merge request into `{branch}` branch: {comment}.
+"""
+
+followup_initial_message = """This merge request is created as a follow-up for merging changes
+added in merge request {original_mr_url} into `{branch}` branch.
+"""
+conflicting_commit_followup_message = """Cherry-picking creates conflicts. Please, fetch `{branch}`
+branch and cherry-pick the following commits manually:
+
+`git cherry-peak -x {commits}`
+"""

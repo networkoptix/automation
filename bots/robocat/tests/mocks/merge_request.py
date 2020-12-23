@@ -1,12 +1,13 @@
 from dataclasses import dataclass, field
 from functools import namedtuple
 from typing import Any
+import re
 from gitlab.exceptions import GitlabMRClosedError
 
 from tests.mocks.gitlab import GitlabManagerMock
 from tests.mocks.pipeline import PipelineMock
 from tests.mocks.commit import CommitMock
-from tests.common_constants import BOT_USERNAME, DEFAULT_COMMIT, DEFAULT_MR_ID
+from tests.common_constants import BOT_USERNAME, DEFAULT_COMMIT, DEFAULT_MR_ID, USERS
 
 DEFAULT_APPROVERS_NUMBER = 2
 
@@ -49,6 +50,9 @@ class ApprovalsManagerMock:
 
     def get(self):
         return self.approvals
+
+    def update(self, new_data):
+        pass
 
 
 @dataclass
@@ -117,22 +121,29 @@ class MergeRequestMock:
 
     iid: int = DEFAULT_MR_ID
     title: str = "Do Zorz at work"
-    target_branch: str = "x/zorz_branch"
     has_conflicts: bool = False
     work_in_progress: bool = False
     blocking_discussions_resolved: bool = True
     assignees: list = field(default_factory=list)
     squash: bool = True
     description: str = ""
+    state: str = "opened"
+    source_branch: str = "feature1"
+    target_branch: str = "master"
+    author: dict = field(default_factory=lambda: USERS[0])
+    web_url: str = ""
+    squash_commit_sha: str = None
 
     # Fake field for testing purposes
     needs_rebase: bool = False
+    rebased: bool = field(default=False, init=False)
 
     emojis_list: list = field(default_factory=list)
     approvers_list: list = field(default_factory=list)
     needed_approvers_number: int = DEFAULT_APPROVERS_NUMBER
     pipelines_list: list = field(default_factory=lambda: [(DEFAULT_COMMIT["sha"], "manual")])
     commits_list: list = field(default_factory=lambda: [DEFAULT_COMMIT])
+    assignee_ids: list = field(default_factory=list)
 
     # Managers, must not be directly initialized.
     awardemojis: AwardEmojiManagerMock = field(default_factory=AwardEmojiManagerMock, init=False)
@@ -141,16 +152,11 @@ class MergeRequestMock:
     discussions: DiscussionsManagerMock = field(default=None, init=False)
     manager: GitlabManagerMock = field(default_factory=GitlabManagerMock, init=False)
     diffs: VersionsManagerMock = field(default=None, init=False)
-    assignee_ids: list = field(default_factory=list, init=False)
-
-    # Data fields to check merge request state.
-    rebased: bool = field(default=False, init=False)
-    merged: bool = field(default=False, init=False)
 
     def __post_init__(self):
         # Bind to "self.project".
         self.manager.gitlab = self.project.manager.gitlab
-        self.project.mergerequests.mock_add_mr(self)
+        self.project.mergerequests.add_mock_mr(self)
 
         # Create notes manager and bind it to itself.
         self.notes = NotesManagerMock(merge_request=self)
@@ -173,7 +179,7 @@ class MergeRequestMock:
 
         for p_id, p_data in enumerate(self.pipelines_list):
             pipeline = PipelineMock(project=self.project, id=p_id, sha=p_data[0], status=p_data[1])
-            self.project.pipelines.mock_add_pipeline(pipeline)
+            self.project.pipelines.add_mock_pipeline(pipeline)
 
         for commit_data in self.commits_list:
             self._register_commit(commit_data)
@@ -184,7 +190,7 @@ class MergeRequestMock:
 
     def _register_commit(self, commit_data):
         commit = CommitMock(**commit_data)
-        self.project.commits.mock_add_commit(commit)
+        self.project.commits.add_mock_commit(commit)
 
     # Gitlab library merge request interface implementation.
     @property
@@ -219,7 +225,8 @@ class MergeRequestMock:
     def merge(self, **_):
         if self.needs_rebase:
             raise GitlabMRClosedError()
-        self.merged = True
+        self.state = "merged"
+        self.squash_commit_sha = self.commits_list[-1]["sha"]
 
     def changes(self):
         files = []
@@ -235,3 +242,9 @@ class MergeRequestMock:
 
     def comments(self):
         return self.notes.list() + self.discussions.list()
+
+    def commits(self):
+        return [self.project.commits.get(c["sha"]) for c in reversed(self.commits_list)]
+
+    def closes_issues(self):
+        return []

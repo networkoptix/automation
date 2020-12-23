@@ -15,6 +15,23 @@ fullnameOverride: ""
 # comment the line below to set default INFO level
 logLevel: DEBUG
 
+# jira login api token
+jiraPassword:
+
+# robocat config file
+robocatConfig: |
+  jira:
+    url: https://networkoptix.atlassian.net/
+    login: service@networkoptix.com
+    password: {{ .Values.jiraPassword }}
+    timeout: 5
+    retries: 1
+
+  # configuration for "open source check" rule.
+  open_source_check_rule:
+    approver_username: mshevchenko
+    approver_name: Mickhail Shevchenko
+
 # gitlab api token
 gitlabToken:
 
@@ -30,8 +47,8 @@ gitlabMrPollRate: 30
 # Address of Graylog service to send GELF logs to
 gelfServer: graylog.lan.hdw.mx:12201
 
-# workflow police robocat config file
-config: |
+# robocat gitlab config file
+gitlabConfig: |
   [global]
   default = nx_gitlab
   ssl_verify = true

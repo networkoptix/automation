@@ -1,5 +1,6 @@
 import pytest
 
+from robocat.award_emoji_manager import AwardEmojiManager
 from tests.common_constants import (
     BAD_OPENSOURCE_COMMIT,
     FILE_COMMITS_SHA,
@@ -8,16 +9,16 @@ from tests.fixtures import *
 
 
 class TestBot:
-    @pytest.mark.parametrize("mr_state", [
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Return to development on the second handle iteration if essential rule is ok but
         # open source rule check is failed and merge request is not approved by an eligible user.
-        {
+        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [BAD_OPENSOURCE_COMMIT],
             "pipelines_list": [(BAD_OPENSOURCE_COMMIT["sha"], "success")]
-        },
-        {
+        }),
+        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [{
@@ -27,15 +28,15 @@ class TestBot:
                 "files": ["open/dontreadme.md"]
             }],
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
-        },
+        }),
     ])
     def test_autoreturn_to_develop(self, bot, mr, mr_manager):
         bot.handle(mr_manager)
-        assert not mr.merged
+        assert not mr.state == "merged"
         assert not mr.blocking_discussions_resolved
 
         bot.handle(mr_manager)
-        assert not mr.merged
+        assert not mr.state == "merged"
         assert mr.work_in_progress
 
         # Nothing changes after the third handler run.
@@ -44,7 +45,7 @@ class TestBot:
         emojis_before = [e.name for e in mr.awardemojis.list()]
 
         bot.handle(mr_manager)
-        assert not mr.merged
+        assert not mr.state == "merged"
         assert mr.work_in_progress
 
         comments_after = mr.comments()
@@ -54,8 +55,8 @@ class TestBot:
         assert pipelines_before == pipelines_after
         assert emojis_before == emojis_after
 
-    @pytest.mark.parametrize("mr_state", [
-        {
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [{
@@ -66,15 +67,20 @@ class TestBot:
             }],
             "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
-        },
+        }),
     ])
     def test_merge(self, bot, mr, mr_manager):
         bot.handle(mr_manager)
-        assert mr.merged
+        assert mr.state == "merged"
         assert not mr.rebased
 
-    @pytest.mark.parametrize("mr_state", [
-        {
+        emojis = mr.awardemojis.list()
+        assert not any(
+            e for e in emojis if e.name == AwardEmojiManager.UNFINISHED_PROCESSING_EMOJI), (
+            'Hasn\'t unfinished processing flag.')
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
             "needs_rebase": True,
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
@@ -86,9 +92,14 @@ class TestBot:
             }],
             "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
-        },
+        }),
     ])
     def test_rebase(self, bot, mr, mr_manager):
         bot.handle(mr_manager)
-        assert not mr.merged
+        assert not mr.state == "merged"
         assert mr.rebased
+
+        emojis = mr.awardemojis.list()
+        assert not any(
+            e for e in emojis if e.name == AwardEmojiManager.UNFINISHED_PROCESSING_EMOJI), (
+            'Hasn\'t unfinished processing flag.')

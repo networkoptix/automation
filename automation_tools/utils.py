@@ -70,7 +70,7 @@ def parse_config_file(filepath: Path):
         return parse_file(f)
 
 
-class cached():
+class cached:
     def __init__(self, invalidation_period: datetime.timedelta = None):
         self._invalidation_period = invalidation_period
 

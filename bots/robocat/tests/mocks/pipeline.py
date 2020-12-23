@@ -29,7 +29,7 @@ class JobsManagerMock:
         jobs_list = self.list()
         return next(j for j in jobs_list if j.id == j_id)
 
-    def mock_add_job(self, job: JobMock):
+    def add_mock_job(self, job: JobMock):
         job.id = len(self.jobs_list)
         self.jobs_list.append(job)
 
@@ -46,7 +46,7 @@ class PipelineMock:
 
     def __post_init__(self):
         self.manager.gitlab = self.project.manager.gitlab
-        self.project.jobs.mock_add_job(JobMock(pipeline=self))
+        self.project.jobs.add_mock_job(JobMock(pipeline=self))
 
     @property
     def project_id(self):
@@ -70,5 +70,5 @@ class PipelineManagerMock:
     def list(self, **_):
         return self.pipelines.values()
 
-    def mock_add_pipeline(self, pipeline: PipelineMock):
+    def add_mock_pipeline(self, pipeline: PipelineMock):
         self.pipelines[pipeline.id] = pipeline
