@@ -1,15 +1,15 @@
 import logging
 from typing import Set, List, Dict
+import re
 import gitlab
 
-import robocat.comments
 from robocat.pipeline import Pipeline
 from robocat.award_emoji_manager import AwardEmojiManager
 
 logger = logging.getLogger(__name__)
 
 
-class MergeRequest():
+class MergeRequest:
     def __init__(self, gitlab_mr, current_user, dry_run=False):
         self._gitlab_mr = gitlab_mr
         self._current_user = current_user
@@ -34,8 +34,20 @@ class MergeRequest():
         return self._gitlab_mr.title
 
     @property
+    def description(self):
+        return self._gitlab_mr.description
+
+    @property
     def target_branch(self):
         return self._gitlab_mr.target_branch
+
+    @property
+    def source_branch(self):
+        return self._gitlab_mr.source_branch
+
+    @property
+    def squash_sha(self):
+        return self._gitlab_mr.squash_commit_sha
 
     @property
     def work_in_progress(self):
@@ -66,7 +78,7 @@ class MergeRequest():
         return self._gitlab_mr.pipelines()
 
     def pipeline(self, pipeline_id) -> Pipeline:
-        project = self.get_project()
+        project = self.get_raw_project_object()
         return Pipeline(project.pipelines.get(pipeline_id), self._dry_run)
 
     def rebase(self):
@@ -93,7 +105,7 @@ class MergeRequest():
         url = f"/projects/{self._gitlab_mr.project_id}/merge_requests/{self._gitlab_mr.iid}/pipelines"
         self._gitlab_mr.manager.gitlab.http_post(url)
 
-    def get_project(self):
+    def get_raw_project_object(self):
         project_id = self._gitlab_mr.project_id
         return self._gitlab_mr.manager.gitlab.projects.get(project_id, lazy=True)
 
@@ -129,17 +141,9 @@ class MergeRequest():
     def assignees(self) -> Set[str]:
         return {assignee["username"] for assignee in self._gitlab_mr.assignees}
 
-    def set_assignees(self, assignees: Set[str]) -> None:
-        logger.debug(f"{self}: Updating assignees list: {assignees}")
+    def set_assignees_by_ids(self, assignee_ids: Set[int]) -> None:
         if self._dry_run:
             return
-        project = self.get_project()
-        assignee_ids = list()
-        for assignee in assignees:
-            user_ids = [user.id for user in project.users.list(search=assignee)]
-            if not user_ids:
-                logger.warning(f"Can't find user id for user {assignee}.")
-            assignee_ids += user_ids
         self._gitlab_mr.assignee_ids = assignee_ids
         self._gitlab_mr.save()
 
@@ -154,3 +158,44 @@ class MergeRequest():
     def create_note(self, body: str) -> None:
         if not self._dry_run:
             self._gitlab_mr.notes.create({'body': body})
+
+    @property
+    def is_merged(self):
+        return self._gitlab_mr.state == "merged"
+
+    @property
+    def author(self) -> dict:
+        return self._gitlab_mr.author
+
+    @property
+    def url(self):
+        return self._gitlab_mr.web_url
+
+    # Commits in the chronological order: from the earliest to the latest.
+    def commits(self):
+        return reversed(list(self._gitlab_mr.commits()))
+
+    def issue_keys(self):
+        explicit_keys = self._gitlab_mr.closes_issues()
+        if explicit_keys:
+            return [k.id for k in explicit_keys]
+
+        # Sometimes "closes_issues()" returns an empty list even if there are Jira issues that are
+        # related to this merge request. The reason is unknown, so to be on the safe side manual
+        # search for Jira issues mentions is added.
+        # The issue describing this problem from some other gitlab user:
+        # https://gitlab.com/gitlab-org/gitlab/-/issues/28157.
+        description = self._gitlab_mr.description or ""
+        keys_from_description = re.findall(
+            r"closes[ \:]+(\w+\-\d+)\b", description, flags=re.IGNORECASE)
+        if keys_from_description:
+            return keys_from_description
+
+        key_from_title = re.match(r"^(\w+-\d+)\:", self._gitlab_mr.title)
+        if key_from_title:
+            return [key_from_title[1]]
+
+        return []
+
+    def set_approvers_count(self, approvers_count):
+        self._gitlab_mr.approvals.update(new_data={"approvals_required": approvers_count})

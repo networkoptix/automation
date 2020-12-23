@@ -17,7 +17,7 @@ stages:
   - deploy
 
 pep8:
-  image: cytopia/pycodestyle
+  image: nx/deploy-pod:1.4
   stage: check
   script:
     - pycodestyle --max-line-length=120 .

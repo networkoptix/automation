@@ -9,11 +9,13 @@ import logging
 import graypy
 
 import automation_tools.utils
+from automation_tools.jira import JiraAccessor, JiraError
+from robocat.project_manager import ProjectManager
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.merge_request import MergeRequest
 from robocat.pipeline import PlayPipelineError
 from robocat.rule.essential_rule import EssentialRule
 from robocat.rule.open_source_check_rule import OpenSourceCheckRule
+from robocat.rule.followup_rule import FollowupRule
 
 logger = logging.getLogger(__name__)
 
@@ -28,16 +30,22 @@ class ServiceNameFilter(logging.Filter):
 class Bot:
     def __init__(self, config, project_id, dry_run):
         self._gitlab = gitlab.Gitlab.from_config("nx_gitlab")
-        self._project = self._gitlab.projects.get(project_id)
-        self._rule_essential = EssentialRule(project=self._project)
-
-        self._rule_open_source_check = OpenSourceCheckRule(
-                project=self._project,
-                **config['open_source_check_rule'])
-
         self._gitlab.auth()
         self._username = self._gitlab.user.username
         self._dry_run = dry_run
+
+        self._project_manager = ProjectManager(
+            gitlab_project=self._gitlab.projects.get(project_id),
+            current_user=self._username,
+            dry_run=dry_run)
+
+        self._rule_essential = EssentialRule()
+        self._rule_open_source_check = OpenSourceCheckRule(
+                project_manager=self._project_manager,
+                **config['open_source_check_rule'])
+        self._rule_followup = FollowupRule(
+            project_manager=self._project_manager,
+            jira=JiraAccessor(**config["jira"]))
 
     def handle(self, mr_manager: MergeRequestManager):
         essential_rule_check_result = self._rule_essential.execute(mr_manager)
@@ -46,12 +54,19 @@ class Bot:
         opens_source_check_result = self._rule_open_source_check.execute(mr_manager)
         logger.debug(f"{mr_manager}: {opens_source_check_result}")
 
-        if essential_rule_check_result and opens_source_check_result:
-            mr_manager.merge_or_rebase()
+        if not essential_rule_check_result or not opens_source_check_result:
+            return
+
+        mr_manager.update_unfinished_processing_flag(True)
+        mr_manager.merge_or_rebase()
+        followup_result = self._rule_followup.execute(mr_manager)
+        logger.debug(f"{mr_manager}: {followup_result}")
+        mr_manager.update_unfinished_processing_flag(False)
 
     def start(self, mr_poll_rate):
         logger.info(
-            f"Started for project [{self._project.name}] with {mr_poll_rate} secs poll rate"
+            f"Started for project [{self._project_manager.project_name}] "
+            f"with {mr_poll_rate} secs poll rate"
             f"{' (--dry-run)' if self._dry_run else ''}")
 
         for mr_manager in self.get_merge_requests_manager(mr_poll_rate):
@@ -59,16 +74,17 @@ class Bot:
                 self.handle(mr_manager)
             except gitlab.exceptions.GitlabOperationError as e:
                 logger.warning(f"{mr_manager}: Gitlab error: {e}")
+            except JiraError as e:
+                logger.warning(f"{mr_manager}: Jira error: {e}")
             except PlayPipelineError as e:
                 logger.warning(f"{mr_manager}: Error: {e}")
 
     def get_merge_requests_manager(self, mr_poll_rate):
         while True:
             start_time = time.time()
-            for mr in self._project.mergerequests.list(state='opened', order_by='updated_at', as_list=False):
-                if self._username not in (assignee["username"] for assignee in mr.assignees):
-                    continue
-                mr = MergeRequest(mr, self._username, self._dry_run)
+            for mr in self._project_manager.get_next_unfinished_merge_request():
+                yield MergeRequestManager(mr)
+            for mr in self._project_manager.get_next_open_merge_request():
                 yield MergeRequestManager(mr)
 
             sleep_time = max(0, start_time + mr_poll_rate - time.time())
