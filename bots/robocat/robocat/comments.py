@@ -100,5 +100,5 @@ added in merge request {original_mr_url} into `{branch}` branch.
 conflicting_commit_followup_message = """Cherry-picking creates conflicts. Please, fetch `{branch}`
 branch and cherry-pick the following commits manually:
 
-`git cherry-peak -x {commits}`
+`git cherry-pick -x {commits}`
 """
