@@ -75,6 +75,7 @@ class Project:
             target_branch: str,
             title: str,
             description: str,
+            squash: bool,
             author: str):
 
         if self._dry_run:
@@ -100,7 +101,7 @@ class Project:
             "target_branch": target_branch,
             "title": title,
             "description": description,
-            "squash": True,
+            "squash": squash,
             "remove_source_branch": True,
             "assignee_ids": assignee_ids})
 

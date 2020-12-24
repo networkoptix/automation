@@ -49,7 +49,10 @@ class ProjectManager:
         branch_name = f"{followup_mr_data.original_source_branch}_{target_branch}"
         self._project.create_branch(branch=branch_name, from_branch=target_branch)
 
-        title = re.sub(r'^(\w+-\d+:\s+)?', rf'\1({target_branch}) ', followup_mr_data.title)
+        title = re.sub(
+            r'^(\w+-\d+:\s+)?',
+            rf'\1({followup_mr_data.original_target_branch}->{target_branch}) ',
+            followup_mr_data.title)
         description = f"{followup_mr_data.description}\n\n" + "\n".join(
             f"(cherry picked from commit {sha})" for sha in followup_mr_data.commit_sha_list)
         raw_mr = self._project.create_merge_request(
@@ -57,6 +60,7 @@ class ProjectManager:
             target_branch=target_branch,
             title=title,
             description=description,
+            squash=False,
             author=followup_mr_data.author_username)
 
         mr = MergeRequest(raw_mr, self._current_user, self._dry_run)
