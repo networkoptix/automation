@@ -187,7 +187,7 @@ class TestFollowupRule:
         assert len(mrs) == before_mergrequests_count + 1
 
         new_mr = sorted(mrs, key=lambda mr: mr.iid)[-1]
-        assert re.match(r"(VMS-666: )?\(vms_4.1\) ", new_mr.title)
+        assert re.match(r"(VMS-666: )?\(master->vms_4.1\) ", new_mr.title)
 
         emojis = new_mr.awardemojis.list()
         assert any(
