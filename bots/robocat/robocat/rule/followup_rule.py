@@ -34,7 +34,7 @@ class FollowupRule(BaseRule):
         self._jira.get_issue.cache_clear()
 
         if not mr_manager.is_merged:
-            logger.info("{mr_manager}: Merge request isn't merged. Cannot cherry-pick.")
+            logger.info(f"{mr_manager}: Merge request isn't merged. Cannot cherry-pick.")
             return FollowupRuleExecutionResult.not_eligible
 
         followup_mr_data = mr_manager.get_followup_mr_data()
