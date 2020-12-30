@@ -85,9 +85,6 @@ template = """### :{emoji}: {title}
 
 followup_merge_request_message = """Follow-up merge request {url} is created for merging changes
 added in this merge request into `{branch}` branch.
-
-**ATTENTION**: This merge request was automatically created and must be reviewed by a human before
-merging.
 """
 
 failed_followup_merge_request_message = """Failed to create follow-up merge request for merging

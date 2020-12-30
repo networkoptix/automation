@@ -131,8 +131,6 @@ class FollowupRule(BaseRule):
             return
 
         new_mr_manager = MergeRequestManager(new_mr)
-        new_mr_manager.return_to_development(ReturnToDevelopmentReason.autocreated)
-
         current_mr_manager.add_followup_creation_comment(FollowupCreationResult(
             branch=target_branch,
             url=new_mr_manager.mr_url,
