@@ -6,7 +6,6 @@ class ReturnToDevelopmentReason(enum.Enum):
     conflicts = enum.auto()
     failed_pipeline = enum.auto()
     unresolved_threads = enum.auto()
-    autocreated = enum.auto()
 
 
 class WaitReason(enum.Enum):

@@ -316,8 +316,6 @@ class MergeRequestManager:
         elif reason == ReturnToDevelopmentReason.unresolved_threads:
             title = "Unresolved threads"
             message = robocat.comments.unresolved_threads_message
-        elif reason == ReturnToDevelopmentReason.autocreated:
-            title = message = None
         else:
             assert False, f"Unknown reason: {reason}"
 
