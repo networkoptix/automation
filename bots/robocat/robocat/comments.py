@@ -80,7 +80,7 @@ template = """### :{emoji}: {title}
 
 ---
 
-###### Robocat @ [Workflow Police](https://networkoptix.atlassian.net/wiki/spaces/SD/pages/1486749741/Automation+Workflow+Police+bot)
+###### Robocat v{version}. See its [documentation](https://networkoptix.atlassian.net/wiki/spaces/SD/pages/1486749741/Automation+Workflow+Police+bot)
 """  # noqa
 
 followup_merge_request_message = """Follow-up merge request {url} is created for merging changes

@@ -8,6 +8,7 @@ from robocat.merge_request import MergeRequest
 from robocat.merge_request_manager import FollowupData
 from robocat.award_emoji_manager import AwardEmojiManager
 import robocat.comments
+from automation_tools.bot_versions import RobocatVersion
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +71,8 @@ class ProjectManager:
             title="Follow-up merge request",
             message=robocat.comments.followup_initial_message.format(
                 branch=target_branch, original_mr_url=followup_mr_data.original_mr_url),
-            emoji=AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI))
+            emoji=AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI,
+            version=RobocatVersion))
 
         return mr
 
@@ -88,7 +90,8 @@ class ProjectManager:
                     message=robocat.comments.conflicting_commit_followup_message.format(
                         branch=merge_request.source_branch,
                         commits=" ".join(commit_sha_list[last_cherry_picked_commit_number:])),
-                    emoji=AwardEmojiManager.CHERRY_PICK_EMOJI))
+                    emoji=AwardEmojiManager.CHERRY_PICK_EMOJI,
+                    version=RobocatVersion))
                 return
 
             last_cherry_picked_commit_number += 1

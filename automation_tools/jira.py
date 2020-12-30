@@ -9,6 +9,7 @@ import jira.exceptions
 
 import automation_tools.utils
 import automation_tools.jira_comments as jira_messages
+from automation_tools import bot_versions
 
 logger = logging.getLogger(__name__)
 
@@ -55,11 +56,17 @@ class JiraIssue:
 
     def _add_robocat_comment(self, message: str):
         self._jira.add_comment(
-            self._raw_issue, jira_messages.template_robocat.format(message=message))
+            self._raw_issue,
+            jira_messages.template_robocat.format(
+                message=message,
+                version=automation_tools.bot_versions.RobocatVersion))
 
     def _add_police_comment(self, message: str):
         self._jira.add_comment(
-            self._raw_issue, jira_messages.template_police.format(message=message))
+            self._raw_issue,
+            jira_messages.template_police.format(
+                message=message,
+                version=automation_tools.bot_versions.PoliceVersion))
 
     def __str__(self):
         return self._raw_issue.key
