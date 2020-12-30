@@ -2,11 +2,7 @@ import sys
 from pathlib import Path
 import pytest
 
-from robocat.merge_request_manager import MergeRequestManager
-from robocat.project_manager import ProjectManager
 from robocat.merge_request import MergeRequest
-from robocat.rule.essential_rule import EssentialRule
-from robocat.rule.open_source_check_rule import OpenSourceCheckRule
 import robocat.project as gitlab_project_module
 from tests.mocks.project import ProjectMock
 from tests.mocks.merge_request import MergeRequestMock
@@ -16,7 +12,11 @@ from tests.common_constants import BOT_USERNAME, DEFAULT_MR_ID, DEFAULT_OPEN_SOU
 # Patch sys.path to include common libraries.
 sys.path.append(str((Path(__file__).parent / '../../../').resolve()))
 from robocat.app import Bot  # noqa
+from robocat.rule.essential_rule import EssentialRule  # noqa
+from robocat.rule.open_source_check_rule import OpenSourceCheckRule  # noqa
 from robocat.rule.followup_rule import FollowupRule  # noqa
+from robocat.merge_request_manager import MergeRequestManager  # noqa
+from robocat.project_manager import ProjectManager  # noqa
 from automation_tools.jira import JiraAccessor  # noqa
 from automation_tools.tests.mocks.jira import Jira as JiraMock  # noqa
 
