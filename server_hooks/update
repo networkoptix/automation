@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -e
+
+refname=$1
+sha_old=$2
+sha_new=$3
+
+case "$refname" in
+    refs/heads/*)
+        if expr "$sha_new" : '0*$' >/dev/null
+        then
+            exit 0 #< Branch was deleted.
+        fi
+
+        # NOTE: New commits pushed aren't reachable from any refs yet.
+        from_sha=$(git rev-list $sha_new --not --branches='*' | tail -n1)
+        if [ -z "$from_sha" ]
+        then
+            exit 0 #< No new commits were pushed.
+        fi
+
+        mode_changes=$(git diff --summary $from_sha^..$sha_new \
+            | grep -E -e "mode change .* => .*755.*(\.cpp|\.h)" -e "create mode .*755.*(\.cpp|\.h)" \
+            || [[ $? == 1 ]])
+        if [ ! -z "$mode_changes" ]
+        then
+            echo "GL-HOOK-ERR: Nx Update hook: Erroneous text file permission changes detected" \
+                "when transiting from ${from_sha} to ${to_sha}."
+            echo "$mode_changes"
+            exit 1
+        fi
+        ;;
+esac
