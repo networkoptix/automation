@@ -124,9 +124,13 @@ class JiraIssue:
         if self._dry_run:
             return
 
+        if self.status in [JiraIssueStatus.closed, JiraIssueStatus.qa]:
+            logger.info(f'Nothing to do: issue {self} already has status {self.status}.')
+            return
+
         if self.status not in [JiraIssueStatus.progress, JiraIssueStatus.review]:
             raise JiraError(
-                f"Cannot automatically close issue {self} because of the wrong status "
+                f"Cannot automatically move to QA or close Issue {self} because of the wrong status "
                 f'"{self._raw_issue.fields.status.name}".')
 
         if self.status == JiraIssueStatus.progress:

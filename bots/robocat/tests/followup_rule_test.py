@@ -293,7 +293,7 @@ class TestFollowupRule:
         issue = jira._jira.issue("VMS-666")
         assert issue.fields.status.name == issue_state_before
         assert len(issue.fields.comment.comments) == 1
-        assert 'Cannot automatically close issue ' in issue.fields.comment.comments[0].body
+        assert 'Cannot automatically move to QA or close ' in issue.fields.comment.comments[0].body
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Has merged merge requests for all issue branches, follow-up merge request just merged,
