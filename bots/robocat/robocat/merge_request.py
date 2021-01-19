@@ -176,26 +176,11 @@ class MergeRequest:
         return reversed(list(self._gitlab_mr.commits()))
 
     def issue_keys(self):
-        explicit_keys = self._gitlab_mr.closes_issues()
-        if explicit_keys:
-            return [k.id for k in explicit_keys]
-
-        # Sometimes "closes_issues()" returns an empty list even if there are Jira issues that are
-        # related to this merge request. The reason is unknown, so to be on the safe side manual
-        # search for Jira issues mentions is added.
-        # The issue describing this problem from some other gitlab user:
-        # https://gitlab.com/gitlab-org/gitlab/-/issues/28157.
-        description = self._gitlab_mr.description or ""
-        keys_from_description = re.findall(
-            r"closes[ \:]+(\w+\-\d+)\b", description, flags=re.IGNORECASE)
-        if keys_from_description:
-            return keys_from_description
-
+        """Extract Jira issue names from the merge request title"""
         title_issues_part, _, _ = self._gitlab_mr.title.partition(":")
         keys_from_title = re.findall(r"\b(\w+-\d+)\b", title_issues_part)
         if keys_from_title:
             return keys_from_title
-
         return []
 
     def set_approvers_count(self, approvers_count):
