@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass, field
+import dataclasses
 from functools import lru_cache
 from typing import Set, List, Dict
 import re
@@ -11,12 +11,13 @@ from robocat.pipeline import Pipeline, PipelineStatus, PlayPipelineError, RunPip
 from robocat.action_reasons import WaitReason, ReturnToDevelopmentReason
 from robocat.merge_request import MergeRequest
 from robocat.project import Project
+from robocat.gitlab import Gitlab
 from automation_tools.bot_versions import RobocatVersion
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclasses.dataclass
 class FollowupCreationResult:
     branch: str
     successfull: bool
@@ -43,13 +44,13 @@ class FollowupCreationResult:
         return AwardEmojiManager.FOLOWUP_CREATION_FAILED_EMOJI
 
 
-@dataclass
+@dataclasses.dataclass
 class ApprovalRequirements:
     approvals_left: int = None
-    mandatory_approvers: Set[str] = field(default_factory=set)
+    mandatory_approvers: Set[str] = dataclasses.field(default_factory=set)
 
 
-@dataclass
+@dataclasses.dataclass
 class MergeRequestChanges:
     not_changed: bool = False
     commits_changed: bool = False
@@ -60,91 +61,72 @@ class MergeRequestChanges:
         return self.message
 
 
-@dataclass
+@dataclasses.dataclass
 class MergeRequestChangesSameSha(MergeRequestChanges):
     message: str = "nothing changed"
     not_changed: bool = True
 
 
-@dataclass
+@dataclasses.dataclass
 class MergeRequestChangesRebased(MergeRequestChanges):
     message: str = "last commit sha changed"
     is_rebased: bool = True
 
 
-@dataclass
+@dataclasses.dataclass
 class MergeRequestChangesDiffHashChanged(MergeRequestChanges):
     message: str = "last commit diff changed"
     commits_changed: bool = True
 
 
-@dataclass
+@dataclasses.dataclass
 class MergeRequestChangesCommitMessageChanged(MergeRequestChanges):
     message: str = "last commit name changed"
     commits_changed: bool = True
 
 
-@dataclass
-class FollowupData:
-    issue_keys: list
-    original_target_branch: str
-    original_source_branch: str
-    commit_sha_list: list = field(default_factory=list)
-    title: str = None
-    description: str = None
-    author_username: str = None
-    original_mr_url: str = None
-    is_followup: bool = False
+@dataclasses.dataclass
+class MergeRequestData:
+    id: int
+    title: str
+    description: str
+    author_name: str
+    sha: str
+    url: str
+    is_merged: bool
+    has_commits: bool
+    has_conflicts: bool
+    work_in_progress: bool
+    blocking_discussions_resolved: bool
+    source_branch: bool
+    target_branch: bool
+    issue_keys: List[str] = dataclasses.field(default_factory=list)
 
 
 # NOTE: Hash and eq methods for this object should return different values for different object
-# instances on order to lru_cache is working right.
+# instances in order to lru_cache is working right.
 class MergeRequestManager:
     _FOLLOWUP_DESCRIPTION_RE = re.compile(r"\(cherry picked from commit (?P<sha>[a-f0-9]{40})\)")
 
     def __init__(self, mr: MergeRequest):
         logger.debug(f"Initialize MR manager for {mr.id}: '{mr.title}'")
         self._mr = mr
+        self._gitlab = Gitlab(self._mr.raw_gitlab_object)
 
     def __str__(self):
         return f"MR Manager!{self._mr.id}"
 
     @property
-    def mr_id(self) -> int:
-        return self._mr.id
+    def data(self) -> MergeRequestData:
+        return MergeRequestData(
+            **{f.name: getattr(self._mr, f.name) for f in dataclasses.fields(MergeRequestData)})
 
-    @property
-    def mr_last_commit_sha(self) -> str:
-        return self._mr.sha
-
-    @property
-    def mr_work_in_progress(self) -> bool:
-        return self._mr.work_in_progress
-
-    @property
-    def mr_has_commits(self) -> bool:
-        return bool(self._mr.sha)
-
-    @property
-    def mr_has_conflicts(self) -> bool:
-        return self._mr.has_conflicts
-
-    @property
-    def mr_has_unresolved_threads(self) -> bool:
-        return not self._mr.blocking_discussions_resolved
-
-    @property
-    def mr_last_pipeline_status(self) -> PipelineStatus:
+    def get_last_pipeline_status(self) -> PipelineStatus:
         pipeline = self._get_last_pipeline()
         return pipeline.status
 
-    @property
-    def mr_url(self):
-        return self._mr.url
-
-    @property
-    def is_merged(self) -> bool:
-        return self._mr.is_merged
+    def get_changes(self) -> List[Dict]:
+        return self._get_project().get_mr_commit_changes(self._mr.id, self._mr.sha)
 
     def update_unfinished_processing_flag(self, value):
         if self._mr.award_emoji.find(AwardEmojiManager.UNFINISHED_PROCESSING_EMOJI, own=True):
@@ -160,7 +142,7 @@ class MergeRequestManager:
         if requirements.approvals_left is not None:
             result &= self._cached_approvals_left() == requirements.approvals_left
         if requirements.mandatory_approvers:
-            approved_by = self._mr.approved_by
+            approved_by = self._mr.approved_by()
             result &= requirements.mandatory_approvers.issubset(approved_by)
         return result
 
@@ -202,9 +184,13 @@ class MergeRequestManager:
     @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
     def _get_last_pipeline(self, include_skipped=False) -> Pipeline:
         pipeline_ids = [
-            p['id'] for p in self._mr.raw_pipelines_data()
+            p['id'] for p in self._mr.raw_pipelines_list()
             if include_skipped or Pipeline.translate_status(p["status"]) != PipelineStatus.skipped]
-        return self._mr.pipeline(max(pipeline_ids)) if pipeline_ids else None
+        if not pipeline_ids:
+            return None
+
+        pipeline_id = max(pipeline_ids)
+        return self._gitlab.get_pipeline(project_id=self._mr.project_id, pipeline_id=pipeline_id)
 
     def ensure_pipeline_rerun(self) -> bool:
         pipeline = self._get_last_pipeline()
@@ -224,7 +210,7 @@ class MergeRequestManager:
         # Re-run pipeline after rebase only if last pipeline failed (we assume that rebase by
         # itself can't break the build) and all threads are resolved (since if they are not,
         # probably some changes will be added and we will have to re-run pipeline after that)
-        if pipeline.status == PipelineStatus.failed and not self.mr_has_unresolved_threads:
+        if pipeline.status == PipelineStatus.failed and self._mr.blocking_discussions_resolved:
             self._run_pipeline(RunPipelineReason.mr_rebased, changes)
             return True
 
@@ -269,7 +255,7 @@ class MergeRequestManager:
         return True
 
     def _get_project(self):
-        return Project(self._mr.get_raw_project_object())
+        return self._gitlab.get_project(self._mr.project_id)
 
     def _run_pipeline(self, reason, details=None):
         logger.info(f"{self._mr}: Running pipeline ({reason})")
@@ -299,7 +285,7 @@ class MergeRequestManager:
         self._get_last_pipeline.cache_clear()
 
     def _create_mr_pipeline(self):
-        self._mr.create_pipeline()
+        self._gitlab.create_detached_pipeline(project_id=self._mr.project_id, mr_id=self._mr.id)
         self._get_last_pipeline.cache_clear()
         return self._get_last_pipeline(include_skipped=True)
 
@@ -352,7 +338,7 @@ class MergeRequestManager:
         self._mr.award_emoji.delete(AwardEmojiManager.WAIT_EMOJI, own=True)
 
     def merge_or_rebase(self):
-        if self.is_merged:
+        if self._mr.is_merged:
             logger.info(f"{self}: Already merged")
             return
 
@@ -370,7 +356,7 @@ class MergeRequestManager:
     def create_thread_to_resolve(
             self, title, message, emoji, file: str = None, line: int = None) -> bool:
         if file is not None and line is not None:
-            latest_diff = self._mr.latest_diff
+            latest_diff = self._mr.latest_diff()
             position = {
                 "base_sha": latest_diff.base_commit_sha,
                 "start_sha": latest_diff.start_commit_sha,
@@ -386,49 +372,7 @@ class MergeRequestManager:
             title=title, message=message, emoji=emoji, version=RobocatVersion)
         return self._mr.create_discussion(body=body, position=position)
 
-    @property
-    def last_mr_changes(self) -> List[Dict]:
-        return self._get_project().get_mr_commit_changes(self._mr.id, self._mr.sha)
-
-    def get_followup_mr_data(self) -> FollowupData:
-        assert self._mr.is_merged, f"Merge request {self} isn't merged."
-
-        issue_keys = self._mr.issue_keys()
-        if not issue_keys:
-            # TODO: Add comment to MR informing the user that we can't find any attached issue and
-            # that he or she should double-check if it is normal.
-            logger.info(
-                f"{self}: Can't detect attached issue for the merge request. "
-                "Skipping cherry-pick.")
-            return None
-
-        if self._is_followup_mr():
-            return FollowupData(
-                is_followup=True,
-                issue_keys=issue_keys,
-                original_target_branch=self._mr.target_branch,
-                original_source_branch=self._mr.source_branch,
-                title=self._mr.title,
-                description=self._mr.description,
-                author_username=self._mr.author["username"],
-                original_mr_url=self._mr.url)
-
-        if self._mr.squash_sha is not None:
-            commit_sha_list = [self._mr.squash_sha[0:12]]
-        else:
-            commit_sha_list = [c.id[0:12] for c in self._mr.commits()]
-
-        return FollowupData(
-            commit_sha_list=commit_sha_list,
-            issue_keys=issue_keys,
-            original_target_branch=self._mr.target_branch,
-            original_source_branch=self._mr.source_branch,
-            title=self._mr.title,
-            description=self._mr.description,
-            author_username=self._mr.author["username"],
-            original_mr_url=self._mr.url)
-
-    def _is_followup_mr(self):
+    def is_followup(self):
         if self._mr.award_emoji.find(AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI, own=True):
             return True
 
@@ -442,3 +386,12 @@ class MergeRequestManager:
 
     def add_followup_creation_comment(self, followup: FollowupCreationResult):
         self._add_comment(followup.title, followup.message, followup.emoji)
+
+    def get_merged_commits(self) -> List[str]:
+        if not self._mr.is_merged:
+            return []
+
+        if self._mr.squash_commit_sha is not None:
+            return [self._mr.squash_commit_sha[0:12]]
+
+        return [c.id[0:12] for c in self._mr.commits()]

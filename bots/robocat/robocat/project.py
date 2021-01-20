@@ -55,7 +55,7 @@ class Project:
         return self._gitlab_project.mergerequests.get(mr_id)
 
     @property
-    def project_name(self):
+    def name(self):
         return self._gitlab_project.name
 
     def cherry_pick_to_branch(self, branch, commit_sha):

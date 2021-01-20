@@ -43,30 +43,30 @@ class CheckResultsCache:
         self._is_commit_ok = dict()  # Map commit hashes to check result for these commits.
 
     def has_mr_ever_been_checked(self, mr_manager: MergeRequestManager) -> bool:
-        return mr_manager.mr_id in self._errors_by_mr
+        return mr_manager.data.id in self._errors_by_mr
 
     def is_last_mr_commit_checked(self, mr_manager: MergeRequestManager) -> bool:
-        return mr_manager.mr_last_commit_sha in self._is_commit_ok
+        return mr_manager.data.sha in self._is_commit_ok
 
     def has_error_at(self, mr_manager: MergeRequestManager, location: ErrorLocation) -> bool:
-        mr_results = self._errors_by_mr.get(mr_manager.mr_id, set())
+        mr_results = self._errors_by_mr.get(mr_manager.data.id, set())
         return str(location) in mr_results
 
     def add_error_at(self, mr_manager: MergeRequestManager, location: ErrorLocation) -> None:
-        self._add_empty_errors_set_if_needed(mr_manager.mr_id)
-        self._errors_by_mr[mr_manager.mr_id].add(str(location))
-        self._is_commit_ok[mr_manager.mr_last_commit_sha] = False
+        self._add_empty_errors_set_if_needed(mr_manager.data.id)
+        self._errors_by_mr[mr_manager.data.id].add(str(location))
+        self._is_commit_ok[mr_manager.data.sha] = False
 
     def _add_empty_errors_set_if_needed(self, mr_id):
         if mr_id not in self._errors_by_mr:
             self._errors_by_mr[mr_id] = set()
 
     def mark_last_mr_commit_as_ok(self, mr_manager: MergeRequestManager) -> None:
-        self._add_empty_errors_set_if_needed(mr_manager.mr_id)
-        self._is_commit_ok[mr_manager.mr_last_commit_sha] = True
+        self._add_empty_errors_set_if_needed(mr_manager.data.id)
+        self._is_commit_ok[mr_manager.data.sha] = True
 
     def is_last_mr_commit_ok(self, mr_manager: MergeRequestManager) -> bool:
-        return self._is_commit_ok.get(mr_manager.mr_last_commit_sha, None)
+        return self._is_commit_ok.get(mr_manager.data.sha, None)
 
 
 class OpenSourceCheckRule(BaseRule):
@@ -85,13 +85,14 @@ class OpenSourceCheckRule(BaseRule):
     def execute(self, mr_manager: MergeRequestManager) -> OpenSourceCheckRuleExecutionResult:
         logger.debug(f"Executing check open sources rule on {mr_manager}...")
 
-        if mr_manager.is_merged:
+        mr_data = mr_manager.data
+        if mr_data.is_merged:
             return OpenSourceCheckRuleExecutionResult.merged
 
-        if not mr_manager.mr_has_commits:
+        if not mr_data.has_commits:
             return OpenSourceCheckRuleExecutionResult.no_commits
 
-        if mr_manager.mr_work_in_progress:
+        if mr_data.work_in_progress:
             return OpenSourceCheckRuleExecutionResult.work_in_progress
 
         if not self._changed_opensource_files(mr_manager):
@@ -110,8 +111,9 @@ class OpenSourceCheckRule(BaseRule):
 
         return OpenSourceCheckRuleExecutionResult.not_authorized
 
-    def _changed_opensource_files(self, mr_manager) -> List[str]:
-        changes = mr_manager.last_mr_changes
+    @staticmethod
+    def _changed_opensource_files(mr_manager) -> List[str]:
+        changes = mr_manager.get_changes()
         opensource_files = [
             c["new_path"] for c in changes
             if not c["deleted_file"] and OpenSourceFileChecker.is_check_needed(c["new_path"])]
@@ -127,7 +129,7 @@ class OpenSourceCheckRule(BaseRule):
         has_errors = False
         for file_name in self._changed_opensource_files(mr_manager):
             file_content = self._project_manager.file_get_content(
-                sha=mr_manager.mr_last_commit_sha, file=file_name)
+                sha=mr_manager.data.sha, file=file_name)
             file_checker = OpenSourceFileChecker(file_name=file_name, file_content=file_content)
             for error in file_checker.file_errors():
                 has_errors = True

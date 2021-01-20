@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from robocat.merge_request import MergeRequest
+from robocat.gitlab import Gitlab
 import robocat.project as gitlab_project_module
 from tests.mocks.project import ProjectMock
 from tests.mocks.merge_request import MergeRequestMock
@@ -32,13 +33,13 @@ def project(mr_state, monkeypatch):
     # create merge request mock object bonded to "project".
     mr = MergeRequestMock(project=project, **mr_state)
 
-    def create_pipeline(_):
+    def create_pipeline(_, project_id, mr_id):
         new_pipeline_id = len(project.pipelines.list())
         pipeline = PipelineMock(
             project=project, id=new_pipeline_id, sha=mr.sha, status="manual")
         project.pipelines.add_mock_pipeline(pipeline)
 
-    monkeypatch.setattr(MergeRequest, "create_pipeline", create_pipeline)
+    monkeypatch.setattr(Gitlab, "create_detached_pipeline", create_pipeline)
 
     return project
 

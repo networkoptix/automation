@@ -3,6 +3,7 @@ from typing import Set, List, Dict
 import re
 import gitlab
 
+from robocat.gitlab import Gitlab
 from robocat.pipeline import Pipeline
 from robocat.award_emoji_manager import AwardEmojiManager
 
@@ -30,27 +31,23 @@ class MergeRequest:
         return self._gitlab_mr.iid
 
     @property
-    def title(self):
+    def title(self) -> str:
         return self._gitlab_mr.title
 
     @property
-    def description(self):
+    def description(self) -> str:
         return self._gitlab_mr.description
 
     @property
-    def target_branch(self):
+    def target_branch(self) -> str:
         return self._gitlab_mr.target_branch
 
     @property
-    def source_branch(self):
+    def source_branch(self) -> str:
         return self._gitlab_mr.source_branch
 
     @property
-    def squash_sha(self):
-        return self._gitlab_mr.squash_commit_sha
-
-    @property
-    def work_in_progress(self):
+    def work_in_progress(self) -> bool:
         return self._gitlab_mr.work_in_progress
 
     @property
@@ -58,28 +55,49 @@ class MergeRequest:
         return self._award_emoji
 
     @property
-    def approvals_left(self):
+    def approvals_left(self) -> int:
         approvals = self._gitlab_mr.approvals.get()
         return approvals.approvals_left
 
     @property
-    def has_conflicts(self):
+    def has_conflicts(self) -> bool:
         return self._gitlab_mr.has_conflicts
 
     @property
-    def blocking_discussions_resolved(self):
+    def blocking_discussions_resolved(self) -> bool:
         return self._gitlab_mr.blocking_discussions_resolved
 
     @property
-    def sha(self):
+    def sha(self) -> str:
         return self._gitlab_mr.sha
 
-    def raw_pipelines_data(self) -> List[Dict]:
-        return self._gitlab_mr.pipelines()
+    @property
+    def has_commits(self) -> bool:
+        return bool(self.sha)
 
-    def pipeline(self, pipeline_id) -> Pipeline:
-        project = self.get_raw_project_object()
-        return Pipeline(project.pipelines.get(pipeline_id), self._dry_run)
+    @property
+    def project_id(self) -> int:
+        return self._gitlab_mr.project_id
+
+    @property
+    def raw_gitlab_object(self) -> gitlab.Gitlab:
+        return self._gitlab_mr.manager.gitlab
+
+    @property
+    def squash_commit_sha(self) -> str:
+        return self._gitlab_mr.squash_commit_sha
+
+    @property
+    def issue_keys(self) -> List[str]:
+        """Extract Jira issue names from the merge request title"""
+        title_issues_part, _, _ = self.title.partition(":")
+        keys_from_title = re.findall(r"\b(\w+-\d+)\b", title_issues_part)
+        if keys_from_title:
+            return keys_from_title
+        return []
+
+    def raw_pipelines_list(self) -> List[Dict]:
+        return self._gitlab_mr.pipelines()
 
     def rebase(self):
         logger.debug(f"{self}: Rebasing")
@@ -96,18 +114,6 @@ class MergeRequest:
         if self._gitlab_mr.squash:
             squash_commit_message = f"{self._gitlab_mr.title}\n\n{self._gitlab_mr.description}"
         self._gitlab_mr.merge(squash_commit_message=squash_commit_message)
-
-    def create_pipeline(self):
-        """Create detached pipeline for MR"""
-        if self._dry_run:
-            return
-        # NOTE: gitlab python library doesn't support this API request.
-        url = f"/projects/{self._gitlab_mr.project_id}/merge_requests/{self._gitlab_mr.iid}/pipelines"
-        self._gitlab_mr.manager.gitlab.http_post(url)
-
-    def get_raw_project_object(self):
-        project_id = self._gitlab_mr.project_id
-        return self._gitlab_mr.manager.gitlab.projects.get(project_id, lazy=True)
 
     def create_discussion(self, body: str, position: dict = None) -> bool:
         logger.debug(f"{self}: Creating discussion")
@@ -132,7 +138,6 @@ class MergeRequest:
             return False
         return True
 
-    @property
     def approved_by(self) -> Set[str]:
         approvals = self._gitlab_mr.approvals.get()
         return {approver["user"]["username"] for approver in approvals.approved_by}
@@ -147,7 +152,6 @@ class MergeRequest:
         self._gitlab_mr.assignee_ids = assignee_ids
         self._gitlab_mr.save()
 
-    @property
     def latest_diff(self):
         lateset_diffs_list = self._gitlab_mr.diffs.list(per_page=1)
         assert len(lateset_diffs_list) > 0, (
@@ -164,8 +168,8 @@ class MergeRequest:
         return self._gitlab_mr.state == "merged"
 
     @property
-    def author(self) -> dict:
-        return self._gitlab_mr.author
+    def author_name(self) -> str:
+        return self._gitlab_mr.author["username"]
 
     @property
     def url(self):
@@ -174,14 +178,6 @@ class MergeRequest:
     # Commits in the chronological order: from the earliest to the latest.
     def commits(self):
         return reversed(list(self._gitlab_mr.commits()))
-
-    def issue_keys(self):
-        """Extract Jira issue names from the merge request title"""
-        title_issues_part, _, _ = self._gitlab_mr.title.partition(":")
-        keys_from_title = re.findall(r"\b(\w+-\d+)\b", title_issues_part)
-        if keys_from_title:
-            return keys_from_title
-        return []
 
     def set_approvers_count(self, approvers_count):
         self._gitlab_mr.approvals.update(new_data={"approvals_required": approvers_count})

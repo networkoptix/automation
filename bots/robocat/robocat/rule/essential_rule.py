@@ -29,21 +29,22 @@ class EssentialRule(BaseRule):
     def execute(self, mr_manager: MergeRequestManager) -> EssentialRuleExecutionResult:
         logger.debug(f"Executing essential rule with {mr_manager}...")
 
-        if mr_manager.is_merged:
+        mr_data = mr_manager.data
+        if mr_data.is_merged:
             return EssentialRuleExecutionResult.merged
 
-        if not mr_manager.mr_has_commits:
+        if not mr_data.has_commits:
             mr_manager.ensure_wait_state(WaitReason.no_commits)
             return EssentialRuleExecutionResult.no_commits
 
         mr_manager.ensure_watching()
         mr_manager.ensure_user_requeseted_pipeline_run()
 
-        if mr_manager.mr_work_in_progress:
+        if mr_data.work_in_progress:
             mr_manager.unset_wait_state()
             return EssentialRuleExecutionResult.work_in_progress
 
-        if mr_manager.mr_has_conflicts:
+        if mr_data.has_conflicts:
             mr_manager.return_to_development(ReturnToDevelopmentReason.conflicts)
             return EssentialRuleExecutionResult.has_conflicts
 
@@ -57,12 +58,12 @@ class EssentialRule(BaseRule):
         if first_pipeline_started or mr_manager.ensure_pipeline_rerun():
             return EssentialRuleExecutionResult.pipeline_started
 
-        last_pipeline_status = mr_manager.mr_last_pipeline_status
+        last_pipeline_status = mr_manager.get_last_pipeline_status()
         if last_pipeline_status == PipelineStatus.running:
             mr_manager.ensure_wait_state(WaitReason.pipeline_running)
             return EssentialRuleExecutionResult.pipeline_running
 
-        if mr_manager.mr_has_unresolved_threads:
+        if not mr_data.blocking_discussions_resolved:
             mr_manager.return_to_development(ReturnToDevelopmentReason.unresolved_threads)
             return EssentialRuleExecutionResult.unresolved_threads
 

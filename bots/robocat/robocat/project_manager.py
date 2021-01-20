@@ -1,16 +1,22 @@
 import logging
+import dataclasses
 import re
 from typing import Generator, Set, List
 from gitlab import GitlabCherryPickError, GitlabGetError
 
 from robocat.project import Project
 from robocat.merge_request import MergeRequest
-from robocat.merge_request_manager import FollowupData
+from robocat.merge_request_manager import MergeRequestManager
 from robocat.award_emoji_manager import AwardEmojiManager
 import robocat.comments
 from automation_tools.bot_versions import RobocatVersion
 
 logger = logging.getLogger(__name__)
+
+
+@dataclasses.dataclass
+class ProjectData:
+    name: str
 
 
 class ProjectManager:
@@ -19,50 +25,54 @@ class ProjectManager:
         self._dry_run = dry_run
         self._project = Project(gitlab_project, dry_run=dry_run)
 
+    @property
+    def data(self) -> ProjectData:
+        return ProjectData(
+            **{f.name: getattr(self._project, f.name) for f in dataclasses.fields(ProjectData)})
+
     def file_get_content(self, sha: str, file: str) -> str:
         return self._project.get_file_content(sha=sha, file=file)
 
-    @property
-    def project_name(self):
-        return self._project.project_name
-
     def create_followup_merge_request(
-            self, target_branch: str, followup_mr_data: FollowupData) -> MergeRequest:
+            self, target_branch: str, original_mr_manager: MergeRequestManager) -> MergeRequest:
         if self._dry_run:
             return None
 
         mr = self._create_empty_followup_mr(
-            target_branch=target_branch, followup_mr_data=followup_mr_data)
+            target_branch=target_branch, original_mr_manager=original_mr_manager)
 
+        original_mr_title = original_mr_manager.data.title
         logger.info(
             f"Follow-up merge request {mr.title} (id: {mr.id}) for merge request "
-            f"{followup_mr_data.title} has been created. Source branch: {mr.source_branch}, "
-            f"target branch: {target_branch}.")
+            f"{original_mr_title} has been created. Source branch: {mr.source_branch}, target "
+            f"branch: {target_branch}.")
 
-        commit_sha_list = followup_mr_data.commit_sha_list
+        commit_sha_list = original_mr_manager.get_merged_commits()
         assert len(commit_sha_list) > 0, "No commits for cherry-pick"
         self._add_commits_to_followup_mr(merge_request=mr, commit_sha_list=commit_sha_list)
 
         return mr
 
     def _create_empty_followup_mr(
-            self, target_branch: str, followup_mr_data: FollowupData) -> MergeRequest:
-        branch_name = f"{followup_mr_data.original_source_branch}_{target_branch}"
+            self, target_branch: str, original_mr_manager: MergeRequestManager) -> MergeRequest:
+        original_mr_data = original_mr_manager.data
+        branch_name = f"{original_mr_data.source_branch}_{target_branch}"
         self._project.create_branch(branch=branch_name, from_branch=target_branch)
 
         title = re.sub(
             r'^(\w+-\d+:\s+)?',
-            rf'\1({followup_mr_data.original_target_branch}->{target_branch}) ',
-            followup_mr_data.title)
-        description = f"{followup_mr_data.description}\n\n" + "\n".join(
-            f"(cherry picked from commit {sha})" for sha in followup_mr_data.commit_sha_list)
+            rf'\1({original_mr_data.target_branch}->{target_branch}) ',
+            original_mr_data.title)
+        description = f"{original_mr_data.description}\n\n" + "\n".join(
+            f"(cherry picked from commit {sha})"
+            for sha in original_mr_manager.get_merged_commits())
         raw_mr = self._project.create_merge_request(
             source_branch=branch_name,
             target_branch=target_branch,
             title=title,
             description=description,
             squash=False,
-            author=followup_mr_data.author_username)
+            author=original_mr_data.author_name)
 
         mr = MergeRequest(raw_mr, self._current_user, self._dry_run)
         mr.set_approvers_count(0)
@@ -70,7 +80,7 @@ class ProjectManager:
         mr.create_note(body=robocat.comments.template.format(
             title="Follow-up merge request",
             message=robocat.comments.followup_initial_message.format(
-                branch=target_branch, original_mr_url=followup_mr_data.original_mr_url),
+                branch=target_branch, original_mr_url=original_mr_data.url),
             emoji=AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI,
             version=RobocatVersion))
 

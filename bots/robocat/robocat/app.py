@@ -67,7 +67,7 @@ class Bot:
     def start(self, mr_poll_rate):
         logger.info(
             f"Robocat version {RobocatVersion}. Started for project "
-            f"[{self._project_manager.project_name}] with {mr_poll_rate} secs poll rate"
+            f"[{self._project_manager.data.name}] with {mr_poll_rate} secs poll rate"
             f"{' (--dry-run)' if self._dry_run else ''}")
 
         for mr_manager in self.get_merge_requests_manager(mr_poll_rate):
