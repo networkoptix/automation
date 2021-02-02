@@ -2,32 +2,35 @@
 
 set -e
 
-refname=$1
-sha_old=$2
-sha_new=$3
+declare -r REFNAME=$1
+declare -r SHA_OLD=$2
+declare -r SHA_NEW=$3
 
-case "$refname" in
+case "${REFNAME}" in
     refs/heads/*)
-        if expr "$sha_new" : '0*$' >/dev/null
+        if expr "${SHA_NEW}" : '0*$' >/dev/null
         then
             exit 0 #< Branch was deleted.
         fi
 
         # NOTE: New commits pushed aren't reachable from any refs yet.
-        from_sha=$(git rev-list $sha_new --not --branches='*' | tail -n1)
-        if [ -z "$from_sha" ]
+        declare -r FROM_SHA="$(git rev-list "${SHA_NEW}" --not --branches='*' | tail -n1)"
+        if [ -z "${FROM_SHA}" ]
         then
             exit 0 #< No new commits were pushed.
         fi
 
-        mode_changes=$(git diff --summary $from_sha^..$sha_new \
+        declare -r MODE_CHANGES="$(git diff --summary "${FROM_SHA}"^.."${SHA_NEW}" \
             | grep -E -e "mode change .* => .*755.*(\.cpp|\.h)" -e "create mode .*755.*(\.cpp|\.h)" \
-            || [[ $? == 1 ]])
-        if [ ! -z "$mode_changes" ]
+            || [[ $? == 1 ]])"
+        if [ ! -z "${MODE_CHANGES}" ]
         then
-            echo "GL-HOOK-ERR: Nx Update hook: Erroneous text file permission changes detected" \
-                "when transiting from ${from_sha} to ${to_sha}."
-            echo "$mode_changes"
+            cat <<ERROR_MESSAGE
+GL-HOOK-ERR: Nx Update hook: Erroneous text file permission changes detected when transiting from
+${FROM_SHA} to ${SHA_NEW}:
+
+${MODE_CHANGES}
+ERROR_MESSAGE
             exit 1
         fi
         ;;
