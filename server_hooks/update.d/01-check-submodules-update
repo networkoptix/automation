@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -e
+
+declare -r REFNAME=$1
+declare -r SHA_OLD=$2
+declare -r SHA_NEW=$3
+
+declare -ar SUBMODULES=(conan_recipes)
+
+case "${REFNAME}" in
+    refs/heads/*)
+        if expr "${SHA_NEW}" : '0*$' >/dev/null
+        then
+            exit 0 #< Branch was deleted.
+        fi
+
+        declare -r COMMIT_MESSAGE="$(git log --format=%B -n1 "${SHA_NEW}")"
+        while IFS= read -r FILE_NAME
+        do
+            if printf '%s\n' "${SUBMODULES[@]}" | grep --quiet ^"${FILE_NAME}"$
+            then
+                declare -r CONFIRM_STRING="Update submodule ${FILE_NAME}"
+                if ! [[ "${COMMIT_MESSAGE}" =~ "${CONFIRM_STRING}" ]]
+                then
+                    cat <<ERROR_MESSAGE
+GL-HOOK-ERR: WARNING: Submodule conan_recipes has been implicitly changed in commit:
+$(git log --oneline -1 "${SHA_NEW}").
+
+Please either revert submodule revision change or add the following text into the commit
+description if you REALLY want to change the submodule revision:
+
+${CONFIRM_STRING}.
+ERROR_MESSAGE
+                    exit 1
+                fi
+            fi
+        done <<< "$(git diff --name-only "${SHA_NEW}" "${SHA_OLD}")"
+        ;;
+esac
