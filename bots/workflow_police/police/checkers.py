@@ -52,8 +52,8 @@ class WrongVersionChecker:
             return
 
         allowed_versions = [
-            set(['4.1_patch', '4.2', 'master']),
-            set(['4.2', 'master']),
+            set(['4.1_patch', '4.2', '4.2_patch', 'master']),
+            set(['4.2', '4.2_patch', 'master']),
             set(['4.2_patch', 'master']),
             set(['master']),
             set(['future'])
