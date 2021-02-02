@@ -8,4 +8,4 @@ RobocatVersion = "1.27"
 # - bots/workflow_police/chart/Chart.yaml (appVersion parameter)
 # - bots/workflow_police/Dockerimage.properties (TARGET_IMAGE_TAG parameter)
 # - automation_tools/bot_versions.py (PoliceVersion variable)
-PoliceVersion = "1.10"
+PoliceVersion = "1.11"

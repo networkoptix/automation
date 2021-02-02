@@ -14,4 +14,4 @@ version: 1.0.1
 # - bots/workflow_police/chart/Chart.yaml (appVersion parameter)
 # - bots/workflow_police/Dockerimage.properties (TARGET_IMAGE_TAG parameter)
 # - automation_tools/bot_versions.py (PoliceVersion variable)
-appVersion: '1.10'
+appVersion: '1.11'
