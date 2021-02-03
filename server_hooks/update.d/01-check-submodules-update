@@ -24,17 +24,20 @@ case "${REFNAME}" in
                 if ! [[ "${COMMIT_MESSAGE}" =~ "${CONFIRM_STRING}" ]]
                 then
                     cat <<ERROR_MESSAGE
-GL-HOOK-ERR: WARNING: Submodule conan_recipes has been implicitly changed in commit:
+GL-HOOK-ERR: WARNING: Submodule ${FILE_NAME} has been implicitly changed in commit:
 $(git log --oneline -1 "${SHA_NEW}").
 
 Please either revert submodule revision change or add the following text into the commit
 description if you REALLY want to change the submodule revision:
 
 ${CONFIRM_STRING}.
+
+To revert the submodule revision you can use interactive rebase or amend (if the change was in the latest commit).
+${SHA_NEW}.
 ERROR_MESSAGE
                     exit 1
                 fi
             fi
-        done <<< "$(git diff --name-only "${SHA_NEW}" "${SHA_OLD}")"
+        done <<< "$(git show --pretty="format:" --name-only "${SHA_NEW}")"
         ;;
 esac
