@@ -155,7 +155,7 @@ class JiraIssue:
 
             raise JiraError(
                 f'Unable to find a transition to move issue {self} of type "{self.type_name}" '
-                'from status "{self.status}" to status "{target_status}"')
+                f'from status "{self.status}" to status "{target_status}"')
 
         self._jira.transition_issue(self._raw_issue, review_transition_name)
         return True

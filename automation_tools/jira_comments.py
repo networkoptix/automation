@@ -24,7 +24,7 @@ reopen_issue = """Returning the issue, workflow violation found:
 
 * {reason}.
 
-{{color:#97a0af}}Issues closed with a resolution “{{color}}{{color:#97a0af}}*s{resolution}*{{color}}{{color:#97a0af}}“ come under mandatory Workflow Police inspection. Please, consider changing resolution value if the issue *does not imply any code changes*.{{color}}
+{{color:#97a0af}}Issues closed with a resolution “{{color}}{{color:#97a0af}}*{resolution}*{{color}}{{color:#97a0af}}“ come under mandatory Workflow Police inspection. Please, consider changing resolution value if the issue *does not imply any code changes*.{{color}}
 """  # noqa
 
 followup_mrs_created = """Merge requests for cherry-picking changes were autocreated for the following branches:
