@@ -32,6 +32,13 @@ project. No problems were revealed during autocheck.
 **ATTENTION**: This thread should be resolved only by @{approver}.
 """
 
+may_have_changes_in_open_source = """It is impossible to check if this merge request contains
+changes in open source part of the project due to the huge amount of changes in it. Please, check
+possible changes in open source part manually.
+
+**ATTENTION**: This thread should be resolved only by @{approver}.
+"""
+
 has_bad_changes_in_open_source = """{error_message}
 
 **ATTENTION**: This thread should be resolved only by @{approver}.

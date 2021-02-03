@@ -20,8 +20,8 @@ class OpenSourceCheckRuleExecutionResult(RuleExecutionResult, Enum):
     not_applicable = "No changes in open source files"
     files_not_ok = "Open source files are not complied with the requirements"
     not_authorized = (
-        "Open source rule check didn't find any problems, "
-        f"but MR is not approved by the authorized approver")
+        "Open source rule check didn't find any problems, but MR is not approved by the "
+        "authorized approver")
 
     def __bool__(self):
         return self in [self.not_applicable, self.merge_authorized, self.merged]
@@ -95,7 +95,7 @@ class OpenSourceCheckRule(BaseRule):
         if mr_data.work_in_progress:
             return OpenSourceCheckRuleExecutionResult.work_in_progress
 
-        if not self._changed_opensource_files(mr_manager):
+        if self._is_diff_complete(mr_manager) and not self._changed_opensource_files(mr_manager):
             return OpenSourceCheckRuleExecutionResult.not_applicable
 
         approval_requirements = ApprovalRequirements(
@@ -112,10 +112,14 @@ class OpenSourceCheckRule(BaseRule):
         return OpenSourceCheckRuleExecutionResult.not_authorized
 
     @staticmethod
+    def _is_diff_complete(mr_manager) -> bool:
+        return not mr_manager.get_changes().overflow
+
+    @staticmethod
     def _changed_opensource_files(mr_manager) -> List[str]:
         changes = mr_manager.get_changes()
         opensource_files = [
-            c["new_path"] for c in changes
+            c["new_path"] for c in changes.changes
             if not c["deleted_file"] and OpenSourceFileChecker.is_check_needed(c["new_path"])]
         return opensource_files
 
@@ -123,6 +127,19 @@ class OpenSourceCheckRule(BaseRule):
         cache = self._file_check_results_cache
         if cache.is_last_mr_commit_checked(mr_manager):
             return cache.is_last_mr_commit_ok(mr_manager)
+
+        # Workaround for the case when we can't get all the changes due to the size limitation
+        # (gitlab doesn't return all the cnanges in Merge Request when it thinks that there are too
+        # many of them.
+        if not self._is_diff_complete(mr_manager):
+            mr_manager.create_thread_to_resolve(
+                title="Can't autocheck open source changes",
+                message=robocat.comments.may_have_changes_in_open_source.format(
+                    approver=self._open_source_approver),
+                emoji=AwardEmojiManager.AUTOCHECK_IMPOSSIBLE_EMOJI)
+
+            cache.mark_last_mr_commit_as_ok(mr_manager)
+            return True
 
         # Check files for the first time OR after a new commit added to the merge request OR
         # the merge request was ammended OR the merge request was rebased.

@@ -20,6 +20,7 @@ class AwardEmojiManager():
     FOLLOWUP_MERGE_REQUEST_EMOJI = "fast_forward"
     CHERRY_PICK_EMOJI = "cherries"
     UNFINISHED_PROCESSING_EMOJI = "point_up"
+    AUTOCHECK_IMPOSSIBLE_EMOJI = "raised_back_of_hand"
 
     def __init__(self, gitlab_award_emoji_manager, current_user, dry_run=False):
         self._gitlab_manager = gitlab_award_emoji_manager

@@ -3,6 +3,7 @@ import pytest
 from robocat.award_emoji_manager import AwardEmojiManager
 from tests.common_constants import (
     BAD_OPENSOURCE_COMMIT,
+    BAD_OPENCANDIDATE_COMMIT,
     FILE_COMMITS_SHA,
     DEFAULT_OPEN_SOURCE_APPROVER)
 from tests.fixtures import *
@@ -55,6 +56,16 @@ class TestOpenSourcelRule:
             }],
             "assignees": [{"username": "user1"}, {"username": DEFAULT_OPEN_SOURCE_APPROVER}]
         },
+        {
+            "commits_list": [{
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
+                "message": "msg",
+                "diffs": [],
+                "files": ["open/dontreadme.md"]
+            }],
+            "huge_mr": True,
+            "assignees": [{"username": "user1"}]
+        },
     ])
     def test_set_assignee(self, open_source_rule, mr, mr_manager):
         for _ in range(2):  # State must not change after any number of rule executions.
@@ -63,6 +74,29 @@ class TestOpenSourcelRule:
             assignees = {a["username"] for a in mr.assignees}
             assert len(assignees) == 2, f"Got assignees: {assignees}"
             assert DEFAULT_OPEN_SOURCE_APPROVER in assignees, f"Got assignees: {assignees}"
+
+    @pytest.mark.parametrize("mr_state", [
+        {
+            "blocking_discussions_resolved": True,
+            "commits_list": [{
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
+                "message": "msg",
+                "diffs": [],
+                "files": ["open/dontreadme.md"]
+            }],
+            "huge_mr": True,
+        },
+    ])
+    def test_cannot_check_files(self, open_source_rule, mr, mr_manager):
+        for _ in range(2):  # State must not change after any number of rule executions.
+            assert not open_source_rule.execute(mr_manager)
+
+            assert not mr.blocking_discussions_resolved
+
+            comments = mr.comments()
+            assert len(comments) == 1, f"Got comments: {comments}"
+            assert f":{AwardEmojiManager.AUTOCHECK_IMPOSSIBLE_EMOJI}:" in comments[0], (
+                f"Last comment is: {comments[0]}")
 
     @pytest.mark.parametrize("mr_state", [
         {
@@ -90,6 +124,10 @@ class TestOpenSourcelRule:
         {
             "blocking_discussions_resolved": True,
             "commits_list": [BAD_OPENSOURCE_COMMIT]
+        },
+        {
+            "blocking_discussions_resolved": True,
+            "commits_list": [BAD_OPENCANDIDATE_COMMIT]
         },
     ])
     def test_files_are_not_ok_comments(self, open_source_rule, mr, mr_manager):

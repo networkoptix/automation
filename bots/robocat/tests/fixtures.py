@@ -8,7 +8,7 @@ import robocat.project as gitlab_project_module
 from tests.mocks.project import ProjectMock
 from tests.mocks.merge_request import MergeRequestMock
 from tests.mocks.pipeline import PipelineMock
-from tests.common_constants import BOT_USERNAME, DEFAULT_MR_ID, DEFAULT_OPEN_SOURCE_APPROVER
+from tests.common_constants import BOT_USERNAME, DEFAULT_OPEN_SOURCE_APPROVER
 
 # Patch sys.path to include common libraries.
 sys.path.append(str((Path(__file__).parent / '../../../').resolve()))
@@ -46,12 +46,14 @@ def project(mr_state, monkeypatch):
 
 @pytest.fixture
 def mr(project):
-    return project.mergerequests.get(DEFAULT_MR_ID)
+    first_mr_id = list(project.mergerequests.list())[0].iid
+    return project.mergerequests.get(first_mr_id)
 
 
 @pytest.fixture
 def mr_manager(project):
-    mr = project.mergerequests.get(DEFAULT_MR_ID)
+    first_mr_id = list(project.mergerequests.list())[0].iid
+    mr = project.mergerequests.get(first_mr_id)
     return MergeRequestManager(MergeRequest(mr, BOT_USERNAME))
 
 

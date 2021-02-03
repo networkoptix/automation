@@ -1,13 +1,13 @@
 from dataclasses import dataclass, field
 from functools import namedtuple
 from typing import Any
-import re
+import time
 from gitlab.exceptions import GitlabMRClosedError
 
 from tests.mocks.gitlab import GitlabManagerMock
 from tests.mocks.pipeline import PipelineMock
 from tests.mocks.commit import CommitMock
-from tests.common_constants import BOT_USERNAME, DEFAULT_COMMIT, DEFAULT_MR_ID, USERS
+from tests.common_constants import BOT_USERNAME, DEFAULT_COMMIT, USERS
 
 DEFAULT_APPROVERS_NUMBER = 2
 
@@ -119,7 +119,7 @@ class DiscussionsManagerMock:
 class MergeRequestMock:
     project: Any  # ProjectMock
 
-    iid: int = DEFAULT_MR_ID
+    iid: int = field(default_factory=time.time_ns)
     title: str = "Do Zorz at work"
     has_conflicts: bool = False
     work_in_progress: bool = False
@@ -137,6 +137,7 @@ class MergeRequestMock:
     # Fake field for testing purposes
     needs_rebase: bool = False
     rebased: bool = field(default=False, init=False)
+    huge_mr: bool = False
 
     emojis_list: list = field(default_factory=list)
     approvers_list: list = field(default_factory=list)
@@ -232,7 +233,10 @@ class MergeRequestMock:
         files = []
         for c in self.commits_list:
             files.extend(c["files"])
-        return {"changes": [{"new_path": f, "deleted_file": False} for f in files]}
+        return {
+            "changes": [{"new_path": f, "deleted_file": False} for f in files],
+            "changes_count": str(len(files)) + ("+" if self.huge_mr else ""),
+        }
 
     def save(self):
         users = self.project.users.list()

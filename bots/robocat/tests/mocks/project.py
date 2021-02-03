@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from time import time
+import time
 from typing import Any, Dict, Set
 from gitlab import GitlabCreateError
 
@@ -38,7 +38,7 @@ class MergeRequestManagerMock:
         mr = MergeRequestMock(
             project=self.project,
             commits_list=[],
-            iid=int(time() * 1000),
+            iid=time.time_ns(),
             title=params["title"],
             assignee_ids=params["assignee_ids"],
             source_branch=params["source_branch"],

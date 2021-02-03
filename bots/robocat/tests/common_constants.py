@@ -9,6 +9,7 @@ FILE_COMMITS_SHA = {
     "no_open_source_files": "103",
     "new_bad_dontreadme": "104",
     "excluded_open_source_files": "105",
+    "bad_opencadidate_source_files": "106",
 }
 CONFLICTING_COMMIT_SHA = "1001"
 BAD_OPENSOURCE_COMMIT = {
@@ -16,6 +17,12 @@ BAD_OPENSOURCE_COMMIT = {
     "message": "msg1",
     "diffs": [],
     "files": ["open/dontreadme.md"]
+}
+BAD_OPENCANDIDATE_COMMIT = {
+    "sha": FILE_COMMITS_SHA["bad_opencadidate_source_files"],
+    "message": "msg1",
+    "diffs": [],
+    "files": ["open_candidate/CMakeLists.txt"]
 }
 DEFAULT_OPEN_SOURCE_APPROVER = "mshevchenko"
 USERS = [

@@ -1,7 +1,7 @@
 import logging
 import dataclasses
 from functools import lru_cache
-from typing import Set, List, Dict
+from typing import Set, List
 import re
 import gitlab
 
@@ -10,7 +10,7 @@ from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.pipeline import Pipeline, PipelineStatus, PlayPipelineError, RunPipelineReason
 from robocat.action_reasons import WaitReason, ReturnToDevelopmentReason
 from robocat.merge_request import MergeRequest
-from robocat.project import Project
+from robocat.project import MergeRequestDiffData
 from robocat.gitlab import Gitlab
 from automation_tools.bot_versions import RobocatVersion
 
@@ -125,7 +125,7 @@ class MergeRequestManager:
         pipeline = self._get_last_pipeline()
         return pipeline.status
 
-    def get_changes(self) -> List[Dict]:
+    def get_changes(self) -> MergeRequestDiffData:
         return self._get_project().get_mr_commit_changes(self._mr.id, self._mr.sha)
 
     def update_unfinished_processing_flag(self, value):

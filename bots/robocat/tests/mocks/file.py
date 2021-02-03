@@ -26,6 +26,11 @@ BAD_README_RAW_DATA_2 = """# Nx Meta VMP Open Source Components
 -hanwha
 """
 
+BAD_CMAKELISTS_RAW_DATA = """## Copyrleft 2018-present Network Optix, Inc.
+
+# shit fuck blya
+"""
+
 
 @dataclass
 class FileManagerMock():
@@ -53,6 +58,10 @@ class FileManagerMock():
                 path="open/licenses/some_file.md", raw_data=BAD_README_RAW_DATA),
             FileManagerMock.ProjectFileMock(
                 path="open/artifacts/nx_kit/src/json11/a/b/c.c", raw_data=BAD_README_RAW_DATA),
+        ],
+        FILE_COMMITS_SHA["bad_opencadidate_source_files"]: [
+            FileManagerMock.ProjectFileMock(
+                path="open_candidate/CMakeLists.txt", raw_data=BAD_CMAKELISTS_RAW_DATA),
         ],
     })
 

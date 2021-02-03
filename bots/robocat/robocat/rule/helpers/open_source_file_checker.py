@@ -6,9 +6,13 @@ from itertools import chain
 import enum
 
 # Paths configuration.
-OPENSOURCE_ROOT = "open"
-EXCLUDED_DIRS = {"artifacts/nx_kit/src/json11", "licenses"}
-EXCLUDED_FILES = {"readme.md"}
+OPENSOURCE_ROOTS = ("open", "open_candidate")
+EXCLUDED_DIRS = {
+    "open/artifacts/nx_kit/src/json11",
+    "open/licenses",
+    "open_candidate/artifacts",
+}
+EXCLUDED_FILES = {"open/readme.md"}
 
 MPL = (
     'Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/')
@@ -66,13 +70,13 @@ class OpenSourceFileChecker:
 
     @staticmethod
     def is_check_needed(file_path: str):
-        if not file_path.startswith(f"{OPENSOURCE_ROOT}/"):
+        if not any(file_path.startswith(f"{d}/") for d in OPENSOURCE_ROOTS):
             return False
 
-        if any(d for d in EXCLUDED_DIRS if file_path.startswith(f"{OPENSOURCE_ROOT}/{d}/")):
+        if any(d for d in EXCLUDED_DIRS if file_path.startswith(f"{d}/")):
             return False
 
-        if any(f for f in EXCLUDED_FILES if file_path == f"{OPENSOURCE_ROOT}/{f}"):
+        if file_path in EXCLUDED_FILES:
             return False
 
         return True

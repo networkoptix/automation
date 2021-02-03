@@ -2,11 +2,16 @@ import logging
 import json
 from functools import lru_cache
 from typing import List, Dict
-from gitlab import Gitlab, GitlabCherryPickError
-
-from robocat.award_emoji_manager import AwardEmojiManager
+from dataclasses import dataclass
+from gitlab import Gitlab
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class MergeRequestDiffData:
+    overflow: bool
+    changes: List[Dict]
 
 
 class Project:
@@ -27,9 +32,11 @@ class Project:
         return file_handler.decode().decode('utf-8')
 
     @lru_cache(maxsize=64)
-    def get_mr_commit_changes(self, mr_id: int, sha: str) -> List[Dict]:  # pylint: disable=unused-argument
+    def get_mr_commit_changes(self, mr_id: int, sha: str) -> MergeRequestDiffData:  # pylint: disable=unused-argument
         # "sha" argument is used by lru_cache magic.
-        return self._gitlab_project.mergerequests.get(mr_id).changes()["changes"]
+        changes = self._gitlab_project.mergerequests.get(mr_id).changes()
+        overflow = str(changes["changes_count"]).endswith("+")
+        return MergeRequestDiffData(changes=changes["changes"], overflow=overflow)
 
     @lru_cache(maxsize=512)
     def get_commit_message(self, sha):
