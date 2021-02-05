@@ -134,4 +134,8 @@ class ProjectManager:
             except GitlabGetError as error:
                 logger.error(f"Can't obtain merge request with id {mr_id}: {error}")
 
+        logger.debug(
+            f"Branches with open merge requests: {branches_with_open_mrs!r}; "
+            f"branches with merged merge requests: {branches_with_merged_mrs!r}")
+
         return branches_with_merged_mrs - branches_with_open_mrs

@@ -2,7 +2,7 @@
 # - bots/robocat/chart/Chart.yaml (appVersion parameter)
 # - bots/robocat/Dockerimage.properties (TARGET_IMAGE_TAG parameter)
 # - automation_tools/bot_versions.py (RobocatVersion variable)
-RobocatVersion = "1.28"
+RobocatVersion = "1.29"
 
 # ATTENTION: Workflow police version should be the same in three places:
 # - bots/workflow_police/chart/Chart.yaml (appVersion parameter)

@@ -79,11 +79,12 @@ class JiraIssue:
 
     def get_related_merge_request_ids(self) -> Set[int]:
         issue = self._raw_issue
-        logger.debug(f"Obtaining branches with merge requests for issue {issue.key}")
+        logger.debug(f"Obtaining branches with merge requests for issue {self}")
 
         mr_ids = set()
         try:
             for link in self._jira.remote_links(issue):
+                logger.debug(f"Remote link for {self} found: {link}")
                 gitlab_mr_id = self._extract_mr_id_from_link(link)
                 if gitlab_mr_id is None:
                     continue
