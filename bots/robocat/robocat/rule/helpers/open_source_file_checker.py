@@ -98,25 +98,34 @@ class OpenSourceFileChecker:
             self._check_words(**check_params)))
 
     def _get_check_params(self) -> dict:
-        file = self._file
-        if file.name == "CMakeLists.txt" or file.name == "Doxyfile" or file.suffix == ".cmake":
+        file_name = self._file.name
+        original_file_suffix = self._file.suffix
+        if original_file_suffix == ".in":
+            # If the file suffix is ".in", then the file name must have more than one suffix;
+            # remove ".in" and take the second suffix to determine the file type.
+            file_suffix = Path(file_name[:-len(original_file_suffix)]).suffix
+        else:
+            file_suffix = original_file_suffix
+
+        if (file_name == "CMakeLists.txt" or file_name == "Doxyfile" or
+                file_suffix in {".cmake", ".yaml", ".yml"}):
             return {"mpl_line_idx": 0, "mpl_prefix": "## "}
 
-        if file.suffix == ".md":
+        if file_suffix == ".md":
             return {
                 "mpl_line_idx": 2,
                 "mpl_prefix": "// ",
                 "empty_line_idx": 1,
-                "check_license_words": file.name != "readme.md",
+                "check_license_words": file_name != "readme.md",
             }
 
-        if file.suffix in {'.h', '.cpp', '.c', '.mm', '.ts', '.js', '.txt', '.inc'}:
+        if file_suffix in {'.go', '.h', '.cpp', '.c', '.mm', '.ts', '.js', '.txt', '.inc'}:
             return {"mpl_line_idx": 0, "mpl_prefix": "// "}
 
-        if file.suffix == ".sh":
+        if file_suffix in {".sh", ".py"}:
             return {"mpl_line_idx": 2, "mpl_prefix": "## ", "empty_line_idx": 1}
 
-        if file.suffix == ".bat":
+        if file_suffix == ".bat":
             return {"mpl_line_idx": 0, "mpl_prefix": ":: "}
 
         return None
