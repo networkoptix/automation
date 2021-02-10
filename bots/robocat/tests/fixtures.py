@@ -95,6 +95,7 @@ def followup_rule(project, jira, monkeypatch):
         return gitlab
 
     monkeypatch.setattr(gitlab_project_module, "Gitlab", return_gitlab_object)
+    monkeypatch.setenv("BOT_NAME", "Robocat")
 
     return rule
 
@@ -107,4 +108,6 @@ def bot(essential_rule, open_source_rule, followup_rule, monkeypatch):
         bot._rule_followup = followup_rule
 
     monkeypatch.setattr(Bot, "__init__", bot_init)
+    monkeypatch.setenv("BOT_NAME", "Robocat")
+
     return Bot()

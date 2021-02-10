@@ -1,5 +1,9 @@
 FROM python:3.8-alpine
 
+ARG GIT_COMMIT=unknown
+ENV BOT_REVISION=$GIT_COMMIT
+ENV BOT_NAME=Police
+
 COPY ./bots/workflow_police/requirements.txt .
 RUN apk add --no-cache tini gcc musl-dev libffi-dev openssl-dev git openssh-client && \
     pip3 install -r requirements.txt && \

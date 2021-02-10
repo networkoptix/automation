@@ -9,7 +9,7 @@ from robocat.merge_request import MergeRequest
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.award_emoji_manager import AwardEmojiManager
 import robocat.comments
-from automation_tools.bot_versions import RobocatVersion
+import automation_tools.bot_info
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ class ProjectManager:
             message=robocat.comments.followup_initial_message.format(
                 branch=target_branch, original_mr_url=original_mr_data.url),
             emoji=AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI,
-            version=RobocatVersion))
+            revision=automation_tools.bot_info.revision()))
 
         return mr
 
@@ -101,7 +101,7 @@ class ProjectManager:
                         branch=merge_request.source_branch,
                         commits=" ".join(commit_sha_list[last_cherry_picked_commit_number:])),
                     emoji=AwardEmojiManager.CHERRY_PICK_EMOJI,
-                    version=RobocatVersion))
+                    revision=automation_tools.bot_info.revision()))
                 return
 
             last_cherry_picked_commit_number += 1

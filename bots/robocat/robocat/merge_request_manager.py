@@ -12,7 +12,7 @@ from robocat.action_reasons import WaitReason, ReturnToDevelopmentReason
 from robocat.merge_request import MergeRequest
 from robocat.project import MergeRequestDiffData
 from robocat.gitlab import Gitlab
-from automation_tools.bot_versions import RobocatVersion
+import automation_tools.bot_info
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +165,7 @@ class MergeRequestManager:
     def _add_comment(self, title, message, emoji=""):
         logger.debug(f"{self}: Adding comment with title: {title}")
         message_params = locals()
-        message_params['version'] = RobocatVersion
+        message_params['revision'] = automation_tools.bot_info.revision()
         self._mr.create_note(body=robocat.comments.template.format(**locals()))
 
     def ensure_user_requeseted_pipeline_run(self) -> bool:
@@ -369,7 +369,8 @@ class MergeRequestManager:
             position = None
 
         body = robocat.comments.template.format(
-            title=title, message=message, emoji=emoji, version=RobocatVersion)
+            title=title, message=message, emoji=emoji,
+            revision=automation_tools.bot_info.revision())
         return self._mr.create_discussion(body=body, position=position)
 
     def is_followup(self):

@@ -7,7 +7,7 @@ h5. 🚔 Workflow Police
 
 template_robocat = """{message}
 
-h5. 🐱 Robocat v{version}. See its [documentation|https://networkoptix.atlassian.net/wiki/spaces/SD/pages/1486749741/Automation+Workflow+Police+bot]
+h5. 🐱 Robocat rev. {revision}. See its [documentation|https://networkoptix.atlassian.net/wiki/spaces/SD/pages/1486749741/Automation+Workflow+Police+bot]
 """  # noqa
 
 issue_moved_to_qa = """Issue moved to QA because merge requests for all "fixVersions" were merged into their respective branches:

@@ -8,10 +8,5 @@ type: application
 # to the chart and its templates.
 version: 1.0.1
 
-# This is the version number of the application being deployed. This version number should be
-# incremented each time you make changes to the application.
-# ATTENTION: Robocat version should be the same in three places:
-# - bots/robocat/chart/Chart.yaml (appVersion parameter)
-# - bots/robocat/Dockerimage.properties (TARGET_IMAGE_TAG parameter)
-# - automation_tools/bot_versions.py (RobocatVersion variable)
-appVersion: '1.29'
+# Version number of the docker image being deployed.
+appVersion: '1.30'

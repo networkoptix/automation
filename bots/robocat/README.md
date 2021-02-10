@@ -15,7 +15,7 @@ Run: `./robocat.app --help`
 
 # Building docker image locally
 To build docker image locally (without CI), run the following command from the repo root directory:
-`docker build -f bots/robocat/Dockerfile -t workflow-robocat .`
+`docker build -f bots/robocat/Dockerfile -t workflow-robocat --build-arg GIT_COMMIT=$(git log -1 --format=%h) .`
 
 # Recommended example
 Run in docker:

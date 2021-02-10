@@ -9,8 +9,8 @@ import logging
 import graypy
 
 import automation_tools.utils
+import automation_tools.bot_info
 from automation_tools.jira import JiraAccessor, JiraError
-from automation_tools.bot_versions import RobocatVersion
 from robocat.project_manager import ProjectManager
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.pipeline import PlayPipelineError
@@ -66,7 +66,7 @@ class Bot:
 
     def start(self, mr_poll_rate):
         logger.info(
-            f"Robocat version {RobocatVersion}. Started for project "
+            f"Robocat revision {automation_tools.bot_info.revision()}. Started for project "
             f"[{self._project_manager.data.name}] with {mr_poll_rate} secs poll rate"
             f"{' (--dry-run)' if self._dry_run else ''}")
 

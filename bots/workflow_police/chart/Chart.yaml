@@ -8,10 +8,5 @@ type: application
 # to the chart and its templates, including the app version.
 version: 1.0.1
 
-# This is the version number of the application being deployed. This version number should be
-# incremented each time you make changes to the application.
-# ATTENTION: Workflow police version should be the same in three places:
-# - bots/workflow_police/chart/Chart.yaml (appVersion parameter)
-# - bots/workflow_police/Dockerimage.properties (TARGET_IMAGE_TAG parameter)
-# - automation_tools/bot_versions.py (PoliceVersion variable)
+# Version number of the docker image being deployed.
 appVersion: '1.11'

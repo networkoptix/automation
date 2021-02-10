@@ -19,7 +19,7 @@ the UID & GID can be configured at image build time.
 
 # Building docker image locally
 To build docker image locally (without CI), run the following command from the repo root directory:
-`docker build -f bots/workflow_police/Dockerfile -t workflow_police .`
+`docker build -f bots/workflow_police/Dockerfile -t workflow_police --build-arg GIT_COMMIT=$(git log -1 --format=%h) .`
 
 # Example
 Run in docker:

@@ -64,6 +64,7 @@ robocat:test:
         --insecure
         --dockerfile $CI_PROJECT_DIR/$DOCKER_DIR/Dockerfile
         --destination $DOCKER_REGISTRY/$TARGET_IMAGE:$TARGET_IMAGE_TAG
+        --build-arg=GIT_COMMIT=$CI_COMMIT_SHORT_SHA
         "$BUILD_OPTIONS"
 
 .k8s:deploy: &k8s_deploy

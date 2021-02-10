@@ -9,7 +9,7 @@ import jira.exceptions
 
 import automation_tools.utils
 import automation_tools.jira_comments as jira_messages
-from automation_tools import bot_versions
+import automation_tools.bot_info
 
 logger = logging.getLogger(__name__)
 
@@ -54,19 +54,19 @@ class JiraIssue:
     def __hash__(self):
         return hash(self._raw_issue.key)
 
-    def _add_robocat_comment(self, message: str):
-        self._jira.add_comment(
-            self._raw_issue,
-            jira_messages.template_robocat.format(
-                message=message,
-                version=automation_tools.bot_versions.RobocatVersion))
+    def _add_comment(self, message: str):
+        bot_name, bot_revision = (
+            automation_tools.bot_info.name(), automation_tools.bot_info.revision())
 
-    def _add_police_comment(self, message: str):
+        if bot_name == "Robocat":
+            template = jira_messages.template_robocat
+        elif bot_name == "Police":
+            template = jira_messages.template_police
+        else:
+            assert False, f"Unknown bot name: {bot_name}"
+
         self._jira.add_comment(
-            self._raw_issue,
-            jira_messages.template_police.format(
-                message=message,
-                version=automation_tools.bot_versions.PoliceVersion))
+            self._raw_issue, template.format(message=message, revision=bot_revision))
 
     def __str__(self):
         return self._raw_issue.key
@@ -138,13 +138,13 @@ class JiraIssue:
             self._set_status(JiraIssueStatus.review)
 
         if self._set_status(JiraIssueStatus.qa, no_throw=True):
-            self._add_robocat_comment(jira_messages.issue_moved_to_qa.format(
+            self._add_comment(jira_messages.issue_moved_to_qa.format(
                 branches="\n* ".join(self.branches)))
             logger.info(f'Status "Waiting for QA" is set for issue {self}.')
             return
 
         self._set_status(JiraIssueStatus.closed)
-        self._add_robocat_comment(
+        self._add_comment(
             jira_messages.issue_closed.format(branches="\n* ".join(self.branches)))
         logger.info(f'Status "Closed" is set for issue {self}.')
 
@@ -181,7 +181,7 @@ class JiraIssue:
             else:
                 assert False, f"Unexpected issue {issue.key} status {issue.fields.status}"
 
-            self._add_police_comment(jira_messages.reopen_issue.format(
+            self._add_comment(jira_messages.reopen_issue.format(
                 reason=reason,
                 resolution=issue.fields.resolution))
 
@@ -189,11 +189,11 @@ class JiraIssue:
             raise JiraError(f"Unable to reopen issue {issue.key}: {error}") from error
 
     def add_followups_created_comment(self, branches: Set[str]):
-        self._add_robocat_comment(
+        self._add_comment(
             jira_messages.followup_mrs_created.format(branches="\n* ".join(branches)))
 
     def add_followup_error_comment(self, error: Exception, mr_url: str):
-        self._add_robocat_comment(
+        self._add_comment(
             jira_messages.followup_error.format(error=str(error), mr_url=mr_url))
 
 
