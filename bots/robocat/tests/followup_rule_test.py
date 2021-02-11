@@ -178,16 +178,16 @@ class TestFollowupRule:
         assert issue.fields.comment.comments[0].body.startswith(
             "Merge requests for cherry-picking changes were autocreated ")
 
-        assert len(mr.comments()) == 1
+        assert len(mr.comments()) == len(issue.fields.fixVersions) - 1
         follow_up_created_comment_token = (
             f":{AwardEmojiManager.FOLLOWUP_CREATED_EMOJI}: Follow-up merge request added")
         assert follow_up_created_comment_token in mr.comments()[0]
 
         mrs = project.mergerequests.list()
-        assert len(mrs) == before_mergrequests_count + 1
+        assert len(mrs) == before_mergrequests_count + len(issue.fields.fixVersions) - 1
 
         new_mr = sorted(mrs, key=lambda mr: mr.iid)[-1]
-        assert re.match(r"(VMS-666: )?\(master->vms_4.1\) ", new_mr.title)
+        assert re.match(r"(VMS-666: )?\(master->vms_4\.(1|2)\) ", new_mr.title)
 
         emojis = new_mr.awardemojis.list()
         assert any(

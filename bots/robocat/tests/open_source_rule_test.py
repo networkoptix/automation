@@ -9,7 +9,7 @@ from tests.common_constants import (
 from tests.fixtures import *
 
 
-class TestOpenSourcelRule:
+class TestOpenSourceRule:
     @pytest.mark.parametrize("mr_state", [
         # MR without open source files
         {

@@ -15,10 +15,11 @@ class Jira:
             self, key: str, state: str = "Open", typ: str = "Internal",
             branches: List[str] = None,
             merge_requests: List[int] = None,
+            labels: List[str] = None,
             comments_list: List[str] = None):
         fixVersions = [
-            v for v in self.project_versions()
-            if any(b for b in (branches or []) if v.description.startswith(f"<{b}>"))]
+            next(v for v in self.project_versions() if v.description.startswith(f"<{b}>"))
+            for b in branches]
         remoteLinks = [
             RemoteLink(f"https://gitlab.lan.hdw.mx/-/dev/nx/merge_requests/{mr_id}")
             for mr_id in (merge_requests or [])]
@@ -30,16 +31,17 @@ class Jira:
                 "fixVersions": fixVersions,
                 "remoteLinks": remoteLinks,
                 "status": status,
+                "labels": labels if labels is not None else [],
                 "issuetype": issuetype})
 
     @staticmethod
     def project_versions(_=None):
         return [
-            Version("Future", "<master>"),
             Version("4.0", "<vms_4.0_release>"),
             Version("4.0_patch", "<vms_4.0> 4.0 Monthly patches"),
             Version("4.1", "<vms_4.1_release> Minor release with Health Monitoring"),
             Version("4.1_patch", "<vms_4.1> 4.1 Monthly patches"),
+            Version("4.2", "<vms_4.2> Major release with plugins"),
             Version("4.2_patch", "<vms_4.2_patch> 4.2 Monthly patches"),
             Version("master", "<master> Major release with a lot of tech debt")
         ]

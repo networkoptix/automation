@@ -396,3 +396,18 @@ class MergeRequestManager:
             return [self._mr.squash_commit_sha[0:12]]
 
         return [c.id[0:12] for c in self._mr.commits()]
+
+    def ensure_jira_issue_errors_info(self, errors: List[str]) -> bool:
+        if not errors:
+            return self._mr.award_emoji.delete(AwardEmojiManager.BAD_ISSUE_EMOJI, own=True)
+
+        if self._mr.award_emoji.find(AwardEmojiManager.BAD_ISSUE_EMOJI, own=True):
+            return False
+
+        self._add_comment(
+            'Bad "fixVersions" field in related Jira Issue(s)',
+            robocat.comments.bad_fix_versions_message.format(errors="  \n".join(errors)),
+            AwardEmojiManager.BAD_ISSUE_EMOJI)
+        self._mr.award_emoji.create(AwardEmojiManager.BAD_ISSUE_EMOJI)
+
+        return True

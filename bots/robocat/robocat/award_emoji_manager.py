@@ -21,6 +21,7 @@ class AwardEmojiManager():
     CHERRY_PICK_EMOJI = "cherries"
     UNFINISHED_PROCESSING_EMOJI = "point_up"
     AUTOCHECK_IMPOSSIBLE_EMOJI = "raised_back_of_hand"
+    BAD_ISSUE_EMOJI = "beetle"
 
     def __init__(self, gitlab_award_emoji_manager, current_user, dry_run=False):
         self._gitlab_manager = gitlab_award_emoji_manager
@@ -39,24 +40,28 @@ class AwardEmojiManager():
     def find(self, name, own):
         return [e for e in self.list(own) if e.name == name]
 
-    def create(self, name, **kwargs):
+    def create(self, name, **kwargs) -> bool:
         logger.debug(f"Creating emoji {name}")
         if self._dry_run:
-            return
+            return False
 
         if not self.find(name, own=True):
             self._cached_list.cache_clear()
             self._gitlab_manager.create({'name': name}, **kwargs)
 
-    def delete(self, name, own, **kwargs):
+        return True
+
+    def delete(self, name, own, **kwargs) -> bool:
         logger.debug(f"Removing {name} emoji")
         if self._dry_run:
-            return
+            return False
 
         found_emojis = self.find(name, own)
         if not found_emojis:
-            return
+            return False
 
         self._cached_list.cache_clear()
         for emoji in found_emojis:
             self._gitlab_manager.delete(emoji.id, **kwargs)
+
+        return True

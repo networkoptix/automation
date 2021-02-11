@@ -16,6 +16,7 @@ from robocat.app import Bot  # noqa
 from robocat.rule.essential_rule import EssentialRule  # noqa
 from robocat.rule.open_source_check_rule import OpenSourceCheckRule  # noqa
 from robocat.rule.followup_rule import FollowupRule  # noqa
+from robocat.rule.jira_issue_check_rule import JiraIssueCheckRule  # noqa
 from robocat.merge_request_manager import MergeRequestManager  # noqa
 from robocat.project_manager import ProjectManager  # noqa
 from automation_tools.jira import JiraAccessor  # noqa
@@ -85,6 +86,11 @@ def open_source_rule(project):
 
 
 @pytest.fixture
+def jira_issue_rule(project, jira):
+    return JiraIssueCheckRule(jira=jira)
+
+
+@pytest.fixture
 def followup_rule(project, jira, monkeypatch):
     project_manager = ProjectManager(project, BOT_USERNAME)
     rule = FollowupRule(project_manager=project_manager, jira=jira)
@@ -101,11 +107,12 @@ def followup_rule(project, jira, monkeypatch):
 
 
 @pytest.fixture
-def bot(essential_rule, open_source_rule, followup_rule, monkeypatch):
+def bot(essential_rule, open_source_rule, followup_rule, jira_issue_rule, monkeypatch):
     def bot_init(bot):
         bot._rule_essential = essential_rule
         bot._rule_open_source_check = open_source_rule
         bot._rule_followup = followup_rule
+        bot._rule_jira_issue_check = jira_issue_rule
 
     monkeypatch.setattr(Bot, "__init__", bot_init)
     monkeypatch.setenv("BOT_NAME", "Robocat")

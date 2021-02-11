@@ -4,14 +4,10 @@ from typing import List, Dict, Tuple, Optional
 import logging
 
 import automation_tools.utils
-from automation_tools.jira import JiraAccessor, JiraError
+from automation_tools.jira import JiraAccessor, JiraError, JiraIssue
 
 
 logger = logging.getLogger(__name__)
-
-IGNORE_LABEL = "hide_from_police"
-VERSION_SPECIFIC_LABEL = "version_specific"
-DONE_EXTERNALLY_LABEL = "done_externally"
 
 
 class WorkflowViolationChecker:
@@ -43,43 +39,13 @@ class WorkflowViolationChecker:
         return None
 
 
+# TODO: Move these classes to common part (automation_tools).
 class WrongVersionChecker:
     def __init__(self, jira_accessor: JiraAccessor):
         self._jira = jira_accessor
 
     def __call__(self, issue: jira.Issue) -> Optional[str]:
-        if VERSION_SPECIFIC_LABEL in issue.fields.labels:
-            return
-
-        allowed_versions = [
-            set(['4.1_patch', '4.2', '4.2_patch', 'master']),
-            set(['4.2', '4.2_patch', 'master']),
-            set(['4.2_patch', 'master']),
-            set(['master']),
-            set(['future'])
-        ]
-        if set([v.name for v in issue.fields.fixVersions]) in allowed_versions:
-            return
-
-        beginning = "Wrong fixVersions field value"
-        versions = sorted([automation_tools.utils.Version(v.name) for v in issue.fields.fixVersions], reverse=True)
-
-        if automation_tools.utils.Version("Future") in versions and len(versions) > 1:
-            return f"{beginning}, 'Future' can't be set along with other versions"
-
-        release_versions_count = sum(not v.is_patch for v in versions)
-        if release_versions_count != 1:
-            return f"{beginning}, exactly one release version required ({release_versions_count} currently set)"
-
-        if versions[0].is_patch:
-            return f"{beginning}, major version [{versions[0]}] shouldn't be a patch"
-
-        # NOTE: A string with versions (not counting patches) without gaps. E.g. 'Future 4.3 4.2 4.1 4.0'
-        versions_sequence = " ".join(v.number for v in self._jira.version_to_branch_mapping().keys() if not v.is_patch)
-        if " ".join(v.number for v in versions) not in versions_sequence:
-            return f"{beginning}, there shouldn't be gaps between versions"
-
-        return
+        return self._jira.get_issue(issue.key).version_set_error_string()
 
 
 class BranchMissingChecker:
@@ -115,10 +81,10 @@ class MasterMissingIssueCommitChecker:
         self._repo = repo
 
     def __call__(self, issue: jira.Issue) -> Optional[str]:
-        if VERSION_SPECIFIC_LABEL in issue.fields.labels:
+        if JiraIssue.VERSION_SPECIFIC_LABEL in issue.fields.labels:
             return
         if len(self._repo.grep_recent_commits(issue.key, "master")) == 0:
-            return f"No commits in master"
+            return "No commits in master"
 
 
 def check_issue_type(issue: jira.Issue) -> Optional[str]:
@@ -128,8 +94,17 @@ def check_issue_type(issue: jira.Issue) -> Optional[str]:
 
 
 def check_issue_not_fixed(issue: jira.Issue) -> Optional[str]:
-    if issue.fields.status.name == "Waiting for QA" and DONE_EXTERNALLY_LABEL not in issue.fields.labels:
-        return
     if str(issue.fields.resolution) in ["Fixed", "Done"]:
         return
+
+    is_issue_done_externally = JiraIssue.DONE_EXTERNALLY_LABEL in issue.fields.labels
+    if issue.fields.status.name == "Waiting for QA" and not is_issue_done_externally:
+        return
+
     return f"issue resolution [{issue.fields.resolution}], issue status [{issue.fields.status}]"
+
+
+def check_issue_ignore_label(issue: jira.Issue) -> Optional[str]:
+    if JiraIssue.IGNORE_LABEL not in issue.fields.labels:
+        return None
+    return f"{JiraIssue.IGNORE_LABEL} is set"

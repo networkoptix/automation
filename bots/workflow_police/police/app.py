@@ -35,8 +35,7 @@ class WorkflowEnforcer:
         self._repo = automation_tools.utils.RepoAccessor(**config["repo"])
 
         self._workflow_checker = WorkflowViolationChecker()
-        self._workflow_checker.register_ignore_checker(
-            lambda i: f"{IGNORE_LABEL} is set" if IGNORE_LABEL in i.fields.labels else None)
+        self._workflow_checker.register_ignore_checker(check_issue_ignore_label)
         self._workflow_checker.register_ignore_checker(check_issue_type)
         self._workflow_checker.register_ignore_checker(check_issue_not_fixed)
 

@@ -17,6 +17,7 @@ from robocat.pipeline import PlayPipelineError
 from robocat.rule.essential_rule import EssentialRule
 from robocat.rule.open_source_check_rule import OpenSourceCheckRule
 from robocat.rule.followup_rule import FollowupRule
+from robocat.rule.jira_issue_check_rule import JiraIssueCheckRule
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ class Bot:
         self._rule_open_source_check = OpenSourceCheckRule(
                 project_manager=self._project_manager,
                 **config['open_source_check_rule'])
+        self._rule_jira_issue_check = JiraIssueCheckRule(jira=JiraAccessor(**config["jira"]))
         self._rule_followup = FollowupRule(
             project_manager=self._project_manager,
             jira=JiraAccessor(**config["jira"]))
@@ -56,6 +58,12 @@ class Bot:
         logger.debug(f"{mr_manager}: {opens_source_check_result}")
 
         if not essential_rule_check_result or not opens_source_check_result:
+            return
+
+        jira_issue_check_result = self._rule_jira_issue_check.execute(mr_manager)
+        logger.debug(f"{mr_manager}: JIRA Issue check: {jira_issue_check_result}")
+
+        if not jira_issue_check_result:
             return
 
         mr_manager.update_unfinished_processing_flag(True)

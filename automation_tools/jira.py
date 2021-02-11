@@ -1,4 +1,4 @@
-from typing import Set, Dict
+from typing import Set, Dict, Optional
 import logging
 import datetime
 import re
@@ -38,7 +38,18 @@ class JiraIssueTransition(Enum):
 
 
 class JiraIssue:
+    _ALLOWED_VERSION_SETS = [
+        set(['4.1_patch', '4.2', '4.2_patch', 'master']),
+        set(['4.2', '4.2_patch', 'master']),
+        set(['4.2_patch', 'master']),
+        set(['master']),
+        set(['Future'])
+    ]
     _MERGE_REQUEST_LINK_RE = re.compile(r"/merge_requests/(?P<id>\d+)$")
+
+    IGNORE_LABEL = "hide_from_police"
+    VERSION_SPECIFIC_LABEL = "version_specific"
+    DONE_EXTERNALLY_LABEL = "done_externally"
 
     def __init__(
             self, jira_handler: jira.JIRA, issue: jira.Issue,
@@ -195,6 +206,21 @@ class JiraIssue:
     def add_followup_error_comment(self, error: Exception, mr_url: str):
         self._add_comment(
             jira_messages.followup_error.format(error=str(error), mr_url=mr_url))
+
+    # TODO: Create common business logic layer for Jira Issue checks and move these functions
+    # there.
+    def version_set_error_string(self) -> Optional[str]:
+        if self.VERSION_SPECIFIC_LABEL in self._raw_issue.fields.labels:
+            return None
+
+        version_set = set(v.name for v in self._raw_issue.fields.fixVersions)
+        if version_set in self._ALLOWED_VERSION_SETS:
+            return None
+
+        return f"Version set {sorted(version_set)!r} is not allowed."
+
+    def should_be_ignored_by_police(self) -> bool:
+        return JiraIssue.IGNORE_LABEL in self._raw_issue.fields.labels
 
 
 class JiraAccessor:
