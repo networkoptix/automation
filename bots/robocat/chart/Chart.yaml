@@ -9,4 +9,4 @@ type: application
 version: 1.0.1
 
 # Version number of the docker image being deployed.
-appVersion: '1.30'
+appVersion: '1.31'
