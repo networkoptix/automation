@@ -5,7 +5,8 @@ from tests.common_constants import (
     BAD_OPENSOURCE_COMMIT,
     BAD_OPENCANDIDATE_COMMIT,
     FILE_COMMITS_SHA,
-    DEFAULT_OPEN_SOURCE_APPROVER)
+    DEFAULT_OPEN_SOURCE_APPROVER,
+    DEFAULT_REQUIRED_APPROVALS_COUNT)
 from tests.fixtures import *
 
 
@@ -68,12 +69,18 @@ class TestOpenSourceRule:
         },
     ])
     def test_set_assignee(self, open_source_rule, mr, mr_manager):
+        initial_assignee_count = len(mr.assignees)
         for _ in range(2):  # State must not change after any number of rule executions.
             assert not open_source_rule.execute(mr_manager)
 
             assignees = {a["username"] for a in mr.assignees}
             assert len(assignees) == 2, f"Got assignees: {assignees}"
             assert DEFAULT_OPEN_SOURCE_APPROVER in assignees, f"Got assignees: {assignees}"
+
+            if len(mr.assignees) == initial_assignee_count:
+                assert mr_manager._mr.get_approvers_count() == DEFAULT_REQUIRED_APPROVALS_COUNT
+            else:
+                assert mr_manager._mr.get_approvers_count() == DEFAULT_REQUIRED_APPROVALS_COUNT + 1
 
     @pytest.mark.parametrize("mr_state", [
         {

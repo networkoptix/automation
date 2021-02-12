@@ -238,7 +238,8 @@ class MergeRequestManager:
     def _get_commit_diff_hash(self, sha: str):
         return self._get_project().get_commit_diff_hash(sha)
 
-    def ensure_assignee(self, assignee_username) -> bool:
+    def ensure_assignee(
+            self, assignee_username: str, increase_needed_approvals_count: bool = False) -> bool:
         assignees = self._mr.assignees
         if assignee_username in assignees:
             return False
@@ -252,6 +253,9 @@ class MergeRequestManager:
             assignee_ids += project.get_user_ids(assignee)
 
         self._mr.set_assignees_by_ids(assignee_ids)
+        if increase_needed_approvals_count:
+            self._mr.set_approvers_count(self._mr.get_approvers_count() + 1)
+
         return True
 
     def _get_project(self):

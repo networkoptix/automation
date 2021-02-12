@@ -3,6 +3,7 @@ BOT_USERNAME = "robocat"
 BOT_USERID = 100
 DEFAULT_COMMIT = {"sha": "11", "message": "msg1", "diffs": [], "files": []}
 DEFAULT_MR_ID = 7
+DEFAULT_REQUIRED_APPROVALS_COUNT = 2
 FILE_COMMITS_SHA = {
     "good_dontreadme": "101",
     "bad_dontreadme": "102",

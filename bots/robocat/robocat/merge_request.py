@@ -181,3 +181,6 @@ class MergeRequest:
 
     def set_approvers_count(self, approvers_count):
         self._gitlab_mr.approvals.update(new_data={"approvals_required": approvers_count})
+
+    def get_approvers_count(self):
+        return self._gitlab_mr.approvals.get().approvals_required

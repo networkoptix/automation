@@ -7,7 +7,8 @@ from gitlab.exceptions import GitlabMRClosedError
 from tests.mocks.gitlab import GitlabManagerMock
 from tests.mocks.pipeline import PipelineMock
 from tests.mocks.commit import CommitMock
-from tests.common_constants import BOT_USERNAME, DEFAULT_COMMIT, USERS
+from tests.common_constants import (
+    BOT_USERNAME, DEFAULT_COMMIT, USERS, DEFAULT_REQUIRED_APPROVALS_COUNT)
 
 DEFAULT_APPROVERS_NUMBER = 2
 
@@ -41,6 +42,7 @@ class AwardEmojiManagerMock:
 @dataclass
 class ApprovalsMock:
     approvals_left: int = 999
+    approvals_required: int = DEFAULT_REQUIRED_APPROVALS_COUNT
     approved_by: list = field(default_factory=list)
 
 
@@ -52,7 +54,13 @@ class ApprovalsManagerMock:
         return self.approvals
 
     def update(self, new_data):
-        pass
+        if "approvals_required" not in new_data:
+            pass
+
+        approvals_count_change = new_data["approvals_required"] - self.approvals.approvals_required
+        self.approvals.approvals_required += approvals_count_change
+        self.approvals.approvals_left = max(
+            0, self.approvals.approvals_left - approvals_count_change)
 
 
 @dataclass

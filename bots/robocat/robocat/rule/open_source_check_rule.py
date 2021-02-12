@@ -19,9 +19,7 @@ class OpenSourceCheckRuleExecutionResult(RuleExecutionResult, Enum):
     work_in_progress = "Work in progress"
     not_applicable = "No changes in open source files"
     files_not_ok = "Open source files are not complied with the requirements"
-    not_authorized = (
-        "Open source rule check didn't find any problems, but MR is not approved by the "
-        "authorized approver")
+    files_ok = "Open source rule check didn't find any problems"
 
     def __bool__(self):
         return self in [self.not_applicable, self.merge_authorized, self.merged]
@@ -103,13 +101,14 @@ class OpenSourceCheckRule(BaseRule):
         if mr_manager.satisfies_approval_requirements(approval_requirements):
             return OpenSourceCheckRuleExecutionResult.merge_authorized
 
-        if mr_manager.ensure_assignee(self._open_source_approver):
+        if mr_manager.ensure_assignee(
+                self._open_source_approver, increase_needed_approvals_count=True):
             logger.debug("Authorized approver assigned to MR.")
 
         if not self._are_files_ok(mr_manager):
             return OpenSourceCheckRuleExecutionResult.files_not_ok
 
-        return OpenSourceCheckRuleExecutionResult.not_authorized
+        return OpenSourceCheckRuleExecutionResult.files_ok
 
     @staticmethod
     def _is_diff_complete(mr_manager) -> bool:
