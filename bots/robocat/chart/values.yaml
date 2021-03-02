@@ -6,6 +6,7 @@ replicaCount: 1
 
 image:
   repository: nx/workflow_police/robocat
+  tag: latest
   pullPolicy: Always
 
 imagePullSecrets: []
@@ -38,8 +39,8 @@ gitlabToken:
 # gitlab project id
 gitlabProjectId: 2
 
-# do not perform changes
-dryRun: true
+# dry run mode
+dryRun: false
 
 # Merge requests poll rate
 gitlabMrPollRate: 30

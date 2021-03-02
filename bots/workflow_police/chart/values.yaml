@@ -6,6 +6,7 @@ replicaCount: 1
 
 image:
   repository: nx/workflow_police
+  tag: latest
   pullPolicy: Always
 
 imagePullSecrets: []

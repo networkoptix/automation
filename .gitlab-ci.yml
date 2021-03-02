@@ -1,198 +1,139 @@
 #
-# Build various staffs
+# Build and deploy workflow police & robocat
 #
-
-image:
-  name: gcr.io/kaniko-project/executor:debug-v1.0.0
-  entrypoint: [""]
+include:
+- project: 'dev/ci'
+  file: 'pipelines/infra-templates.yml'
 
 variables:
-  DOCKER_REGISTRY: docker.artifactory.lan.hdw.mx:80
-  ROBOCAT_DIR: bots/robocat
+  WORKFLOW_POLICE_VERSION: "1.12"
+  ROBOCAT_VERSION: "1.31"
+  K8S_PRODUCT_RELEASE: "prod"
+  DOCKER_REGISTRY: "docker.artifactory.lan.hdw.mx:80"
+  K8S_DEPLOY_NAMESPACE: "default"
+  CI_DEBUG_TRACE: "true"
 
 stages:
-  - check
-  - build
+  - validate
   - test
+  - docker image, chart
   - deploy
 
 pep8:
-  image: nx/deploy-pod:1.4
-  stage: check
+  image: nx/deploy-pod
+  tags:
+  - service
+  stage: validate
   script:
-    - pycodestyle --max-line-length=120 .
+  - pycodestyle --max-line-length=120 .
   rules:
-    - if: $CI_MERGE_REQUEST_ID || $CI_COMMIT_BRANCH == 'master'
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 robocat:test:
   image: python:3.8
   stage: test
+  variables:
+    ROBOCAT_DIR: bots/robocat
   script:
-    - set -e
-    - pip3 install -r $ROBOCAT_DIR/requirements.txt
-    - pytest $ROBOCAT_DIR/tests/ --junitxml=./robocat_ut_result.xml
+  - pip3 install -r $ROBOCAT_DIR/requirements.txt
+  - pytest $ROBOCAT_DIR/tests/ --junitxml=./robocat_ut_result.xml
   artifacts:
     when: always
     reports:
       junit: robocat_ut_result.xml
   rules:
-    - if: $CI_MERGE_REQUEST_ID || $CI_COMMIT_BRANCH == 'master'
-      changes:
-        - bots/robocat/**/*
-        - automation_tools/**/*
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    changes:
+    - bots/robocat/**/*
+    - automation_tools/**/*
 
-.helmchart.check: &helmchart_check
-  script:
-    - set -e
-    - helm template test-chart $CI_PROJECT_DIR/$HELMCHART_DIR/
-
-.helmchart.deploy: &helmchart_deploy
-  script:
-    - set -e
-    - "HELMCHART=$(helm package $CI_PROJECT_DIR/$HELMCHART_DIR | awk -F ': ' '{print $2}')"
-    - curl --fail -s -u "jenkins:$(cat /vault/secrets/artifactory.token)"
-        -T "${HELMCHART}"
-        "http://artifactory.lan.hdw.mx/artifactory/helm-local/$(basename $HELMCHART)"
-
-# ref: https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
-.docker:build: &docker_build
-  script:
-    - set -e
-    - ln -sf /vault/secrets/config.json /kaniko/.docker/config.json
-    - source $CI_PROJECT_DIR/$DOCKER_DIR/Dockerimage.properties
-    - /kaniko/executor --context $CI_PROJECT_DIR/
-        --insecure
-        --dockerfile $CI_PROJECT_DIR/$DOCKER_DIR/Dockerfile
-        --destination $DOCKER_REGISTRY/$TARGET_IMAGE:$TARGET_IMAGE_TAG
-        --build-arg=GIT_COMMIT=$CI_COMMIT_SHORT_SHA
-        "$BUILD_OPTIONS"
-
-.k8s:deploy: &k8s_deploy
-  script:
-    - set -e
-    - cd /home/groovy/scripts/
-    - groovy runJenkinsJob.groovy $DEPLOY_JOB
-        BUILD_DESCRIPTION="Triggered by gitlab user $GITLAB_USER_LOGIN"
-        CHECK_MODE=false
-        GITLAB_JOB_ID=$CI_JOB_ID
-        GITLAB_JOB_PROJECT=$CI_PROJECT_PATH
-        GITLAB_PIPELINE_URL=$CI_PIPELINE_URL
-        GITLAB_JOB_URL=$CI_JOB_URL
-
-# check build of workflow_police docker image
-docker:workflow_police:check:
-  stage: check
+# validate helm charts
+helm:robocat:validate:
+  extends: .validate.helm.chart.template
   variables:
-    DOCKER_DIR: bots/workflow_police
-    BUILD_OPTIONS: --no-push
-  script:
-  <<: *docker_build
-  rules:
-    - if: $CI_MERGE_REQUEST_ID
-      changes:
-        - bots/workflow_police/*
+    HELM_CHART_DIR: bots/robocat/chart
 
-# check build of robocat docker image
-docker:robocat:check:
-  stage: check
+helm:workflow_police:validate:
+  extends: .validate.helm.chart.template
   variables:
-    DOCKER_DIR: bots/robocat
-    BUILD_OPTIONS: --no-push
-  script:
-  <<: *docker_build
-  rules:
-    - if: $CI_MERGE_REQUEST_ID
-      changes:
-        - bots/robocat/*
+    HELM_CHART_DIR: bots/workflow_police/chart
 
-# validate workflow_police helm chart
-helmchart:workflow_police:check:
-  image: nx/deploy-pod:1.0
-  stage: check
+# build robocat docker image
+docker:build:robocat:
+  extends: .docker.template
+  stage: "docker image, chart"
   variables:
-    HELMCHART_DIR: bots/workflow_police/chart
-  script:
-  <<: *helmchart_check
-  rules:
-    - if: $CI_MERGE_REQUEST_ID
-      changes:
-        - bots/workflow_police/chart/*
+    DOCKER_DIR: "bots/robocat"
+    DOCKER_CONTEXT: ""
+    TARGET_IMAGE: "nx/workflow_police/robocat"
+    TARGET_IMAGE_TAG: "$ROBOCAT_VERSION"
+    BUILD_OPTIONS: "--build-arg=GIT_COMMIT=$CI_COMMIT_SHORT_SHA"
 
-# validate robocat helm chart
-helmchart:robocat:check:
-  image: nx/deploy-pod:1.0
-  stage: check
+# build workflow police docker image
+docker:build:workflow_police:
+  extends: .docker.template
+  stage: "docker image, chart"
   variables:
-    HELMCHART_DIR: bots/robocat/chart
-  script:
-  <<: *helmchart_check
-  rules:
-    - if: $CI_MERGE_REQUEST_ID
-      changes:
-        - bots/robocat/chart/*
+    DOCKER_DIR: "bots/workflow_police"
+    DOCKER_CONTEXT: ""
+    TARGET_IMAGE: "nx/workflow_police"
+    TARGET_IMAGE_TAG: "$WORKFLOW_POLICE_VERSION"
+    BUILD_OPTIONS: "--build-arg=GIT_COMMIT=$CI_COMMIT_SHORT_SHA"
 
-# build workflow_police docker image and push to registry
-docker:workflow_police:build:
-  stage: build
+# build robocat helm chart
+helm:build:robcat:
+  extends: .helm.chart.template
+  stage: "docker image, chart"
   variables:
-    DOCKER_DIR: bots/workflow_police
-  script:
-  <<: *docker_build
-  rules:
-    - if: $CI_COMMIT_BRANCH == 'master'
-      changes:
-        - bots/workflow_police/*
+    HELM_CHART_DIR: "bots/robocat/chart"
 
-# build robocat docker image and push to registry
-docker:robocat:build:
-  stage: build
+# build workflow police helm chart
+helm:build:workflow_police:
+  extends: .helm.chart.template
+  stage: "docker image, chart"
   variables:
-    DOCKER_DIR: bots/robocat
-  script:
-  <<: *docker_build
-  rules:
-    - if: $CI_COMMIT_BRANCH == 'master'
-      changes:
-        - bots/robocat/*
+    HELM_CHART_DIR: "bots/workflow_police/chart"
 
-# package workflow_police helm chart an push to repository
-helmchart:workflow_police:build:
-  image: nx/deploy-pod:1.0
-  stage: build
-  variables:
-    HELMCHART_DIR: bots/workflow_police/chart
-  script:
-  <<: *helmchart_deploy
-  rules:
-    - if: $CI_COMMIT_BRANCH == 'master'
-      changes:
-        - bots/workflow_police/chart/*
-
-# package robocat helm chart an push to repository
-helmchart:robocat:build:
-  image: nx/deploy-pod:1.0
-  stage: build
-  variables:
-    HELMCHART_DIR: bots/robocat/chart
-  script:
-  <<: *helmchart_deploy
-  rules:
-    - if: $CI_COMMIT_BRANCH == 'master'
-      changes:
-        - bots/robocat/chart/*
-
-# deploy workflow_police and catz to kubernetes
+# deploy workflow_police
 k8s:workflow_police:deploy:
-  image: nx/ci:1.1
-  stage: deploy
+  extends: .k8s.deploy.template
   variables:
-    DEPLOY_JOB: ansible.deploy.k8s.workflow_police
-  script:
-  <<: *k8s_deploy
+    DOCKER_DIR: "bots/workflow_police"
+    HELM_CHART_DIR: "$DOCKER_DIR/chart"
+    PRODUCT: "workflow-police"
+    PRE_SCRIPT: |
+      HELM_CHART_VERSION="$(awk -F": +['\"]?" "/^version/{print \$$NF}" ${HELM_CHART_DIR}/Chart.yaml)";
+      echo "gitSshKey: |"
+        > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
+      vault kv get --field="jenkins-user-ssh-private-key" "apptokens/gitlab/prod" | sed 's/^/  /' 
+        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
+      echo "jiraPassword: $(vault kv get --field="service@networkoptix.com" "apptokens/jira")"
+        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
+      kubectl scale deployment ${PRODUCT}-${K8S_PRODUCT_RELEASE} --replicas=0
   rules:
-    - if: $CI_COMMIT_BRANCH == 'master'
-      changes:
-        - bots/workflow_police/*
-        - bots/workflow_police/chart/*
-        - bots/robocat/*
-        - bots/robocat/chart/*
+  - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "master"
+    changes:
+    - $DOCKER_DIR/**/*
+    - $HELM_CHART_DIR/**/*
+    - automation_tools/**/*
+
+# deploy robocat
+k8s:robocat:deploy:
+  extends: .k8s.deploy.template
+  variables:
+    DOCKER_DIR: "bots/robocat"
+    HELM_CHART_DIR: "$DOCKER_DIR/chart"
+    PRODUCT: "workflow-police-robocat"
+    PRE_SCRIPT: |
+      HELM_CHART_VERSION="$(awk -F": +['\"]?" "/^version/{print \$$NF}" ${HELM_CHART_DIR}/Chart.yaml)";
+      echo "gitlabToken: $(vault kv get --field="workflow-police-app-token" "apptokens/gitlab/prod")"
+        > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
+      echo "jiraPassword: $(vault kv get --field="service@networkoptix.com" "apptokens/jira")"
+        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
+      kubectl scale deployment ${PRODUCT}-${K8S_PRODUCT_RELEASE} --replicas=0
+  rules:
+  - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "master"
+    changes:
+    - $DOCKER_DIR/**/*
+    - $HELM_CHART_DIR/**/*
+    - automation_tools/**/*
