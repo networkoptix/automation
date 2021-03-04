@@ -4,7 +4,7 @@ ARG GIT_COMMIT=unknown
 ENV BOT_REVISION=$GIT_COMMIT
 ENV BOT_NAME=Robocat
 
-RUN apt-get update && apt-get -y install curl && apt-get clean
+RUN apt-get update && apt-get -y install curl git && apt-get clean
 # Use tini as a subreaper in Docker container to adopt zombie processes.
 ARG TINI_VERSION=v0.19.0
 RUN curl --fail --silent --show-error --location --output /sbin/tini \
