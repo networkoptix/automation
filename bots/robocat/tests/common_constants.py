@@ -1,7 +1,7 @@
 BOT_NAME = "Robo Cat"
 BOT_USERNAME = "robocat"
 BOT_USERID = 100
-DEFAULT_COMMIT = {"sha": "11", "message": "msg1", "diffs": [], "files": []}
+DEFAULT_COMMIT = {"sha": "11", "message": "msg1", "diffs": [], "files": {}}
 DEFAULT_MR_ID = 7
 DEFAULT_REQUIRED_APPROVALS_COUNT = 2
 FILE_COMMITS_SHA = {
@@ -17,13 +17,13 @@ BAD_OPENSOURCE_COMMIT = {
     "sha": FILE_COMMITS_SHA["bad_dontreadme"],
     "message": "msg1",
     "diffs": [],
-    "files": ["open/dontreadme.md"]
+    "files": {"open/dontreadme.md": {"is_new": True}}
 }
 BAD_OPENCANDIDATE_COMMIT = {
     "sha": FILE_COMMITS_SHA["bad_opencadidate_source_files"],
     "message": "msg1",
     "diffs": [],
-    "files": ["open_candidate/CMakeLists.txt"]
+    "files": {"open_candidate/CMakeLists.txt": {"is_new": True}}
 }
 DEFAULT_OPEN_SOURCE_APPROVER = "mshevchenko"
 USERS = [

@@ -111,16 +111,29 @@ class DiscussionsManagerMock:
 
     @dataclass
     class DiscussionMock:
+        manager: Any
         body: str = ""
         position: dict = field(default_factory=dict)
+        resolved: bool = False
+        mock_is_visible: bool = True  # Fake field for testing purposes.
 
-    def create(self, params):
-        self.discussions.append(
-            self.DiscussionMock(body=params["body"], position=params["position"]))
+        def save(self):
+            for d in self.manager.discussions:
+                if not d.resolved:
+                    self.manager.merge_request.blocking_discussions_resolved = False
+                    return
+
+            self.manager.merge_request.blocking_discussions_resolved = True
+
+    def create(self, params, mock_is_visible: bool = True):
+        discussion = self.DiscussionMock(
+            manager=self, body=params["body"], position=params["position"], mock_is_visible=mock_is_visible)
+        self.discussions.append(discussion)
         self.merge_request.blocking_discussions_resolved = False
+        return discussion
 
     def list(self):
-        return [d.body for d in self.discussions]
+        return [d.body for d in self.discussions if d.mock_is_visible]
 
 
 @dataclass
@@ -142,10 +155,10 @@ class MergeRequestMock:
     web_url: str = ""
     squash_commit_sha: str = None
 
-    # Fake field for testing purposes
-    needs_rebase: bool = False
-    rebased: bool = field(default=False, init=False)
-    huge_mr: bool = False
+    # Fake fields for testing purposes.
+    mock_needs_rebase: bool = False
+    mock_rebased: bool = field(default=False, init=False)
+    mock_huge_mr: bool = False
 
     emojis_list: list = field(default_factory=list)
     approvers_list: list = field(default_factory=list)
@@ -172,6 +185,9 @@ class MergeRequestMock:
 
         # Create discussions manager and bind it to itself.
         self.discussions = DiscussionsManagerMock(merge_request=self)
+        if not self.blocking_discussions_resolved:
+            self.discussions.create(
+                {"body": "default discussion", "position": None}, mock_is_visible=False)
 
         # Create versions ("diff" in gitlab library terminology) manager and bind it to itself.
         self.diffs = VersionsManagerMock(merge_request=self)
@@ -229,21 +245,27 @@ class MergeRequestMock:
         return list(reversed(result))
 
     def rebase(self):
-        self.rebased = True
+        self.mock_rebased = True
 
     def merge(self, **_):
-        if self.needs_rebase:
+        if self.mock_needs_rebase:
             raise GitlabMRClosedError()
         self.state = "merged"
         self.squash_commit_sha = self.commits_list[-1]["sha"]
 
     def changes(self):
-        files = []
+        files = {}
         for c in self.commits_list:
-            files.extend(c["files"])
+            files = {**files, **c["files"]}
         return {
-            "changes": [{"new_path": f, "deleted_file": False} for f in files],
-            "changes_count": str(len(files)) + ("+" if self.huge_mr else ""),
+            "changes": [
+                {
+                    "new_path": name,
+                    "deleted_file": False,
+                    "new_file": descr.get("is_new"),
+                    "renamed_file": False,
+                } for name, descr in files.items()],
+            "changes_count": str(len(files)) + ("+" if self.mock_huge_mr else ""),
         }
 
     def save(self):

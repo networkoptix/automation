@@ -25,7 +25,7 @@ class TestBot:
                 "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/dontreadme.md"]
+                "files": {"open/dontreadme.md": {"is_new": True}},
             }],
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
         }),
@@ -63,7 +63,7 @@ class TestBot:
                 "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/dontreadme.md"]
+                "files": {"open/dontreadme.md": {"is_new": True}},
             }],
             "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
@@ -72,7 +72,7 @@ class TestBot:
     def test_merge(self, bot, mr, mr_manager):
         bot.handle(mr_manager)
         assert mr.state == "merged"
-        assert not mr.rebased
+        assert not mr.mock_rebased
 
         emojis = mr.awardemojis.list()
         assert not any(
@@ -81,14 +81,14 @@ class TestBot:
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
-            "needs_rebase": True,
+            "mock_needs_rebase": True,
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [{
                 "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/dontreadme.md"]
+                "files": {"open/dontreadme.md": {"is_new": True}},
             }],
             "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
@@ -97,7 +97,7 @@ class TestBot:
     def test_rebase(self, bot, mr, mr_manager):
         bot.handle(mr_manager)
         assert not mr.state == "merged"
-        assert mr.rebased
+        assert mr.mock_rebased
 
         emojis = mr.awardemojis.list()
         assert not any(

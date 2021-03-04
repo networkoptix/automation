@@ -18,7 +18,7 @@ class TestOpenSourceRule:
                 "sha": FILE_COMMITS_SHA["no_open_source_files"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["dontreadme.md"]
+                "files": {"dontreadme.md": {"is_new": True}},
             }]
         },
         {
@@ -26,11 +26,11 @@ class TestOpenSourceRule:
                 "sha": FILE_COMMITS_SHA["excluded_open_source_files"],
                 "message": "msg",
                 "diffs": [],
-                "files": [
-                    "open/readme.md",
-                    "open/licenses/some_file.md",
-                    "open/artifacts/nx_kit/src/json11/a/b/c.c",
-                ]
+                "files": {
+                    "open/readme.md": {"is_new": True},
+                    "open/licenses/some_file.md": {"is_new": True},
+                    "open/artifacts/nx_kit/src/json11/a/b/c.c": {"is_new": True},
+                },
             }]
         },
     ])
@@ -44,7 +44,7 @@ class TestOpenSourceRule:
                 "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/dontreadme.md"]
+                "files": {"open/dontreadme.md": {"is_new": True}},
             }],
             "assignees": [{"username": "user1"}]
         },
@@ -53,7 +53,7 @@ class TestOpenSourceRule:
                 "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/dontreadme.md"]
+                "files": {"open/dontreadme.md": {"is_new": True}},
             }],
             "assignees": [{"username": "user1"}, {"username": DEFAULT_OPEN_SOURCE_APPROVER}]
         },
@@ -62,9 +62,9 @@ class TestOpenSourceRule:
                 "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/dontreadme.md"]
+                "files": {"open/dontreadme.md": {"is_new": True}},
             }],
-            "huge_mr": True,
+            "mock_huge_mr": True,
             "assignees": [{"username": "user1"}]
         },
     ])
@@ -89,9 +89,9 @@ class TestOpenSourceRule:
                 "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/dontreadme.md"]
+                "files": {"open/dontreadme.md": {"is_new": True}},
             }],
-            "huge_mr": True,
+            "mock_huge_mr": True,
         },
     ])
     def test_cannot_check_files(self, open_source_rule, mr, mr_manager):
@@ -112,7 +112,7 @@ class TestOpenSourceRule:
                 "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/dontreadme.md"]
+                "files": {"open/dontreadme.md": {"is_new": True}},
             }],
         },
     ])
@@ -130,11 +130,45 @@ class TestOpenSourceRule:
     @pytest.mark.parametrize("mr_state", [
         {
             "blocking_discussions_resolved": True,
+            "commits_list": [{
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
+                "message": "msg",
+                "diffs": [],
+                "files": {"open/dontreadme.md": {"is_new": False}},
+            }],
+        },
+    ])
+    def test_files_dont_need_manual_check(self, open_source_rule, mr, mr_manager):
+        for _ in range(2):  # State must not change after any number of rule executions.
+            assert open_source_rule.execute(mr_manager)
+
+            assert mr.blocking_discussions_resolved
+
+            comments = mr.comments()
+            assert len(comments) == 1, f"Got comments: {comments}"
+            assert f":{AwardEmojiManager.AUTOCHECK_OK_EMOJI}:" in comments[0], (
+                f"Last comment is: {comments[0]}")
+
+    @pytest.mark.parametrize("mr_state", [
+        # File is in the "open" directory.
+        {
+            "blocking_discussions_resolved": True,
             "commits_list": [BAD_OPENSOURCE_COMMIT]
         },
+        # File is in the "open_candidate" directory.
         {
             "blocking_discussions_resolved": True,
             "commits_list": [BAD_OPENCANDIDATE_COMMIT]
+        },
+        # Bad file is not new.
+        {
+            "blocking_discussions_resolved": True,
+            "commits_list": [{
+                "sha": FILE_COMMITS_SHA["bad_dontreadme"],
+                "message": "msg1",
+                "diffs": [],
+                "files": {"open/dontreadme.md": {"is_new": False}},
+            }],
         },
     ])
     def test_files_are_not_ok_comments(self, open_source_rule, mr, mr_manager):
@@ -161,7 +195,7 @@ class TestOpenSourceRule:
                 "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
                 "diffs": [],
-                "files": ["open/dontreadme.md"]
+                "files": {"open/dontreadme.md": {"is_new": True}}
             }],
         },
         # Merge allowed even if there are bad files, but merge request approved by an eligible
@@ -192,13 +226,13 @@ class TestOpenSourceRule:
             assert f"resolved only by @{DEFAULT_OPEN_SOURCE_APPROVER}" in comments[i], (
                 f"Comment {i} is: {comments[i]}")
 
-        # Add commit to mr with the sane file, but without bad words - no new comments must be
-        # added.
-        updated_bad_opensource_commit = BAD_OPENSOURCE_COMMIT.copy()
-        updated_bad_opensource_commit["sha"] = FILE_COMMITS_SHA["good_dontreadme"]
-        updated_bad_opensource_commit["files"] = ["open/dontreadme.md"]
-        mr.commits_list.append(updated_bad_opensource_commit)
-        mr._register_commit(updated_bad_opensource_commit)
+        # Add commit to the Merge Request with the same file, but without bad words - no new
+        # comments must be added.
+        updated_bad_open_source_commit = BAD_OPENSOURCE_COMMIT.copy()
+        updated_bad_open_source_commit["sha"] = FILE_COMMITS_SHA["good_dontreadme"]
+        updated_bad_open_source_commit["files"] = {"open/dontreadme.md": {"is_new": True}}
+        mr.commits_list.append(updated_bad_open_source_commit)
+        mr._register_commit(updated_bad_open_source_commit)
 
         open_source_rule.execute(mr_manager)
 
@@ -213,11 +247,11 @@ class TestOpenSourceRule:
 
         # Add commit to mr with the same "bad" file - comments only for new bad words should be
         # added.
-        updated_bad_opensource_commit = BAD_OPENSOURCE_COMMIT.copy()
-        updated_bad_opensource_commit["sha"] = FILE_COMMITS_SHA["new_bad_dontreadme"]
-        updated_bad_opensource_commit["files"] = ["open/dontreadme.md"]
-        mr.commits_list.append(updated_bad_opensource_commit)
-        mr._register_commit(updated_bad_opensource_commit)
+        updated_bad_open_source_commit = BAD_OPENSOURCE_COMMIT.copy()
+        updated_bad_open_source_commit["sha"] = FILE_COMMITS_SHA["new_bad_dontreadme"]
+        updated_bad_open_source_commit["files"] = {"open/dontreadme.md": {"is_new": True}}
+        mr.commits_list.append(updated_bad_open_source_commit)
+        mr._register_commit(updated_bad_open_source_commit)
 
         open_source_rule.execute(mr_manager)
 

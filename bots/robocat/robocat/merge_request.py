@@ -115,13 +115,18 @@ class MergeRequest:
             squash_commit_message = f"{self._gitlab_mr.title}\n\n{self._gitlab_mr.description}"
         self._gitlab_mr.merge(squash_commit_message=squash_commit_message)
 
-    def create_discussion(self, body: str, position: dict = None) -> bool:
+    def create_discussion(
+            self, body: str, position: dict = None, autoresolve: bool = False) -> bool:
         logger.debug(f"{self}: Creating discussion")
         if self._dry_run:
             return True
 
         try:
-            self._gitlab_mr.discussions.create({"body": body, "position": position})
+            discussion = self._gitlab_mr.discussions.create({"body": body, "position": position})
+            if autoresolve:
+                discussion.resolved = True
+                discussion.save()
+
         except gitlab.exceptions.GitlabError as e:
             # This is workaround for the case when gitlab refuses to create discussion at the
             # position explicitly stated with "new_line" and "new_path" parameters. TODO: Fix this

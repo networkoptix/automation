@@ -357,8 +357,9 @@ class MergeRequestManager:
                 f"{self._mr}: Got error during merge, most probably just rebase required: {e}")
             self._mr.rebase()
 
-    def create_thread_to_resolve(
-            self, title, message, emoji, file: str = None, line: int = None) -> bool:
+    def create_thread(
+            self, title, message, emoji,
+            file: str = None, line: int = None, autoresolve: bool = False) -> bool:
         if file is not None and line is not None:
             latest_diff = self._mr.latest_diff()
             position = {
@@ -375,7 +376,7 @@ class MergeRequestManager:
         body = robocat.comments.template.format(
             title=title, message=message, emoji=emoji,
             revision=automation_tools.bot_info.revision())
-        return self._mr.create_discussion(body=body, position=position)
+        return self._mr.create_discussion(body=body, position=position, autoresolve=autoresolve)
 
     def is_followup(self):
         if self._mr.award_emoji.find(AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI, own=True):
