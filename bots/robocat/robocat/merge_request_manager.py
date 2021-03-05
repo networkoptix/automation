@@ -126,7 +126,8 @@ class MergeRequestManager:
         return pipeline.status
 
     def get_changes(self) -> MergeRequestDiffData:
-        return self._get_project().get_mr_commit_changes(self._mr.id, self._mr.sha)
+        return self._get_project().get_mr_commit_changes(
+            self._mr.id, self._mr.target_branch, self._mr.sha)
 
     def update_unfinished_processing_flag(self, value):
         if self._mr.award_emoji.find(AwardEmojiManager.UNFINISHED_PROCESSING_EMOJI, own=True):

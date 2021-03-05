@@ -32,8 +32,10 @@ class Project:
         return file_handler.decode().decode('utf-8')
 
     @lru_cache(maxsize=64)
-    def get_mr_commit_changes(self, mr_id: int, sha: str) -> MergeRequestDiffData:  # pylint: disable=unused-argument
-        # "sha" argument is used by lru_cache magic.
+    def get_mr_commit_changes(
+            self, mr_id: int,
+            mr_target_branch: str, sha: str) -> MergeRequestDiffData:  # pylint: disable=unused-argument
+        # "sha" and "mr_target_branch" arguments are used by the lru_cache magic.
         changes = self._gitlab_project.mergerequests.get(mr_id).changes()
         overflow = str(changes["changes_count"]).endswith("+")
         return MergeRequestDiffData(changes=changes["changes"], overflow=overflow)
@@ -57,7 +59,6 @@ class Project:
     def get_raw_mrs(self, **kwargs):
         return self._gitlab_project.mergerequests.list(order_by='updated_at', **kwargs)
 
-    @lru_cache(maxsize=512)
     def get_raw_mr_by_id(self, mr_id: int):
         return self._gitlab_project.mergerequests.get(mr_id)
 

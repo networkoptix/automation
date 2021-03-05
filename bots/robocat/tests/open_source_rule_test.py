@@ -4,6 +4,7 @@ from robocat.award_emoji_manager import AwardEmojiManager
 from tests.common_constants import (
     BAD_OPENSOURCE_COMMIT,
     BAD_OPENCANDIDATE_COMMIT,
+    DEFAULT_COMMIT,
     FILE_COMMITS_SHA,
     DEFAULT_OPEN_SOURCE_APPROVER,
     DEFAULT_REQUIRED_APPROVALS_COUNT)
@@ -263,3 +264,23 @@ class TestOpenSourceRule:
             assert bad_word in comments[i], f"Comment {i} is: {comments[i]}"
             assert f"resolved only by @{DEFAULT_OPEN_SOURCE_APPROVER}" in comments[i], (
                 f"Comment {i} is: {comments[i]}")
+
+    # Re-check files if the merge request target branch changed.
+    @pytest.mark.parametrize("mr_state", [
+        {"commits_list": [BAD_OPENSOURCE_COMMIT]},
+    ])
+    def test_re_check_after_mr_target_branch_changed(self, open_source_rule, mr, mr_manager):
+        assert not open_source_rule.execute(mr_manager)
+        assert not mr.blocking_discussions_resolved
+        assert mr_manager._mr.get_approvers_count() == DEFAULT_REQUIRED_APPROVALS_COUNT + 1
+
+        # Fix files in commit leaving the same sha. We emulate different changes when the user sets
+        # the new target branch to the Merge Request.
+        updated_bad_open_source_commit = DEFAULT_COMMIT.copy()
+        updated_bad_open_source_commit["sha"] = BAD_OPENSOURCE_COMMIT["sha"]
+        mr.commits_list = [updated_bad_open_source_commit]
+        mr._register_commit(updated_bad_open_source_commit)
+        mr.target_branch = "changed_branch"
+
+        assert open_source_rule.execute(mr_manager)
+        assert mr_manager._mr.get_approvers_count() == DEFAULT_REQUIRED_APPROVALS_COUNT + 1
