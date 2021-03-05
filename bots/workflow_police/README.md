@@ -12,7 +12,6 @@ Releases should be mapped to repository permanent branches at https://networkopt
 # Parameters
 * *config_file* yaml file with configuration options, example: https://gitlab.lan.hdw.mx/dev/Automation/-/blob/master/bots/workflow_police/config.yaml
 * *--log-level* {CRITICAL,FATAL,ERROR,WARN,WARNING,INFO,DEBUG,NOTSET} level for logging, default INFO
-* *--dry-run* Run single iteration, don't change any states
 
 The directories must have proper UID & GID, default 1000:1000,
 the UID & GID can be configured at image build time.

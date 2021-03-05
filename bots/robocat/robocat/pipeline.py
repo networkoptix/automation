@@ -25,9 +25,8 @@ class PlayPipelineError(RuntimeError):
 
 
 class Pipeline:
-    def __init__(self, pipeline, dry_run=False):
+    def __init__(self, pipeline):
         self._gitlab_pipeline = pipeline
-        self._dry_run = dry_run
 
     @property
     def id(self):
@@ -71,11 +70,11 @@ class Pipeline:
             raise PlayPipelineError("Only manual pipelines could be played")
 
         logger.info(f"{self}: Playing...")
-        if not self._dry_run:
-            project = self._get_project()
-            for job in self._gitlab_pipeline.jobs.list():
-                if job.status == "manual":
-                    project.jobs.get(job.id, lazy=True).play()
+
+        project = self._get_project()
+        for job in self._gitlab_pipeline.jobs.list():
+            if job.status == "manual":
+                project.jobs.get(job.id, lazy=True).play()
 
     def _get_project(self):
         project_id = self._gitlab_pipeline.project_id

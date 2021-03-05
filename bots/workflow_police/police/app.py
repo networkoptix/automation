@@ -25,11 +25,9 @@ class ServiceNameFilter(logging.Filter):
 
 
 class WorkflowEnforcer:
-    def __init__(self, config: Dict, dry_run: bool):
+    def __init__(self, config: Dict):
         self._polling_period_min = config["polling_period_min"]
         self._last_check_file = config["last_check_file"]
-
-        self.dry_run = dry_run
 
         self._jira = JiraAccessor(**config["jira"])
         self._repo = automation_tools.utils.RepoAccessor(**config["repo"])
@@ -55,10 +53,6 @@ class WorkflowEnforcer:
             return self._polling_period_min * 2
 
     def update_last_check_timestamp(self):
-        if self.dry_run:
-            logger.info(f"Skipping update of {self._last_check_file} (dry-run)")
-            return
-
         with open(self._last_check_file, "w") as f:
             f.write(str(int(datetime.datetime.now().timestamp())))
 
@@ -79,13 +73,10 @@ class WorkflowEnforcer:
                 reason = self._workflow_checker.should_reopen_issue(issue)
                 if not reason:
                     continue
-                self._jira.return_issue(issue, reason, self.dry_run)
 
             logger.debug(f"All {len(issues)} issues handled")
             self.update_last_check_timestamp()
 
-            if self.dry_run:
-                return
             time.sleep(self._polling_period_min * 60)
 
 
@@ -93,7 +84,6 @@ def main():
     parser = argparse.ArgumentParser(sys.argv[0])
     parser.add_argument('config_file', help="Config file with all options")
     parser.add_argument('--log-level', help="Logs level", choices=logging._nameToLevel.keys(), default=logging.INFO)
-    parser.add_argument('--dry-run', help="Run single iteration, don't change any states", action="store_true")
     parser.add_argument('--graylog', help="Hostname of Graylog service")
     arguments = parser.parse_args()
 
@@ -109,7 +99,7 @@ def main():
 
     try:
         config = automation_tools.utils.parse_config_file(Path(arguments.config_file))
-        enforcer = WorkflowEnforcer(config, arguments.dry_run)
+        enforcer = WorkflowEnforcer(config)
         enforcer.run()
     except Exception as e:
         logger.warning(f'Crashed with exception: {e}', exc_info=1)

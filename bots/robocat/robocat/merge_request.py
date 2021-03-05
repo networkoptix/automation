@@ -11,11 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 class MergeRequest:
-    def __init__(self, gitlab_mr, current_user, dry_run=False):
+    def __init__(self, gitlab_mr, current_user):
         self._gitlab_mr = gitlab_mr
         self._current_user = current_user
-        self._dry_run = dry_run
-        self._award_emoji = AwardEmojiManager(gitlab_mr.awardemojis, current_user, dry_run)
+        self._award_emoji = AwardEmojiManager(gitlab_mr.awardemojis, current_user)
 
     def __str__(self):
         return f"MR!{self.id}"
@@ -101,14 +100,10 @@ class MergeRequest:
 
     def rebase(self):
         logger.debug(f"{self}: Rebasing")
-        if self._dry_run:
-            return
         self._gitlab_mr.rebase()
 
     def merge(self):
         logger.debug(f"{self}: Merging")
-        if self._dry_run:
-            return
 
         squash_commit_message = None
         if self._gitlab_mr.squash:
@@ -118,8 +113,6 @@ class MergeRequest:
     def create_discussion(
             self, body: str, position: dict = None, autoresolve: bool = False) -> bool:
         logger.debug(f"{self}: Creating discussion")
-        if self._dry_run:
-            return True
 
         try:
             discussion = self._gitlab_mr.discussions.create({"body": body, "position": position})
@@ -152,8 +145,6 @@ class MergeRequest:
         return {assignee["username"] for assignee in self._gitlab_mr.assignees}
 
     def set_assignees_by_ids(self, assignee_ids: Set[int]) -> None:
-        if self._dry_run:
-            return
         self._gitlab_mr.assignee_ids = assignee_ids
         self._gitlab_mr.save()
 
@@ -165,8 +156,7 @@ class MergeRequest:
         return lateset_diffs_list[0]
 
     def create_note(self, body: str) -> None:
-        if not self._dry_run:
-            self._gitlab_mr.notes.create({'body': body})
+        self._gitlab_mr.notes.create({'body': body})
 
     @property
     def is_merged(self):

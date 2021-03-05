@@ -52,11 +52,9 @@ class JiraIssue:
     DONE_EXTERNALLY_LABEL = "done_externally"
 
     def __init__(
-            self, jira_handler: jira.JIRA, issue: jira.Issue,
-            branch_mapping: Dict[str, str], dry_run: bool = False):
+            self, jira_handler: jira.JIRA, issue: jira.Issue, branch_mapping: Dict[str, str]):
         self._raw_issue = issue
         self._jira = jira_handler
-        self._dry_run = dry_run
         self._version_to_branch_mapping = branch_mapping
 
     def __eq__(self, other):
@@ -133,8 +131,6 @@ class JiraIssue:
 
     def try_finalize(self):
         logger.info(f"Trying to close issue {self}")
-        if self._dry_run:
-            return
 
         if self.status in [JiraIssueStatus.closed, JiraIssueStatus.qa]:
             logger.info(f'Nothing to do: issue {self} already has status {self.status}.')
@@ -182,8 +178,6 @@ class JiraIssue:
         issue = self._raw_issue
         try:
             logger.info(f'Reopening issue {issue.key}: {reason}')
-            if self._dry_run:
-                return
 
             if self.status == JiraIssueStatus.closed:
                 self._jira.transition_issue(issue, str(JiraIssueTransition.Reopen))
@@ -226,13 +220,10 @@ class JiraIssue:
 class JiraAccessor:
     project = "VMS"
 
-    def __init__(
-            self, url: str, login: str, password: str,
-            timeout: int, retries: int, dry_run: bool = False):
+    def __init__(self, url: str, login: str, password: str, timeout: int, retries: int):
         try:
             self._jira = jira.JIRA(
                 server=url, basic_auth=(login, password), max_retries=retries, timeout=timeout)
-            self._dry_run = dry_run
 
         except jira.exceptions.JIRAError as error:
             raise JiraError(f"Unable to connect to {url} with {login}", error) from error
@@ -248,7 +239,7 @@ class JiraAccessor:
         try:
             return JiraIssue(
                 jira_handler=self._jira, issue=self._jira.issue(key),
-                branch_mapping=self.version_to_branch_mapping(), dry_run=self._dry_run)
+                branch_mapping=self.version_to_branch_mapping())
 
         except jira.exceptions.JIRAError as error:
             raise JiraError(f"Unable to obtain issue {key}", error) from error
@@ -258,10 +249,9 @@ class JiraAccessor:
 
     # TODO: Refactor workflow-police bot for working with JiraIssue object instead of raw
     # jira.Issue.
-    def return_issue(self, issue: jira.Issue, reason: str, dry_run: bool):
+    def return_issue(self, issue: jira.Issue, reason: str):
         jira_issue = JiraIssue(
-            jira_handler=self._jira, issue=issue,
-            branch_mapping=self.version_to_branch_mapping(), dry_run=dry_run)
+            jira_handler=self._jira, issue=issue, branch_mapping=self.version_to_branch_mapping())
         return jira_issue.return_issue(reason)
 
     @automation_tools.utils.cached(datetime.timedelta(minutes=10))

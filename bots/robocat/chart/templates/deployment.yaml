@@ -33,9 +33,6 @@ spec:
             {{- if .Values.gelfServer }}
             - '--graylog={{ .Values.gelfServer }}'
             {{- end }}
-            {{- if .Values.dryRun }}
-            - '--dry-run'
-            {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

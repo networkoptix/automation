@@ -15,9 +15,8 @@ class MergeRequestDiffData:
 
 
 class Project:
-    def __init__(self, gitlab_project, dry_run=False):
+    def __init__(self, gitlab_project):
         self._gitlab_project = gitlab_project
-        self._dry_run = dry_run
 
     def __eq__(self, other):
         return self._gitlab_project.id == other._gitlab_project.id
@@ -74,8 +73,6 @@ class Project:
         return self._gitlab_project.commits.get(sha)
 
     def create_branch(self, branch: str, from_branch: str):
-        if self._dry_run:
-            return None
         return self._gitlab_project.branches.create({"branch": branch, "ref": from_branch})
 
     def create_merge_request(
@@ -85,9 +82,6 @@ class Project:
             description: str,
             squash: bool,
             author: str):
-
-        if self._dry_run:
-            return None
 
         bot_gitlab = self._gitlab_project.manager.gitlab
         assignee_ids = [bot_gitlab.user.id]

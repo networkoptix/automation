@@ -39,9 +39,6 @@ gitlabToken:
 # gitlab project id
 gitlabProjectId: 2
 
-# dry run mode
-dryRun: false
-
 # Merge requests poll rate
 gitlabMrPollRate: 30
 

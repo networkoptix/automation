@@ -23,10 +23,9 @@ class AwardEmojiManager():
     AUTOCHECK_IMPOSSIBLE_EMOJI = "raised_back_of_hand"
     BAD_ISSUE_EMOJI = "beetle"
 
-    def __init__(self, gitlab_award_emoji_manager, current_user, dry_run=False):
+    def __init__(self, gitlab_award_emoji_manager, current_user):
         self._gitlab_manager = gitlab_award_emoji_manager
         self._current_user = current_user
-        self._dry_run = dry_run
 
     @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
     def _cached_list(self):
@@ -42,8 +41,6 @@ class AwardEmojiManager():
 
     def create(self, name, **kwargs) -> bool:
         logger.debug(f"Creating emoji {name}")
-        if self._dry_run:
-            return False
 
         if not self.find(name, own=True):
             self._cached_list.cache_clear()
@@ -53,8 +50,6 @@ class AwardEmojiManager():
 
     def delete(self, name, own, **kwargs) -> bool:
         logger.debug(f"Removing {name} emoji")
-        if self._dry_run:
-            return False
 
         found_emojis = self.find(name, own)
         if not found_emojis:

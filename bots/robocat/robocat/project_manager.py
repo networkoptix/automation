@@ -20,10 +20,9 @@ class ProjectData:
 
 
 class ProjectManager:
-    def __init__(self, gitlab_project, current_user, dry_run=False):
+    def __init__(self, gitlab_project, current_user):
         self._current_user = current_user
-        self._dry_run = dry_run
-        self._project = Project(gitlab_project, dry_run=dry_run)
+        self._project = Project(gitlab_project)
 
     @property
     def data(self) -> ProjectData:
@@ -35,9 +34,6 @@ class ProjectManager:
 
     def create_followup_merge_request(
             self, target_branch: str, original_mr_manager: MergeRequestManager) -> MergeRequest:
-        if self._dry_run:
-            return None
-
         mr = self._create_empty_followup_mr(
             target_branch=target_branch, original_mr_manager=original_mr_manager)
 
@@ -74,7 +70,7 @@ class ProjectManager:
             squash=False,
             author=original_mr_data.author_name)
 
-        mr = MergeRequest(raw_mr, self._current_user, self._dry_run)
+        mr = MergeRequest(raw_mr, self._current_user)
         mr.set_approvers_count(0)
         mr.award_emoji.create(AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI)
         mr.create_note(body=robocat.comments.template.format(
@@ -117,7 +113,7 @@ class ProjectManager:
         mrs = self._project.get_raw_mrs(as_list=False, **kwargs)
         for raw_mr in mrs:
             if self._current_user in (assignee["username"] for assignee in raw_mr.assignees):
-                yield MergeRequest(raw_mr, self._current_user, self._dry_run)
+                yield MergeRequest(raw_mr, self._current_user)
 
     def get_merged_branches_by_mr_ids(self, mr_ids: Set[int]) -> Set[str]:
         branches_with_merged_mrs = set()

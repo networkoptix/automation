@@ -62,7 +62,6 @@ def mr_manager(project):
 def jira(jira_issues, monkeypatch):
     def init_with_mock(this):
         this._jira = JiraMock()
-        this._dry_run = False
 
     monkeypatch.setattr(JiraAccessor, "__init__", init_with_mock)
 

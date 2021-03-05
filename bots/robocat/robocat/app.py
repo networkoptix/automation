@@ -30,16 +30,13 @@ class ServiceNameFilter(logging.Filter):
 
 
 class Bot:
-    def __init__(self, config, project_id, dry_run):
+    def __init__(self, config, project_id):
         self._gitlab = gitlab.Gitlab.from_config("nx_gitlab")
         self._gitlab.auth()
         self._username = self._gitlab.user.username
-        self._dry_run = dry_run
 
         self._project_manager = ProjectManager(
-            gitlab_project=self._gitlab.projects.get(project_id),
-            current_user=self._username,
-            dry_run=dry_run)
+            gitlab_project=self._gitlab.projects.get(project_id), current_user=self._username)
 
         self._rule_essential = EssentialRule()
         self._rule_open_source_check = OpenSourceCheckRule(
@@ -75,8 +72,7 @@ class Bot:
     def start(self, mr_poll_rate):
         logger.info(
             f"Robocat revision {automation_tools.bot_info.revision()}. Started for project "
-            f"[{self._project_manager.data.name}] with {mr_poll_rate} secs poll rate"
-            f"{' (--dry-run)' if self._dry_run else ''}")
+            f"[{self._project_manager.data.name}] with {mr_poll_rate} secs poll rate")
 
         for mr_manager in self.get_merge_requests_manager(mr_poll_rate):
             try:
@@ -105,7 +101,6 @@ def main():
     parser.add_argument('-c', '--config', help="Config file with all options", default={})
     parser.add_argument('-p', '--project-id', help="ID of project in gitlab (2 for dev/nx)", type=int, required=True)
     parser.add_argument('--log-level', help="Logs level", choices=logging._nameToLevel.keys(), default=logging.INFO)
-    parser.add_argument('--dry-run', help="Don't change any MR states", action="store_true")
     parser.add_argument('--mr-poll-rate', help="Merge Requests poll rate, seconds (default: 30)", type=int, default=30)
     parser.add_argument('--graylog', help="Hostname of Graylog service")
     arguments = parser.parse_args()
@@ -125,7 +120,7 @@ def main():
             config = automation_tools.utils.parse_config_file(Path(arguments.config))
         else:
             config = {}
-        bot = Bot(config, arguments.project_id, arguments.dry_run)
+        bot = Bot(config, arguments.project_id)
         bot.start(arguments.mr_poll_rate)
     except Exception as e:
         logger.error(f'Crashed with exception: {e}', exc_info=1)
