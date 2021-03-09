@@ -7,7 +7,7 @@ include:
 
 variables:
   WORKFLOW_POLICE_VERSION: "1.12"
-  ROBOCAT_VERSION: "1.33"
+  ROBOCAT_VERSION: "1.34"
   K8S_PRODUCT_RELEASE: "prod"
   DOCKER_REGISTRY: "docker.artifactory.lan.hdw.mx:80"
   K8S_DEPLOY_NAMESPACE: "default"
