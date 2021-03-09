@@ -7,7 +7,7 @@ include:
 
 variables:
   WORKFLOW_POLICE_VERSION: "1.12"
-  ROBOCAT_VERSION: "1.31"
+  ROBOCAT_VERSION: "1.33"
   K8S_PRODUCT_RELEASE: "prod"
   DOCKER_REGISTRY: "docker.artifactory.lan.hdw.mx:80"
   K8S_DEPLOY_NAMESPACE: "default"
@@ -108,7 +108,7 @@ k8s:workflow_police:deploy:
         >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
       echo "jiraPassword: $(vault kv get --field="service@networkoptix.com" "apptokens/jira")"
         >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
-      kubectl scale deployment ${PRODUCT}-${K8S_PRODUCT_RELEASE} --replicas=0
+      kubectl scale deployment ${PRODUCT}-${K8S_PRODUCT_RELEASE} --replicas=0|:
   rules:
   - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "master"
     changes:
@@ -129,7 +129,7 @@ k8s:robocat:deploy:
         > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
       echo "jiraPassword: $(vault kv get --field="service@networkoptix.com" "apptokens/jira")"
         >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
-      kubectl scale deployment ${PRODUCT}-${K8S_PRODUCT_RELEASE} --replicas=0
+      kubectl scale deployment ${PRODUCT}-${K8S_PRODUCT_RELEASE} --replicas=0|:
   rules:
   - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "master"
     changes:
