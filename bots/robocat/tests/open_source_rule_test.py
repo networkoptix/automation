@@ -13,7 +13,7 @@ from tests.fixtures import *
 
 class TestOpenSourceRule:
     @pytest.mark.parametrize("mr_state", [
-        # MR without open source files
+        # MR without open source files.
         {
             "commits_list": [{
                 "sha": FILE_COMMITS_SHA["no_open_source_files"],
@@ -22,6 +22,7 @@ class TestOpenSourceRule:
                 "files": {"dontreadme.md": {"is_new": True}},
             }]
         },
+        # MR is changing only the files that are excluded from the open-source compliance check.
         {
             "commits_list": [{
                 "sha": FILE_COMMITS_SHA["excluded_open_source_files"],
@@ -31,8 +32,10 @@ class TestOpenSourceRule:
                     "open/readme.md": {"is_new": True},
                     "open/licenses/some_file.md": {"is_new": True},
                     "open/artifacts/nx_kit/src/json11/a/b/c.c": {"is_new": True},
+                    "open_candidate/some_path/go.mod": {"is_new": True},
+                    "open/1/2/go.sum": {"is_new": True},
                 },
-            }]
+            }],
         },
     ])
     def test_not_applicable(self, open_source_rule, mr, mr_manager):
