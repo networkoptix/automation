@@ -112,7 +112,7 @@ class MergeRequest:
 
     def create_discussion(
             self, body: str, position: dict = None, autoresolve: bool = False) -> bool:
-        logger.debug(f"{self}: Creating discussion")
+        logger.debug(f'{self}: Creating discussion at {position}. Message: "{body}"')
 
         try:
             discussion = self._gitlab_mr.discussions.create({"body": body, "position": position})
@@ -156,6 +156,7 @@ class MergeRequest:
         return lateset_diffs_list[0]
 
     def create_note(self, body: str) -> None:
+        logger.debug(f'{self}: Creating comment. Message: {body!r}')
         self._gitlab_mr.notes.create({'body': body})
 
     @property

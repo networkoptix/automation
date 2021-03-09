@@ -40,16 +40,17 @@ class AwardEmojiManager():
         return [e for e in self.list(own) if e.name == name]
 
     def create(self, name, **kwargs) -> bool:
-        logger.debug(f"Creating emoji {name}")
+        logger.debug(f"Got request to create emoji {name}")
 
         if not self.find(name, own=True):
             self._cached_list.cache_clear()
+            logger.debug(f"Creating emoji {name}")
             self._gitlab_manager.create({'name': name}, **kwargs)
 
         return True
 
     def delete(self, name, own, **kwargs) -> bool:
-        logger.debug(f"Removing {name} emoji")
+        logger.debug(f"Got request to remove emoji {name}")
 
         found_emojis = self.find(name, own)
         if not found_emojis:
@@ -57,6 +58,7 @@ class AwardEmojiManager():
 
         self._cached_list.cache_clear()
         for emoji in found_emojis:
+            logger.debug(f"Removing emoji {emoji}")
             self._gitlab_manager.delete(emoji.id, **kwargs)
 
         return True
