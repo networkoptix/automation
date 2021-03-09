@@ -108,6 +108,7 @@ k8s:workflow_police:deploy:
         >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
       echo "jiraPassword: $(vault kv get --field="service@networkoptix.com" "apptokens/jira")"
         >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
+      set +o pipefail;
       kubectl scale deployment ${PRODUCT}-${K8S_PRODUCT_RELEASE} --replicas=0|:
   rules:
   - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "master"
@@ -129,6 +130,7 @@ k8s:robocat:deploy:
         > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
       echo "jiraPassword: $(vault kv get --field="service@networkoptix.com" "apptokens/jira")"
         >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
+      set +o pipefail;
       kubectl scale deployment ${PRODUCT}-${K8S_PRODUCT_RELEASE} --replicas=0|:
   rules:
   - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "master"
