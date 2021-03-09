@@ -72,10 +72,24 @@ class Pipeline:
         logger.info(f"{self}: Playing...")
 
         project = self._get_project()
-        for job in self._gitlab_pipeline.jobs.list():
+        for job in self._get_all_jobs():
             if job.status == "manual":
                 project.jobs.get(job.id, lazy=True).play()
 
     def _get_project(self):
         project_id = self._gitlab_pipeline.project_id
         return self._gitlab_pipeline.manager.gitlab.projects.get(project_id, lazy=True)
+
+    def _get_all_jobs(self):
+        result = []
+        current_page = 1
+
+        while True:
+            jobs_on_current_page = list(
+                self._gitlab_pipeline.jobs.list(per_page=100, page=current_page))
+            if not jobs_on_current_page:
+                break
+            result += jobs_on_current_page
+            current_page += 1
+
+        return result

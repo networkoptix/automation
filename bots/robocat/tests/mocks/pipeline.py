@@ -20,7 +20,9 @@ class JobsManagerMock:
     jobs_list: list = field(default_factory=list)
     pipeline_filter: Any = None
 
-    def list(self):
+    def list(self, per_page: int = 20, page: int = 1):  # pylint: disable=unused-argument
+        if page > 1:
+            return []
         if self.pipeline_filter is None:
             return self.jobs_list
         return [j for j in self.jobs_list if j.pipeline == self.pipeline_filter]
