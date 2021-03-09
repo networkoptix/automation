@@ -11,7 +11,6 @@ variables:
   K8S_PRODUCT_RELEASE: "prod"
   DOCKER_REGISTRY: "docker.artifactory.lan.hdw.mx:80"
   K8S_DEPLOY_NAMESPACE: "default"
-  CI_DEBUG_TRACE: "true"
 
 stages:
   - validate
