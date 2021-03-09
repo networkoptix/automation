@@ -184,7 +184,7 @@ class TestOpenSourceRule:
                 assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comments[i], (
                     f"Comment {i} is: {comments[i]}")
                 assert bad_word in comments[i], f"Comment {i} is: {comments[i]}"
-                assert f"resolved only by @{DEFAULT_OPEN_SOURCE_APPROVER}" in comments[i], (
+                assert f"resolved only after" in comments[i], (
                     f"Comment {i} is: {comments[i]}")
 
     @pytest.mark.parametrize("mr_state", [
@@ -224,7 +224,7 @@ class TestOpenSourceRule:
             assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comments[i], (
                 f"Comment {i} is: {comments[i]}")
             assert bad_word in comments[i], f"Comment {i} is: {comments[i]}"
-            assert f"resolved only by @{DEFAULT_OPEN_SOURCE_APPROVER}" in comments[i], (
+            assert f"resolved only after" in comments[i], (
                 f"Comment {i} is: {comments[i]}")
 
         # Add commit to the Merge Request with the same file, but without bad words - no new
@@ -243,7 +243,7 @@ class TestOpenSourceRule:
             assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comments[i], (
                 f"Comment {i} is: {comments[i]}")
             assert bad_word in comments[i], f"Comment {i} is: {comments[i]}"
-            assert f"resolved only by @{DEFAULT_OPEN_SOURCE_APPROVER}" in comments[i], (
+            assert f"resolved only after" in comments[i], (
                 f"Comment {i} is: {comments[i]}")
 
         # Add commit to mr with the same "bad" file - comments only for new bad words should be
@@ -262,7 +262,7 @@ class TestOpenSourceRule:
             assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comments[i], (
                 f"Comment {i} is: {comments[i]}")
             assert bad_word in comments[i], f"Comment {i} is: {comments[i]}"
-            assert f"resolved only by @{DEFAULT_OPEN_SOURCE_APPROVER}" in comments[i], (
+            assert f"resolved only after" in comments[i], (
                 f"Comment {i} is: {comments[i]}")
 
     # Re-check files if the merge request target branch changed.

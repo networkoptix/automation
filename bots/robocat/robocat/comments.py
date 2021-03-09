@@ -29,23 +29,30 @@ Please, do manual rebase and [remove WIP]({_wip_url}) to continue merging proces
 has_good_changes_in_open_source = """This merge request contains changes in open source part of the
 project. No problems were revealed during autocheck.
 
-**ATTENTION**: This thread should be resolved only by @{approver}.
+**ATTENTION**: This thread should be resolved only after thoroughtly checking that the changes are
+safe for publication as an open source.
 """
 
 has_unimportant_changes_in_open_source = """This merge request contains changes in open source part
 of the project. No problems were revealed during the auto-check.
+
+This thread is auto-resolved by Robocat because it meets the following criteria:
+1. Auto-check hasn't found any problems.
+2. No new files were added to the open source part of the project.
 """
 
 may_have_changes_in_open_source = """It is impossible to check if this merge request contains
 changes in open source part of the project due to the huge amount of changes in it. Please, check
-possible changes in open source part manually.
+possible changes in the open source part manually.
 
-**ATTENTION**: This thread should be resolved only by @{approver}.
+**ATTENTION**: This thread should be resolved only after thoroughly checking that the issue is
+fixed or irrelevant.
 """
 
 has_bad_changes_in_open_source = """{error_message}
 
-**ATTENTION**: This thread should be resolved only by @{approver}.
+**ATTENTION**: This thread should be resolved only after thoroughly checking that the issue is
+fixed or irrelevant.
 """
 
 incorrect_mpl = """MPL check failed: line is:
