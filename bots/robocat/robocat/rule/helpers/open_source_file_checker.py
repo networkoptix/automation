@@ -14,7 +14,7 @@ EXCLUDED_DIRS = {
 }
 EXCLUDED_FILE_PATHS = {"open/readme.md"}
 # go.mod and go.sum are auto-generated, so they do not need to be checked.
-EXCLUDED_FILE_NAMES = {"go.mod", "go.sum"}
+EXCLUDED_FILE_NAME_PATTERNS = {"go.mod", "go.sum", "*.json"}
 
 MPL = (
     'Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/')
@@ -81,9 +81,10 @@ class OpenSourceFileChecker:
         if file_path in EXCLUDED_FILE_PATHS:
             return False
 
-        file_name = Path(file_path).name
-        if file_name in EXCLUDED_FILE_NAMES:
-            return False
+        file_path_object = Path(file_path)
+        for pattern in EXCLUDED_FILE_NAME_PATTERNS:
+            if file_path_object.match(pattern):
+                return False
 
         return True
 

@@ -61,6 +61,8 @@ class FileManagerMock():
             FileManagerMock.ProjectFileMock(path="open/1/2/go.sum", raw_data=BAD_README_RAW_DATA),
             FileManagerMock.ProjectFileMock(
                 path="open_candidate/some_path/go.mod", raw_data=BAD_README_RAW_DATA),
+            FileManagerMock.ProjectFileMock(
+                path="open/1/2/SomeData.json", raw_data=BAD_README_RAW_DATA),
         ],
         FILE_COMMITS_SHA["bad_opencadidate_source_files"]: [
             FileManagerMock.ProjectFileMock(

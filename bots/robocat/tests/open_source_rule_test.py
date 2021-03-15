@@ -34,6 +34,7 @@ class TestOpenSourceRule:
                     "open/artifacts/nx_kit/src/json11/a/b/c.c": {"is_new": True},
                     "open_candidate/some_path/go.mod": {"is_new": True},
                     "open/1/2/go.sum": {"is_new": True},
+                    "open/1/2/SomeData.json": {"is_new": True},
                 },
             }],
         },
