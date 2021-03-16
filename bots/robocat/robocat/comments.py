@@ -31,6 +31,11 @@ project. No problems were revealed during autocheck.
 
 **ATTENTION**: This thread should be resolved only after thoroughtly checking that the changes are
 safe for publication as an open source.
+
+This Merge Request **requires approval by @{approver}** due to
+the following reason:
+
+The Merge Request contains new or renamed files in the open-source part of the project.
 """
 
 has_unimportant_changes_in_open_source = """This merge request contains changes in open source part
@@ -47,12 +52,23 @@ possible changes in the open source part manually.
 
 **ATTENTION**: This thread should be resolved only after thoroughly checking that the issue is
 fixed or irrelevant.
+
+This Merge Request **requires approval by @{approver}** due to
+the following reason:
+
+The Merge Request contains too many changes and can not be automatically checked for potentially
+dangerous changes in the open-source part of the project.
 """
 
 has_bad_changes_in_open_source = """{error_message}
 
 **ATTENTION**: This thread should be resolved only after thoroughly checking that the issue is
 fixed or irrelevant.
+
+This Merge Request **requires approval by @{approver}** due to
+the following reason:
+
+Auto-check has discovered dangerous changes in the open-source part of the project.
 """
 
 incorrect_mpl = """MPL check failed: line is:

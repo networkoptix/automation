@@ -224,7 +224,8 @@ class OpenSourceCheckRule(BaseRule):
         if not self._is_diff_complete(mr_manager):
             mr_manager.create_thread(
                 title="Can't auto-check open source changes",
-                message=robocat.comments.may_have_changes_in_open_source,
+                message=robocat.comments.may_have_changes_in_open_source.format(
+                    approver=self._open_source_approver),
                 emoji=AwardEmojiManager.AUTOCHECK_IMPOSSIBLE_EMOJI)
             self._file_check_results_cache.must_add_comment = False
             return
@@ -240,7 +241,8 @@ class OpenSourceCheckRule(BaseRule):
 
         mr_manager.create_thread(
             title="Auto-check for open source changes passed",
-            message=robocat.comments.has_good_changes_in_open_source,
+            message=robocat.comments.has_good_changes_in_open_source.format(
+                approver=self._open_source_approver),
             emoji=AwardEmojiManager.AUTOCHECK_OK_EMOJI)
         self._file_check_results_cache.must_add_comment = False
 
