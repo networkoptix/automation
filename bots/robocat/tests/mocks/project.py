@@ -9,8 +9,7 @@ from tests.mocks.commit import CommitsManagerMock
 from tests.mocks.file import FileManagerMock
 from tests.mocks.merge_request import MergeRequestMock
 from tests.mocks.user import UserManagerMock
-
-DEFAULT_PROJECT_ID = 1
+from tests.common_constants import DEFAULT_PROJECT_ID
 
 
 @dataclass
@@ -25,6 +24,11 @@ class MergeRequestManagerMock:
         self.merge_requests[mr.iid] = mr
 
     def create(self, params):
+        # If the target bbranch is in the another project, call create for that project, not this.
+        if params["target_project_id"] != self.project.id:
+            target_project = self.project.manager.gitlab.projects.get(params["target_project_id"])
+            return target_project.mergerequests.create(params)
+
         for mr in self.merge_requests.values():
             if mr.state != "opened":
                 continue
@@ -77,7 +81,7 @@ class ProjectMock:
     files: FileManagerMock = field(default_factory=FileManagerMock, init=False)
     branches: BranchManagerMock = field(default_factory=BranchManagerMock, init=False)
 
-    manager: GitlabManagerMock = field(default_factory=GitlabManagerMock, init=False)
+    manager: GitlabManagerMock = field(default_factory=GitlabManagerMock)
 
     def __post_init__(self):
         self.manager.gitlab.projects.add_mock_project(self)

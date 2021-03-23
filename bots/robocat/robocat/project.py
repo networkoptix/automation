@@ -1,9 +1,8 @@
 import logging
 import json
 from functools import lru_cache
-from typing import List, Dict
+from typing import List, Dict, Optional
 from dataclasses import dataclass
-from gitlab import Gitlab
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +54,10 @@ class Project:
             logger.warning(f"Can't find user id for user {username}.")
         return user_ids
 
+    @property
+    def id(self) -> int:
+        return int(self._gitlab_project.id)
+
     def get_raw_mrs(self, **kwargs):
         return self._gitlab_project.mergerequests.list(order_by='updated_at', **kwargs)
 
@@ -81,32 +84,18 @@ class Project:
             title: str,
             description: str,
             squash: bool,
-            author: str):
+            assignee_ids: List[int],
+            target_project_id: Optional[int] = None) -> int:
 
-        bot_gitlab = self._gitlab_project.manager.gitlab
-        assignee_ids = [bot_gitlab.user.id]
+        target_project_id = self.id if target_project_id is None else target_project_id
 
-        try:
-            effective_user = bot_gitlab.users.list(search=author)[0]
-        except IndexError as e:
-            raise RuntimeError(f"Invalid username: {author}") from e
-
-        impersonation_token = effective_user.impersonationtokens.create(
-            {"name": author, "scopes": ["api"]}, lazy=True)
-        user_gitlab = Gitlab(bot_gitlab.url, private_token=impersonation_token.token)
-        user_gitlab.auth()  # Needed to initialize "user" field of the user_gitlab object.
-        assignee_ids.append(user_gitlab.user.id)
-        raw_project = user_gitlab.projects.get(self._gitlab_project.id, lazy=True)
-
-        raw_mr = raw_project.mergerequests.create({
+        raw_mr = self._gitlab_project.mergerequests.create({
             "source_branch": source_branch,
             "target_branch": target_branch,
             "title": title,
             "description": description,
             "squash": squash,
             "remove_source_branch": True,
+            "target_project_id": target_project_id,
             "assignee_ids": assignee_ids})
-
-        impersonation_token.delete()
-        # Return "bot owned" merge request, not "user owned".
-        return self._gitlab_project.mergerequests.get(raw_mr.iid)
+        return raw_mr.iid

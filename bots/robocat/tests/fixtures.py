@@ -3,8 +3,7 @@ from pathlib import Path
 import pytest
 
 from robocat.merge_request import MergeRequest
-from robocat.gitlab import Gitlab
-import robocat.project as gitlab_project_module
+import robocat.gitlab
 from tests.mocks.project import ProjectMock
 from tests.mocks.merge_request import MergeRequestMock
 from tests.mocks.pipeline import PipelineMock
@@ -40,7 +39,7 @@ def project(mr_state, monkeypatch):
             project=project, id=new_pipeline_id, sha=mr.sha, status="manual")
         project.pipelines.add_mock_pipeline(pipeline)
 
-    monkeypatch.setattr(Gitlab, "create_detached_pipeline", create_pipeline)
+    monkeypatch.setattr(robocat.gitlab.Gitlab, "create_detached_pipeline", create_pipeline)
 
     return project
 
@@ -99,7 +98,7 @@ def followup_rule(project, jira, monkeypatch):
         gitlab.set_private_token(private_token)
         return gitlab
 
-    monkeypatch.setattr(gitlab_project_module, "Gitlab", return_gitlab_object)
+    monkeypatch.setattr(robocat.gitlab.gitlab, "Gitlab", return_gitlab_object)
     monkeypatch.setenv("BOT_NAME", "Robocat")
 
     return rule

@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 class MergeRequest:
     def __init__(self, gitlab_mr, current_user):
         self._gitlab_mr = gitlab_mr
-        self._current_user = current_user
         self._award_emoji = AwardEmojiManager(gitlab_mr.awardemojis, current_user)
 
     def __str__(self):
@@ -77,6 +76,14 @@ class MergeRequest:
     @property
     def project_id(self) -> int:
         return self._gitlab_mr.project_id
+
+    @property
+    def source_branch_project_id(self) -> int:
+        return self._gitlab_mr.source_project_id
+
+    @property
+    def target_branch_project_id(self) -> int:
+        return self._gitlab_mr.target_project_id
 
     @property
     def raw_gitlab_object(self) -> gitlab.Gitlab:

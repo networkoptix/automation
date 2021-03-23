@@ -2,18 +2,18 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from tests.mocks.user import UserMock
-from tests.common_constants import BOT_USERNAME, BOT_USERID
+from tests.common_constants import BOT_USERNAME, BOT_USERID, DEFAULT_PROJECT_ID
 
 
 @dataclass
 class ProjectManagerMock:
-    project: Any = None
+    projects: dict = field(default_factory=dict)
 
-    def get(self, *_, **__):
-        return self.project
+    def get(self, project_id, **__):
+        return self.projects[project_id]
 
     def add_mock_project(self, project):
-        self.project = project
+        self.projects[project.id] = project
 
 
 @dataclass
@@ -25,7 +25,7 @@ class GitlabMock:
 
     @property
     def users(self):
-        return self.projects.get().users
+        return self.projects.get(DEFAULT_PROJECT_ID).users
 
     def set_private_token(self, token):
         token["gitlab"] = self

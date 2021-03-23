@@ -100,7 +100,9 @@ class MergeRequestData:
     blocking_discussions_resolved: bool
     source_branch: bool
     target_branch: bool
-    issue_keys: List[str] = dataclasses.field(default_factory=list)
+    source_branch_project_id: int
+    target_branch_project_id: int
+    issue_keys: list
 
 
 # NOTE: Hash and eq methods for this object should return different values for different object

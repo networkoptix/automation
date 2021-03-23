@@ -130,8 +130,6 @@ class FollowupRule(BaseRule):
             self, original_mr_manager: MergeRequestManager, target_branch: str):
         new_mr = self._project_manager.create_followup_merge_request(
             target_branch=target_branch, original_mr_manager=original_mr_manager)
-        if new_mr is None:  # Dry run case
-            return
 
         new_mr_manager = MergeRequestManager(new_mr)
         original_mr_manager.add_followup_creation_comment(FollowupCreationResult(

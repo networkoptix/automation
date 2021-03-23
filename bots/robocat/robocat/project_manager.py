@@ -9,6 +9,7 @@ from robocat.merge_request import MergeRequest
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.award_emoji_manager import AwardEmojiManager
 import robocat.comments
+import robocat.gitlab
 import automation_tools.bot_info
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ class ProjectManager:
     def __init__(self, gitlab_project, current_user):
         self._current_user = current_user
         self._project = Project(gitlab_project)
+        self._gitlab = robocat.gitlab.Gitlab(gitlab_project.manager.gitlab)
 
     @property
     def data(self) -> ProjectData:
@@ -53,7 +55,8 @@ class ProjectManager:
             self, target_branch: str, original_mr_manager: MergeRequestManager) -> MergeRequest:
         original_mr_data = original_mr_manager.data
         branch_name = f"{original_mr_data.source_branch}_{target_branch}"
-        self._project.create_branch(branch=branch_name, from_branch=target_branch)
+        source_project = self._gitlab.get_project(original_mr_data.source_branch_project_id)
+        source_project.create_branch(branch=branch_name, from_branch=target_branch)
 
         title = re.sub(
             r'^(\w+-\d+:\s+)?',
@@ -62,13 +65,19 @@ class ProjectManager:
         description = f"{original_mr_data.description}\n\n" + "\n".join(
             f"(cherry picked from commit {sha})"
             for sha in original_mr_manager.get_merged_commits())
-        raw_mr = self._project.create_merge_request(
+
+        user_gitlab = self._gitlab.get_gitlab_object_for_user(original_mr_data.author_name)
+        user_project = user_gitlab.get_project(source_project.id)
+
+        mr_id = user_project.create_merge_request(
             source_branch=branch_name,
             target_branch=target_branch,
+            target_project_id=self._project.id,
             title=title,
             description=description,
             squash=False,
-            author=original_mr_data.author_name)
+            assignee_ids=[self._gitlab.user_id, user_gitlab.user_id])
+        raw_mr = self._project.get_raw_mr_by_id(mr_id)
 
         mr = MergeRequest(raw_mr, self._current_user)
         mr.set_approvers_count(0)

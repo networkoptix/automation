@@ -8,7 +8,7 @@ from tests.mocks.gitlab import GitlabManagerMock
 from tests.mocks.pipeline import PipelineMock
 from tests.mocks.commit import CommitMock
 from tests.common_constants import (
-    BOT_USERNAME, DEFAULT_COMMIT, USERS, DEFAULT_REQUIRED_APPROVALS_COUNT)
+    BOT_USERNAME, DEFAULT_COMMIT, DEFAULT_PROJECT_ID, USERS, DEFAULT_REQUIRED_APPROVALS_COUNT)
 
 DEFAULT_APPROVERS_NUMBER = 2
 
@@ -154,6 +154,8 @@ class MergeRequestMock:
     author: dict = field(default_factory=lambda: USERS[0])
     web_url: str = ""
     squash_commit_sha: str = None
+    source_project_id: int = DEFAULT_PROJECT_ID
+    target_project_id: int = DEFAULT_PROJECT_ID
 
     # Fake fields for testing purposes.
     mock_needs_rebase: bool = False
@@ -279,6 +281,3 @@ class MergeRequestMock:
 
     def commits(self):
         return [self.project.commits.get(c["sha"]) for c in reversed(self.commits_list)]
-
-    def closes_issues(self):
-        return []

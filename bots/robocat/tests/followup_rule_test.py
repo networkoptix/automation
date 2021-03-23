@@ -4,6 +4,8 @@ import pytest
 from robocat.award_emoji_manager import AwardEmojiManager
 from tests.common_constants import (
     DEFAULT_COMMIT,
+    DEFAULT_PROJECT_ID,
+    FORK_PROJECT_ID,
     CONFLICTING_COMMIT_SHA,
     MERGED_TO_MASTER_MERGE_REQUESTS,
     MERGED_TO_4_1_MERGE_REQUESTS,
@@ -158,6 +160,14 @@ class TestFollowupRule:
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "master",
         }),
+        # Merge request from the different project.
+        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
+            "state": "merged",
+            "title": "VMS-666: Test mr",
+            "squash_commit_sha": DEFAULT_COMMIT["sha"],
+            "source_project_id": FORK_PROJECT_ID,
+            "target_branch": "master",
+        }),
     ])
     def test_create_followup(self, project, followup_rule, mr, mr_manager, jira):
         # Init project state. TODO: Move project state to parameters.
@@ -166,6 +176,11 @@ class TestFollowupRule:
         project.branches.create({"branch": "existing_branch_vms_4.1", "ref": "vms_4.1"})
         project.branches.mock_conflicts["feature_vms_4.1"] = {CONFLICTING_COMMIT_SHA}
         project.branches.mock_conflicts["existing_branch_vms_4.1"] = {CONFLICTING_COMMIT_SHA}
+        # Set the source project for the MR. If it is not default project, create it.
+        if mr.source_project_id != DEFAULT_PROJECT_ID:
+            source_project = ProjectMock(id=mr.source_project_id, manager=project.manager)
+        else:
+            source_project = project
 
         before_mergrequests_count = len(project.mergerequests.list())
 
@@ -182,6 +197,15 @@ class TestFollowupRule:
         follow_up_created_comment_token = (
             f":{AwardEmojiManager.FOLLOWUP_CREATED_EMOJI}: Follow-up merge request added")
         assert follow_up_created_comment_token in mr.comments()[0]
+
+        source_project_branches = source_project.branches.branches
+        assert f"{mr.source_branch}_vms_4.1" in source_project_branches, (
+            f"New branch {mr.source_branch}_vms_4.1 is not created: {source_project_branches}")
+
+        if project != source_project:
+            project_branches = project.branches.branches
+            assert f"{mr.source_branch}_vms_4.1" not in project_branches, (
+                f"Branch {mr.source_branch}_vms_4.1 created in the wrong project")
 
         mrs = project.mergerequests.list()
         assert len(mrs) == before_mergrequests_count + len(issue.fields.fixVersions) - 1
