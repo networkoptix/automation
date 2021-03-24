@@ -134,7 +134,16 @@ class MergeRequest:
             # number. Stating "old_path" and "old_line" fields in the "position" parameter can
             # help, but there is a problem of detection what "old_line" should be and also there
             # could be problems in the case when the file is removed/renamed.
-            if position is not None and "new_line" in position and "new_path" in position:
+            is_new_position_in_params = (
+                position is not None and "new_line" in position and "new_path" in position)
+            if is_new_position_in_params and e.response_code == 500:
+                # Most likely the discussion is created, so log the error and return True.
+                logger.info(
+                    f"{self}: Internal gitlab errror while creating a discussion at line number "
+                    f"{position['new_line']} for file {position['new_path']}: {e}.")
+                return True
+
+            if is_new_position_in_params:
                 logger.info(
                     f"{self}: Cannot create a discussion at line number "
                     f"{position['new_line']} for file {position['new_path']}: {e}.")
