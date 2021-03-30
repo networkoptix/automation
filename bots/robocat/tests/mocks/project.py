@@ -92,3 +92,11 @@ class ProjectMock:
         mr = next(
             mr for mr in self.mergerequests.merge_requests.values() if mr.source_branch == branch)
         mr.commits_list.append({"sha": sha})
+
+    @property
+    def namespace(self):
+        return {"full_path": f"project{self.id}/test"}
+
+    @property
+    def ssh_url_to_repo(self):
+        return f"gitlab:/{self.namespace['full_path']}"

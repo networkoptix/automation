@@ -70,13 +70,16 @@ class VersionsManagerMock:
     @dataclass
     class VersionMock:
         head_commit_sha: str
+        base_commit_sha: str
+        start_commit_sha: str
         diffs: list = field(default_factory=list)
-        base_commit_sha: str = "1"
-        start_commit_sha: str = "1"
         id: int = 0
 
     def list(self, **_):
-        return [self.VersionMock(head_commit_sha=self.merge_request.commits_list[-1]["sha"])]
+        return [self.VersionMock(
+            head_commit_sha=self.merge_request.commits_list[-1]["sha"],
+            start_commit_sha=self.merge_request.commits_list[0]["sha"],
+            base_commit_sha=self.merge_request.mock_base_commit_sha)]
 
     def get(self, id, **_):
         files = []
@@ -161,6 +164,7 @@ class MergeRequestMock:
     mock_needs_rebase: bool = False
     mock_rebased: bool = field(default=False, init=False)
     mock_huge_mr: bool = False
+    mock_base_commit_sha: str = "000000000000"
 
     emojis_list: list = field(default_factory=list)
     approvers_list: list = field(default_factory=list)
@@ -281,3 +285,6 @@ class MergeRequestMock:
 
     def commits(self):
         return [self.project.commits.get(c["sha"]) for c in reversed(self.commits_list)]
+
+    def approve(self):
+        pass

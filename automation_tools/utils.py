@@ -1,12 +1,8 @@
 import datetime
-
 from pathlib import Path
-from typing import List
-
 import json
-import yaml
 
-import git
+import yaml
 
 
 class Error(Exception):
@@ -35,27 +31,6 @@ class Version:
 
     def __repr__(self):
         return self.number + ("_patch" if self.is_patch else "")
-
-
-class RepoAccessor:
-    def __init__(self, path: Path, url: str):
-        try:
-            self.repo = git.Repo(path)
-        except git.exc.NoSuchPathError as e:
-            self.repo = git.Repo.clone_from(url, path)
-
-    def update_repository(self):
-        self.repo.remotes.origin.fetch()
-
-    def grep_recent_commits(self, substring: str, branch: str) -> List:
-        return list(self.repo.iter_commits(f"origin/{branch}", grep=substring, since='18 month ago'))
-
-    def check_branch_exists(self, branch: str) -> bool:
-        try:
-            self.repo.rev_parse(f"origin/{branch}")
-            return True
-        except git.BadName as e:
-            return False
 
 
 def parse_config_file(filepath: Path):

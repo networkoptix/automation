@@ -5,6 +5,10 @@ jira:
     timeout: 5
     retries: 1
 
+repo:
+    path: /var/workflow_robocat/nx
+    url: "git@gitlab.lan.hdw.mx:dev/nx.git"
+
 # Configuration for "open source check" rule.
 open_source_check_rule:
     approver_username: mshevchenko

@@ -1,3 +1,6 @@
+{{- $volumeName := print .Chart.Name "-" (tpl .Values.persistence.existingClaim .) -}}
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -43,6 +46,10 @@ spec:
           - name: robocat-config
             mountPath: /workdir/config.yaml
             subPath: config.yaml
+          - name: data
+            mountPath: /var/workflow_robocat
+          - name: ssh-key
+            mountPath: /home/workflow-robocat/.ssh
       volumes:
       - name: gitlab-config
         secret:
@@ -56,6 +63,12 @@ spec:
           items:
           - key: config.yaml
             path: config.yaml
+      - name: data
+        persistentVolumeClaim:
+          claimName: {{ $volumeName }}
+      - name: ssh-key
+        emptyDir: {}
+
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

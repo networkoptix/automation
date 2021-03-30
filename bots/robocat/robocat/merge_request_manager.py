@@ -1,7 +1,7 @@
 import logging
 import dataclasses
 from functools import lru_cache
-from typing import Set, List
+from typing import Set, List, Optional
 import re
 import gitlab
 
@@ -10,9 +10,10 @@ from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.pipeline import Pipeline, PipelineStatus, PlayPipelineError, RunPipelineReason
 from robocat.action_reasons import WaitReason, ReturnToDevelopmentReason
 from robocat.merge_request import MergeRequest
-from robocat.project import MergeRequestDiffData
+from robocat.project import Project, MergeRequestDiffData
 from robocat.gitlab import Gitlab
 import automation_tools.bot_info
+import automation_tools.git
 
 logger = logging.getLogger(__name__)
 
@@ -261,8 +262,10 @@ class MergeRequestManager:
 
         return True
 
-    def _get_project(self):
-        return self._gitlab.get_project(self._mr.project_id)
+    def _get_project(self, project_id: Optional[int] = None, lazy: bool = True):
+        if project_id is None:
+            return self._gitlab.get_project(self._mr.project_id, lazy)
+        return self._gitlab.get_project(project_id, lazy)
 
     def _run_pipeline(self, reason, details=None):
         logger.info(f"{self._mr}: Running pipeline ({reason})")
@@ -419,3 +422,21 @@ class MergeRequestManager:
         self._mr.award_emoji.create(AwardEmojiManager.BAD_ISSUE_EMOJI)
 
         return True
+
+    def squash_locally_if_needed(self, repo: automation_tools.git.Repo):
+        if not self._mr.squash or len(list(self._mr.commits())) <= 1:
+            return
+
+        approved_by = self._mr.approved_by()
+        project = self._get_project(self._mr.source_branch_project_id, lazy=False)
+        latest_diff = self._mr.latest_diff()
+        commit_message = f"{self._mr.title}\n\n{self._mr.description}"
+        repo.squash(
+            remote=project.namespace, url=project.ssh_url, branch=self._mr.source_branch,
+            message=commit_message, base_sha=latest_diff.base_commit_sha)
+
+        for user_name in approved_by:
+            user_gitlab = self._gitlab.get_gitlab_object_for_user(user_name)
+            user_project = user_gitlab.get_project(self._mr.project_id)
+            mr = MergeRequest(user_project.get_raw_mr_by_id(self._mr.id), user_name)
+            mr.approve()

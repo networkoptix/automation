@@ -28,10 +28,21 @@ robocatConfig: |
     timeout: 5
     retries: 1
 
+  repo:
+    path: /var/workflow_robocat/nx
+    url: "git@gitlab.lan.hdw.mx:dev/nx.git"
+
   # configuration for "open source check" rule.
   open_source_check_rule:
     approver_username: mshevchenko
     approver_name: Mickhail Shevchenko
+
+persistence:
+  existingClaim: '{{ .Release.Name }}'
+  hostPath: /srv/workflow_robocat-{{ .Release.Name }}
+  size: 1G
+  # Clean data volume on start: remove last_check file, repository.
+  wipeData: false
 
 # gitlab api token
 gitlabToken:
