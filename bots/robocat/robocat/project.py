@@ -68,14 +68,6 @@ class Project:
     def name(self):
         return self._gitlab_project.name
 
-    @property
-    def namespace(self):
-        return self._gitlab_project.namespace["full_path"]
-
-    @property
-    def ssh_url(self):
-        return self._gitlab_project.ssh_url_to_repo
-
     def cherry_pick_to_branch(self, branch, commit_sha):
         commit = self._get_raw_commit_by_sha(commit_sha)
         commit.cherry_pick(branch=branch)

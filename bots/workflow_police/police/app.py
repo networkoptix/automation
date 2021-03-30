@@ -12,7 +12,6 @@ import sys
 
 import automation_tools.utils
 from automation_tools.jira import JiraAccessor, JiraError
-import automation_tools.git
 from police.checkers import *
 
 logger = logging.getLogger(__name__)
@@ -31,7 +30,7 @@ class WorkflowEnforcer:
         self._last_check_file = config["last_check_file"]
 
         self._jira = JiraAccessor(**config["jira"])
-        self._repo = automation_tools.git.Repo(**config["repo"])
+        self._repo = automation_tools.utils.RepoAccessor(**config["repo"])
 
         self._workflow_checker = WorkflowViolationChecker()
         self._workflow_checker.register_ignore_checker(check_issue_ignore_label)

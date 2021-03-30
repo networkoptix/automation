@@ -94,10 +94,6 @@ class MergeRequest:
         return self._gitlab_mr.squash_commit_sha
 
     @property
-    def squash(self) -> bool:
-        return self._gitlab_mr.squash
-
-    @property
     def issue_keys(self) -> List[str]:
         """Extract Jira issue names from the merge request title"""
         title_issues_part, _, _ = self.title.partition(":")
@@ -159,9 +155,6 @@ class MergeRequest:
     def approved_by(self) -> Set[str]:
         approvals = self._gitlab_mr.approvals.get()
         return {approver["user"]["username"] for approver in approvals.approved_by}
-
-    def approve(self):
-        self._gitlab_mr.approve()
 
     @property
     def assignees(self) -> Set[str]:

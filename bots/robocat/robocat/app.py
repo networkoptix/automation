@@ -1,18 +1,16 @@
+import gitlab
+
 import sys
 import time
 from pathlib import Path
 
 import argparse
 import logging
-
-import git
-import gitlab
 import graypy
 
 import automation_tools.utils
 import automation_tools.bot_info
 from automation_tools.jira import JiraAccessor, JiraError
-import automation_tools.git
 from robocat.project_manager import ProjectManager
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.pipeline import PlayPipelineError
@@ -36,12 +34,9 @@ class Bot:
         self._gitlab = gitlab.Gitlab.from_config("nx_gitlab")
         self._gitlab.auth()
         self._username = self._gitlab.user.username
-        self._repo = automation_tools.git.Repo(**config["repo"])
 
         self._project_manager = ProjectManager(
-            gitlab_project=self._gitlab.projects.get(project_id),
-            current_user=self._username,
-            repo=self._repo)
+            gitlab_project=self._gitlab.projects.get(project_id), current_user=self._username)
 
         self._rule_essential = EssentialRule()
         self._rule_open_source_check = OpenSourceCheckRule(
@@ -69,7 +64,6 @@ class Bot:
             return
 
         mr_manager.update_unfinished_processing_flag(True)
-        mr_manager.squash_locally_if_needed(self._repo)
         mr_manager.merge_or_rebase()
         followup_result = self._rule_followup.execute(mr_manager)
         logger.debug(f"{mr_manager}: {followup_result}")
@@ -87,8 +81,6 @@ class Bot:
                 logger.warning(f"{mr_manager}: Gitlab error: {e}")
             except JiraError as e:
                 logger.warning(f"{mr_manager}: Jira error: {e}")
-            except git.GitError as e:
-                logger.warning(f"{mr_manager}: Git error: {e}")
             except PlayPipelineError as e:
                 logger.warning(f"{mr_manager}: Error: {e}")
 

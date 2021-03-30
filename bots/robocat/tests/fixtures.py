@@ -7,7 +7,6 @@ import robocat.gitlab
 from tests.mocks.project import ProjectMock
 from tests.mocks.merge_request import MergeRequestMock
 from tests.mocks.pipeline import PipelineMock
-import tests.mocks.git_mocks
 from tests.common_constants import BOT_USERNAME, DEFAULT_OPEN_SOURCE_APPROVER
 
 # Patch sys.path to include common libraries.
@@ -20,21 +19,12 @@ from robocat.rule.jira_issue_check_rule import JiraIssueCheckRule  # noqa
 from robocat.merge_request_manager import MergeRequestManager  # noqa
 from robocat.project_manager import ProjectManager  # noqa
 from automation_tools.jira import JiraAccessor  # noqa
-import automation_tools.git  # noqa
 from automation_tools.tests.mocks.jira import Jira as JiraMock  # noqa
 
 
 @pytest.fixture
 def mr_state():
     return {}
-
-
-@pytest.fixture
-def repo_accessor(monkeypatch):
-    monkeypatch.setattr(automation_tools.git.git, "Repo", tests.mocks.git_mocks.RepoMock)
-    monkeypatch.setattr(
-        automation_tools.git.git.remote, "Remote", tests.mocks.git_mocks.RemoteMock)
-    return automation_tools.git.Repo(Path("foo_path"), "foo_url")
 
 
 @pytest.fixture
@@ -50,6 +40,7 @@ def project(mr_state, monkeypatch):
         project.pipelines.add_mock_pipeline(pipeline)
 
     monkeypatch.setattr(robocat.gitlab.Gitlab, "create_detached_pipeline", create_pipeline)
+
     return project
 
 
@@ -87,8 +78,8 @@ def essential_rule(monkeypatch):
 
 
 @pytest.fixture
-def open_source_rule(project, repo_accessor):
-    project_manager = ProjectManager(project, BOT_USERNAME, repo=repo_accessor)
+def open_source_rule(project):
+    project_manager = ProjectManager(project, BOT_USERNAME)
     return OpenSourceCheckRule(project_manager, approver_username=DEFAULT_OPEN_SOURCE_APPROVER)
 
 
@@ -98,8 +89,8 @@ def jira_issue_rule(project, jira):
 
 
 @pytest.fixture
-def followup_rule(project, jira, monkeypatch, repo_accessor):
-    project_manager = ProjectManager(project, BOT_USERNAME, repo=repo_accessor)
+def followup_rule(project, jira, monkeypatch):
+    project_manager = ProjectManager(project, BOT_USERNAME)
     rule = FollowupRule(project_manager=project_manager, jira=jira)
 
     def return_gitlab_object(*_, private_token):
@@ -114,14 +105,12 @@ def followup_rule(project, jira, monkeypatch, repo_accessor):
 
 
 @pytest.fixture
-def bot(essential_rule, open_source_rule, followup_rule, jira_issue_rule, repo_accessor,
-        monkeypatch):
+def bot(essential_rule, open_source_rule, followup_rule, jira_issue_rule, monkeypatch):
     def bot_init(bot):
         bot._rule_essential = essential_rule
         bot._rule_open_source_check = open_source_rule
         bot._rule_followup = followup_rule
         bot._rule_jira_issue_check = jira_issue_rule
-        bot._repo = repo_accessor
 
     monkeypatch.setattr(Bot, "__init__", bot_init)
     monkeypatch.setenv("BOT_NAME", "Robocat")

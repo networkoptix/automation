@@ -4,16 +4,14 @@ More info: https://networkoptix.atlassian.net/wiki/spaces/SD/pages/1486749741/Au
 
 # Requirements
 In order to proper use, several host directories have to be mounted inside container:
-- .ssh directory with keys for access to the repo: `/home/workflow-police/.ssh`
-- directory with config file for workflow_police: `/etc/workflow-police/`
+* .ssh directory with keys for access to the repo:/home/workflow-police/.ssh
+* directory with config file for workflow_police:/etc/workflow-police/
 
 Releases should be mapped to repository permanent branches at https://networkoptix.atlassian.net/projects/VMS?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page
 
 # Parameters
-- config_file: yaml file with configuration options, example:
-https://gitlab.lan.hdw.mx/dev/Automation/-/blob/master/bots/workflow_police/config.yaml
-- --log-level: {CRITICAL,FATAL,ERROR,WARN,WARNING,INFO,DEBUG,NOTSET} level for logging,
-default INFO
+* *config_file* yaml file with configuration options, example: https://gitlab.lan.hdw.mx/dev/Automation/-/blob/master/bots/workflow_police/config.yaml
+* *--log-level* {CRITICAL,FATAL,ERROR,WARN,WARNING,INFO,DEBUG,NOTSET} level for logging, default INFO
 
 The directories must have proper UID & GID, default 1000:1000,
 the UID & GID can be configured at image build time.
