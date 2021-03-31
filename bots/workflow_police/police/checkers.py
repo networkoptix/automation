@@ -5,6 +5,7 @@ import logging
 
 import automation_tools.utils
 from automation_tools.jira import JiraAccessor, JiraError, JiraIssue
+import automation_tools.git
 
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ class WrongVersionChecker:
 
 
 class BranchMissingChecker:
-    def __init__(self, jira_accessor: JiraAccessor, repo: automation_tools.utils.RepoAccessor):
+    def __init__(self, jira_accessor: JiraAccessor, repo: automation_tools.git.Repo):
         self._jira = jira_accessor
         self._repo = repo
 
@@ -63,7 +64,7 @@ class BranchMissingChecker:
 
 
 class VersionMissingIssueCommitChecker:
-    def __init__(self, jira_accessor: JiraAccessor, repo: automation_tools.utils.RepoAccessor):
+    def __init__(self, jira_accessor: JiraAccessor, repo: automation_tools.git.Repo):
         self._jira = jira_accessor
         self._repo = repo
 
@@ -77,7 +78,7 @@ class VersionMissingIssueCommitChecker:
 
 
 class MasterMissingIssueCommitChecker:
-    def __init__(self, repo: automation_tools.utils.RepoAccessor):
+    def __init__(self, repo: automation_tools.git.Repo):
         self._repo = repo
 
     def __call__(self, issue: jira.Issue) -> Optional[str]:

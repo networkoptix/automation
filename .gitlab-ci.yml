@@ -126,8 +126,12 @@ k8s:robocat:deploy:
     PRODUCT: "workflow-police-robocat"
     PRE_SCRIPT: |
       HELM_CHART_VERSION="$(awk -F": +['\"]?" "/^version/{print \$$NF}" ${HELM_CHART_DIR}/Chart.yaml)";
-      echo "gitlabToken: $(vault kv get --field="workflow-police-app-token" "apptokens/gitlab/prod")"
+      echo "gitSshKey: |"
         > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
+      vault kv get --field="jenkins-user-ssh-private-key" "apptokens/gitlab/prod" | sed 's/^/  /'
+        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
+      echo "gitlabToken: $(vault kv get --field="workflow-police-app-token" "apptokens/gitlab/prod")"
+        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
       echo "jiraPassword: $(vault kv get --field="service@networkoptix.com" "apptokens/jira")"
         >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
       set +o pipefail;

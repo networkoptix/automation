@@ -9,7 +9,7 @@ metadata:
     {{- include "workflow_police.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
-  strategy: 
+  strategy:
     type: Recreate
   selector:
     matchLabels:
@@ -44,7 +44,7 @@ spec:
               ssh-keyscan gitlab.lan.hdw.mx > /tmp/.ssh/known_hosts
               chown -R {{ .Values.podSecurityContext.runAsUser }}:{{ .Values.podSecurityContext.runAsGroup }} /tmp/.ssh
               chown -R {{ .Values.podSecurityContext.runAsUser }}:{{ .Values.podSecurityContext.runAsGroup }} /tmp/data
-      
+
           volumeMounts:
             - name: data
               mountPath: /tmp/data
@@ -70,7 +70,7 @@ spec:
           - name: data
             mountPath: /var/workflow_police
           - name: config
-            mountPath: /etc/workflow_police 
+            mountPath: /etc/workflow_police
           - name: ssh-key
             mountPath: /home/workflow-police/.ssh
       volumes:
@@ -85,7 +85,7 @@ spec:
           claimName: {{ $volumeName }}
       - name: ssh-key
         emptyDir: {}
-        
+
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

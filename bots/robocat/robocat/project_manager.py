@@ -18,13 +18,16 @@ logger = logging.getLogger(__name__)
 @dataclasses.dataclass
 class ProjectData:
     name: str
+    namespace: str
+    ssh_url: str
 
 
 class ProjectManager:
-    def __init__(self, gitlab_project, current_user):
+    def __init__(self, gitlab_project, current_user, repo):
         self._current_user = current_user
         self._project = Project(gitlab_project)
         self._gitlab = robocat.gitlab.Gitlab(gitlab_project.manager.gitlab)
+        self._repo = repo
 
     @property
     def data(self) -> ProjectData:

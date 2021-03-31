@@ -3,6 +3,7 @@ import pytest
 from robocat.award_emoji_manager import AwardEmojiManager
 from tests.common_constants import (
     BAD_OPENSOURCE_COMMIT,
+    DEFAULT_COMMIT,
     FILE_COMMITS_SHA,
     DEFAULT_OPEN_SOURCE_APPROVER)
 from tests.fixtures import *
@@ -56,6 +57,7 @@ class TestBot:
         assert emojis_before == emojis_after
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        # One commit.
         ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
@@ -68,11 +70,84 @@ class TestBot:
             "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
         }),
+        # Two commits, no squashing.
+        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
+            "blocking_discussions_resolved": True,
+            "needed_approvers_number": 0,
+            "commits_list": [{
+                "sha": DEFAULT_COMMIT["sha"],
+                "message": "msg",
+                "files": {},
+            }, {
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
+                "message": "msg",
+                "diffs": [],
+                "files": {"open/dontreadme.md": {"is_new": True}},
+            }],
+            "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
+            "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
+            "squash": False,
+        }),
     ])
-    def test_merge(self, bot, mr, mr_manager):
+    def test_merge_no_local_squash(self, bot, mr, mr_manager, repo_accessor):
         bot.handle(mr_manager)
         assert mr.state == "merged"
         assert not mr.mock_rebased
+
+        local_git_actions = repo_accessor.repo.mock_read_commands_log()
+        assert not local_git_actions, f"Local git actions: {local_git_actions}"
+
+        emojis = mr.awardemojis.list()
+        assert not any(
+            e for e in emojis if e.name == AwardEmojiManager.UNFINISHED_PROCESSING_EMOJI), (
+            'Hasn\'t unfinished processing flag.')
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        # Two commits, squashing is required.
+        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
+            "blocking_discussions_resolved": True,
+            "needed_approvers_number": 0,
+            "commits_list": [{
+                "sha": DEFAULT_COMMIT["sha"],
+                "message": "msg",
+                "files": {},
+            }, {
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
+                "message": "msg",
+                "diffs": [],
+                "files": {"open/dontreadme.md": {"is_new": True}},
+            }],
+            "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
+            "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
+            "mock_base_commit_sha": "0123457789AB",
+        }),
+    ])
+    def test_merge_with_local_squash(self, bot, mr, mr_manager, project, repo_accessor):
+        bot.handle(mr_manager)
+        assert mr.state == "merged"
+        assert not mr.mock_rebased
+
+        local_git_actions = repo_accessor.repo.mock_read_commands_log()
+        assert len(local_git_actions) == 6, f"Local git actions: {local_git_actions}"
+        assert local_git_actions[0].startswith(f'add remote "{project.namespace["full_path"]}"'), (
+            f"Local git action 1: {local_git_actions[0]}")
+        assert local_git_actions[1].startswith(f'fetch "{project.namespace["full_path"]}"'), (
+            f"Local git actions: {local_git_actions[1]}")
+        hard_reset_test_string = (
+            f'hard reset "{mr.source_branch}" to '
+            f'"{project.namespace["full_path"]}/{mr.source_branch}"')
+        assert local_git_actions[2].startswith(hard_reset_test_string), (
+            f"Local git actions: {local_git_actions[2]}")
+        soft_reset_test_string = (
+            f'soft reset "{mr.source_branch}" to "{mr.mock_base_commit_sha}"')
+        assert local_git_actions[3].startswith(soft_reset_test_string), (
+            f"Local git actions: {local_git_actions[3]}")
+        assert local_git_actions[4].startswith(f'commit to branch "{mr.source_branch}"'), (
+            f"Local git actions: {local_git_actions[4]}")
+        push_test_string = (
+            f'forced push "{mr.source_branch}" to "{project.namespace["full_path"]}"')
+        assert local_git_actions[5].startswith(push_test_string), (
+            f"Local git actions: {local_git_actions[5]}")
 
         emojis = mr.awardemojis.list()
         assert not any(
