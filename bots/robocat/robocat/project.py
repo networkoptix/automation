@@ -27,7 +27,13 @@ class Project:
     def get_file_content(self, sha: str, file: str) -> str:
         logger.debug(f"Getting file content: {sha}, {file}")
         file_handler = self._gitlab_project.files.get(file_path=file, ref=sha)
-        return file_handler.decode().decode('utf-8')
+        # TODO: Need some check what file we are trying to read. If it is a binary file, don't try
+        # to decode it. If it is a text file and it doesn't contain valid utf8 data, log this fact
+        # and do some workaroud.
+        try:
+            return file_handler.decode().decode('utf-8')
+        except UnicodeDecodeError:
+            return file_handler.decode().decode('latin1')
 
     @lru_cache(maxsize=64)
     def get_mr_commit_changes(

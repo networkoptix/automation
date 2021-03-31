@@ -176,6 +176,8 @@ class OpenSourceCheckRule(BaseRule):
         # the merge request was ammended OR the merge request was rebased.
         has_errors = False
         for file_name in self._changed_open_source_files(mr_manager):
+            # TODO: Before reading file, check what is it. No need to read files that we are not
+            # intended to check (i.e. *.png files).
             file_content = self._project_manager.file_get_content(
                 sha=mr_manager.data.sha, file=file_name)
             file_checker = OpenSourceFileChecker(file_name=file_name, file_content=file_content)
