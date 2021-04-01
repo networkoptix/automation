@@ -102,6 +102,7 @@ class TestBot:
             e for e in emojis if e.name == AwardEmojiManager.UNFINISHED_PROCESSING_EMOJI), (
             'Hasn\'t unfinished processing flag.')
 
+    @pytest.mark.skip(reason="local squash temporary turned off")
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Two commits, squashing is required.
         ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {

@@ -69,8 +69,8 @@ class Bot:
         if not jira_issue_check_result:
             return
 
+#        mr_manager.squash_locally_if_needed(self._repo)
         mr_manager.update_unfinished_processing_flag(True)
-        mr_manager.squash_locally_if_needed(self._repo)
         mr_manager.merge_or_rebase()
         followup_result = self._rule_followup.execute(mr_manager)
         logger.debug(f"{mr_manager}: {followup_result}")
