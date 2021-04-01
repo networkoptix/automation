@@ -48,13 +48,17 @@ class Repo:
 
     def _checkout(self, remote: str, branch: str):
         full_branch_name = f"{remote}/{branch}"
-        if self.repo.head.ref.name != branch:
-            branch_head = self.repo.create_head(branch, full_branch_name)
-            self.repo.head.reference = branch_head
-        self.repo.head.reset(commit=full_branch_name, index=True, working_tree=True)
+        if branch not in self.repo.heads:
+            self.repo.head.reference = self.repo.create_head(branch, full_branch_name)
+        elif self.repo.head.reference.name != branch:
+            self.repo.head.reference = self.repo.heads[branch]
+        self._hard_reset(full_branch_name)
 
     def _soft_reset(self, commit: str):
         self.repo.head.reset(commit=commit, index=False, working_tree=False)
+
+    def _hard_reset(self, commit: str):
+        self.repo.head.reset(commit=commit, index=True, working_tree=True)
 
     def _commit(self, message: str):
         self.repo.index.commit(message)

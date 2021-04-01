@@ -19,6 +19,7 @@ class RepoMock:
         self.index = IndexMock(self)
         self.remotes = {"origin": RemoteMock(self, name="origin", url="")}
         self.head = HeadMock(self, branch_name="master", commit=original_commit)
+        self.heads = {"master": self.head}
 
     def __del__(self):
         self._command_log_file.close()
