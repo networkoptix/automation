@@ -1,0 +1,11 @@
+jira:
+    url: https://networkoptix.atlassian.net/
+    login: service@networkoptix.com
+    password: PASSWORD_HERE
+    timeout: 5
+    retries: 1
+
+# Configuration for "open source check" rule.
+open_source_check_rule:
+    approver_username: ptolstov
+    approver_name: Pavel Tolstov

@@ -1,5 +1,6 @@
 import sys
 import time
+from typing import Optional
 from pathlib import Path
 
 import argparse
@@ -75,7 +76,7 @@ class Bot:
         logger.debug(f"{mr_manager}: {followup_result}")
         mr_manager.update_unfinished_processing_flag(False)
 
-    def start(self, mr_poll_rate):
+    def run(self, mr_poll_rate: Optional[int] = None):
         logger.info(
             f"Robocat revision {automation_tools.bot_info.revision()}. Started for project "
             f"[{self._project_manager.data.name}] with {mr_poll_rate} secs poll rate")
@@ -99,6 +100,9 @@ class Bot:
                 yield MergeRequestManager(mr)
             for mr in self._project_manager.get_next_open_merge_request():
                 yield MergeRequestManager(mr)
+
+            if mr_poll_rate is None:
+                break
 
             sleep_time = max(0, start_time + mr_poll_rate - time.time())
             time.sleep(sleep_time)
@@ -129,7 +133,7 @@ def main():
         else:
             config = {}
         bot = Bot(config, arguments.project_id)
-        bot.start(arguments.mr_poll_rate)
+        bot.run(arguments.mr_poll_rate)
     except Exception as e:
         logger.error(f'Crashed with exception: {e}', exc_info=1)
         sys.exit(1)

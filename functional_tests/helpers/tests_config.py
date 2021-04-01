@@ -1,0 +1,8 @@
+FUNCTEST_GROUP_NAME = "dev-functests"
+FUNCTEST_PROJECT_NAME = "testrepo"
+APPROVALS_NUMBER = 2
+BOT_USER_ID = 78
+DO_SQUASH = True
+DO_REMOVE_SOURCE_BRANCH = True
+
+APPROVERS = ["ptolstov", "muskov"]

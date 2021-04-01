@@ -17,6 +17,9 @@ NOTE: Field `password` must be set to the actual password of the user from the f
 The directories must have proper UID & GID, default 1000:1000,
 the UID & GID can be configured at image build time.
 
+# Testing
+Run `PYTHONPATH=. bots/robocat/tests` from the repository root to run unit tests.
+
 # Parameters
 Run: `./robocat.app --help`
 

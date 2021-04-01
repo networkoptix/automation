@@ -1,0 +1,20 @@
+stages:
+    - build
+    - test
+
+build-job-1:
+    stage: build
+    script:
+        - echo "Building"
+        - sleep 3
+        - exit 0
+    rules:
+        - when: manual
+
+
+test-job-1:
+    stage: test
+    script:
+        - echo "Testing"
+        - sleep 2
+        - exit 0

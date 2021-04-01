@@ -6,10 +6,8 @@ from robocat.award_emoji_manager import AwardEmojiManager
 from tests.common_constants import DEFAULT_COMMIT
 from tests.fixtures import *
 
-# Patch sys.path to include common libraries.
-sys.path.append(str((Path(__file__).parent / '../../../').resolve()))
-from automation_tools.tests.mocks.resources import Version  # noqa
-from automation_tools.jira import JiraIssue  # noqa
+from automation_tools.tests.mocks.resources import Version
+from automation_tools.jira import JiraIssue
 
 
 class TestJiraIssueCheckRule:

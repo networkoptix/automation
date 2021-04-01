@@ -1,4 +1,3 @@
-import sys
 from pathlib import Path
 import pytest
 
@@ -10,18 +9,16 @@ from tests.mocks.pipeline import PipelineMock
 import tests.mocks.git_mocks
 from tests.common_constants import BOT_USERNAME, DEFAULT_OPEN_SOURCE_APPROVER
 
-# Patch sys.path to include common libraries.
-sys.path.append(str((Path(__file__).parent / '../../../').resolve()))
-from robocat.app import Bot  # noqa
-from robocat.rule.essential_rule import EssentialRule  # noqa
-from robocat.rule.open_source_check_rule import OpenSourceCheckRule  # noqa
-from robocat.rule.followup_rule import FollowupRule  # noqa
-from robocat.rule.jira_issue_check_rule import JiraIssueCheckRule  # noqa
-from robocat.merge_request_manager import MergeRequestManager  # noqa
-from robocat.project_manager import ProjectManager  # noqa
-from automation_tools.jira import JiraAccessor  # noqa
-import automation_tools.git  # noqa
-from automation_tools.tests.mocks.jira import Jira as JiraMock  # noqa
+from robocat.app import Bot
+from robocat.rule.essential_rule import EssentialRule
+from robocat.rule.open_source_check_rule import OpenSourceCheckRule
+from robocat.rule.followup_rule import FollowupRule
+from robocat.rule.jira_issue_check_rule import JiraIssueCheckRule
+from robocat.merge_request_manager import MergeRequestManager
+from robocat.project_manager import ProjectManager
+from automation_tools.jira import JiraAccessor
+import automation_tools.git
+from automation_tools.tests.mocks.jira import Jira as JiraMock
 
 
 @pytest.fixture
