@@ -13,6 +13,7 @@ This script is to be used for checking source files for compatibility with Open 
 (absence of "bad" words, correc copyright notes etc.)
 """
 
+
 def main():
     parser = argparse.ArgumentParser(
         sys.argv[0], description=SCRIPT_DESCRIPTION,
@@ -50,6 +51,7 @@ def main():
         else:
             logging.debug(f"No check is needed for {relative_path}")
     logging.info(f"Done!")
+
 
 if __name__ == '__main__':
     main()

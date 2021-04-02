@@ -14,7 +14,10 @@ EXCLUDED_DIRS = {
 }
 EXCLUDED_FILE_PATHS = {"open/readme.md"}
 # go.mod and go.sum are auto-generated, so they do not need to be checked.
-EXCLUDED_FILE_NAME_PATTERNS = {"go.mod", "go.sum", "*.json"}
+EXCLUDED_FILE_NAME_PATTERNS = {
+    "go.mod", "go.sum", "*.json", "*.pyc", "*.bmp", "*.gif", "*.mkv", "*.avi", "*.png", "*.jpg",
+    "*.jpeg",
+}
 
 MPL = (
     'Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/')
@@ -52,7 +55,7 @@ CHECK_REGEX_MAP = {
         flags=re.IGNORECASE),
     ErrorType.trademark_violation: re.compile(r'\b(?P<word>{})\b'.format("|".join([
         'hanwha',
-        'networkoptix',
+        r'networkoptix(?!(\.com)|(\.atlassian\.net))',
         'digitalwatchdog',
         'dw',
         'optix'])),
