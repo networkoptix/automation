@@ -6,8 +6,8 @@ include:
   file: 'pipelines/infra-templates.yml'
 
 variables:
-  WORKFLOW_POLICE_VERSION: "1.12"
-  ROBOCAT_VERSION: "1.34"
+  WORKFLOW_POLICE_VERSION: "1.14"
+  ROBOCAT_VERSION: "2.0"
   K8S_PRODUCT_RELEASE: "prod"
   DOCKER_REGISTRY: "docker.artifactory.lan.hdw.mx:80"
   K8S_DEPLOY_NAMESPACE: "default"
@@ -105,7 +105,7 @@ k8s:workflow_police:deploy:
       HELM_CHART_VERSION="$(awk -F": +['\"]?" "/^version/{print \$$NF}" ${HELM_CHART_DIR}/Chart.yaml)";
       echo "gitSshKey: |"
         > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
-      vault kv get --field="jenkins-user-ssh-private-key" "apptokens/gitlab/prod" | sed 's/^/  /'
+      vault kv get --field="workflow-robocat-ssh-private-key" "apptokens/gitlab/prod" | sed 's/^/  /'
         >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
       echo "jiraPassword: $(vault kv get --field="service@networkoptix.com" "apptokens/jira")"
         >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
@@ -129,7 +129,7 @@ k8s:robocat:deploy:
       HELM_CHART_VERSION="$(awk -F": +['\"]?" "/^version/{print \$$NF}" ${HELM_CHART_DIR}/Chart.yaml)";
       echo "gitSshKey: |"
         > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
-      vault kv get --field="jenkins-user-ssh-private-key" "apptokens/gitlab/prod" | sed 's/^/  /'
+      vault kv get --field="workflow-robocat-ssh-private-key" "apptokens/gitlab/prod" | sed 's/^/  /'
         >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
       echo "gitlabToken: $(vault kv get --field="workflow-police-app-token" "apptokens/gitlab/prod")"
         >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
