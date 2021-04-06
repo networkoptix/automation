@@ -139,3 +139,5 @@ Request:
 
 > {errors}
 """
+
+cannot_squash_locally = "Failed to squash commits locally by git. See bot logs for details."

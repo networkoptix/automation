@@ -1,6 +1,7 @@
 BOT_NAME = "Robo Cat"
 BOT_USERNAME = "robocat"
 BOT_USERID = 100
+BOT_EMAIL = "robocat@foo.bar"
 DEFAULT_COMMIT = {"sha": "11", "message": "msg1", "diffs": [], "files": {}}
 DEFAULT_MR_ID = 7
 DEFAULT_REQUIRED_APPROVALS_COUNT = 2
@@ -29,10 +30,10 @@ BAD_OPENCANDIDATE_COMMIT = {
 }
 DEFAULT_OPEN_SOURCE_APPROVER = "mshevchenko"
 USERS = [
-    {"username": "user1", "id": 1},
-    {"username": "user2", "id": 2},
-    {"username": "mshevchenko", "id": 10},
-    {"username": BOT_USERNAME, "id": BOT_USERID}
+    {"username": "user1", "name": "User 1", "id": 1, "email": "user1@foo.bar"},
+    {"username": "user2", "name": "User 2", "id": 2, "email": "user2@foo.bar"},
+    {"username": "mshevchenko", "name": "M Shevchenko", "id": 10, "email": "mshevchenko@foo.bar"},
+    {"username": BOT_USERNAME, "name": BOT_USERNAME, "id": BOT_USERID, "email": BOT_EMAIL}
 ]
 MERGED_TO_MASTER_MERGE_REQUESTS = {
     "merged": {"iid": 10, "target_branch": "master", "state": "merged"},

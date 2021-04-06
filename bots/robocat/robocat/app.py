@@ -34,13 +34,17 @@ class ServiceNameFilter(logging.Filter):
 
 class Bot:
     def __init__(self, config, project_id):
-        self._gitlab = gitlab.Gitlab.from_config("nx_gitlab")
-        self._gitlab.auth()
-        self._username = self._gitlab.user.username
-        self._repo = automation_tools.git.Repo(**config["repo"])
+        raw_gitlab = gitlab.Gitlab.from_config("nx_gitlab")
+        raw_gitlab.auth()
+        gitlab_user_info = raw_gitlab.users.get(raw_gitlab.user.id)
+        self._username = gitlab_user_info.username
+        committer = automation_tools.utils.User(
+            email=gitlab_user_info.email, name=gitlab_user_info.name,
+            username=gitlab_user_info.username)
+        self._repo = automation_tools.git.Repo(**config["repo"], committer=committer)
 
         self._project_manager = ProjectManager(
-            gitlab_project=self._gitlab.projects.get(project_id),
+            gitlab_project=raw_gitlab.projects.get(project_id),
             current_user=self._username,
             repo=self._repo)
 
@@ -69,7 +73,7 @@ class Bot:
         if not jira_issue_check_result:
             return
 
-#        mr_manager.squash_locally_if_needed(self._repo)
+        mr_manager.squash_locally_if_needed(self._repo)
         mr_manager.update_unfinished_processing_flag(True)
         mr_manager.merge_or_rebase()
         followup_result = self._rule_followup.execute(mr_manager)

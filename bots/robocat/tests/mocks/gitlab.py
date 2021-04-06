@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from tests.mocks.user import UserMock
-from tests.common_constants import BOT_USERNAME, BOT_USERID, DEFAULT_PROJECT_ID
+from tests.common_constants import BOT_USERNAME, BOT_USERID, BOT_EMAIL, DEFAULT_PROJECT_ID
 
 
 @dataclass
@@ -20,7 +20,7 @@ class ProjectManagerMock:
 class GitlabMock:
     projects: ProjectManagerMock = field(default_factory=ProjectManagerMock, init=False)
     url: str = ""
-    user: Any = UserMock(manager=None, id=BOT_USERID, name=BOT_USERNAME)
+    user: Any = UserMock(manager=None, id=BOT_USERID, name=BOT_USERNAME, email=BOT_EMAIL)
     token: Any = None
 
     @property

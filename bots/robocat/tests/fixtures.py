@@ -7,7 +7,7 @@ from tests.mocks.project import ProjectMock
 from tests.mocks.merge_request import MergeRequestMock
 from tests.mocks.pipeline import PipelineMock
 import tests.mocks.git_mocks
-from tests.common_constants import BOT_USERNAME, DEFAULT_OPEN_SOURCE_APPROVER
+from tests.common_constants import BOT_USERNAME, DEFAULT_OPEN_SOURCE_APPROVER, BOT_NAME, BOT_EMAIL
 
 from robocat.app import Bot
 from robocat.rule.essential_rule import EssentialRule
@@ -31,7 +31,9 @@ def repo_accessor(monkeypatch):
     monkeypatch.setattr(automation_tools.git.git, "Repo", tests.mocks.git_mocks.RepoMock)
     monkeypatch.setattr(
         automation_tools.git.git.remote, "Remote", tests.mocks.git_mocks.RemoteMock)
-    return automation_tools.git.Repo(Path("foo_path"), "foo_url")
+    committer = automation_tools.utils.User(
+        email=BOT_EMAIL, name=BOT_NAME, username=BOT_USERNAME)
+    return automation_tools.git.Repo(Path("foo_path"), "foo_url", committer=committer)
 
 
 @pytest.fixture

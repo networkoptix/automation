@@ -278,7 +278,7 @@ class MergeRequestMock:
         users = self.project.users.list()
         for assignee_id in self.assignee_ids:
             assignee = [u for u in users if u.id == assignee_id][0]
-            self.assignees.append({"username": assignee.name})
+            self.assignees.append({"username": assignee.username})
 
     def comments(self):
         return self.notes.list() + self.discussions.list()

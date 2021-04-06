@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import datetime
 from pathlib import Path
 import json
@@ -69,3 +70,10 @@ class cached:
             return True
 
         return datetime.datetime.now() - self._last_update < self._invalidation_period
+
+
+@dataclass
+class User:
+    email: str
+    name: str
+    username: str

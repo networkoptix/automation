@@ -3,6 +3,8 @@ import dataclasses
 from functools import lru_cache
 from typing import Set, List, Optional
 import re
+
+import git
 import gitlab
 
 import robocat.comments
@@ -431,9 +433,20 @@ class MergeRequestManager:
         project = self._get_project(self._mr.source_branch_project_id, lazy=False)
         latest_diff = self._mr.latest_diff()
         commit_message = f"{self._mr.title}\n\n{self._mr.description}"
-        repo.squash(
-            remote=project.namespace, url=project.ssh_url, branch=self._mr.source_branch,
-            message=commit_message, base_sha=latest_diff.base_commit_sha)
+        mr_author = self._gitlab.get_git_user_info_by_username(self._mr.author_name)
+        try:
+            repo.squash(
+                remote=project.namespace, url=project.ssh_url, branch=self._mr.source_branch,
+                message=commit_message, base_sha=latest_diff.base_commit_sha, author=mr_author)
+        except git.BadName as exc:
+            remote_url = f"{project.ssh_url}:{project.namespace}"
+            logger.warning(
+                f"Cannot squash commits locally: {exc}. Most likely there is no "
+                f"{self._mr.source_branch!r} branch in {remote_url!r}")
+            self._add_comment(
+                "Cannot squash locally", robocat.comments.cannot_squash_locally,
+                AwardEmojiManager.CANNOT_SQUASH_LOCALLY_EMOJI)
+            return
 
         for user_name in approved_by:
             user_gitlab = self._gitlab.get_gitlab_object_for_user(user_name)

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from tests.common_constants import USERS, BOT_USERNAME, BOT_USERID, BOT_NAME
+from tests.common_constants import USERS, BOT_USERNAME, BOT_USERID, BOT_NAME, BOT_EMAIL
 
 
 @dataclass
@@ -10,6 +10,7 @@ class UserMock:
     id: int = BOT_USERID
     name: str = BOT_NAME
     username: str = BOT_USERNAME
+    email: str = BOT_EMAIL
 
     @dataclass
     class Impersonationtoken:
@@ -38,10 +39,13 @@ class UserManagerMock:
     users: list = field(default_factory=list)
 
     def __post_init__(self):
-        self.users = [UserMock(manager=self, id=u["id"], name=u["username"]) for u in USERS]
+        self.users = [
+            UserMock(
+                manager=self, id=u["id"], username=u["username"], name=u["name"], email=u["email"])
+            for u in USERS]
 
     def list(self, search=None, **_):
         if search is not None:
-            return [u for u in self.users if u.name == search]
+            return [u for u in self.users if u.username == search]
 
         return self.users

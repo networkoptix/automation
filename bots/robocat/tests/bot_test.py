@@ -5,8 +5,10 @@ from tests.common_constants import (
     BAD_OPENSOURCE_COMMIT,
     DEFAULT_COMMIT,
     FILE_COMMITS_SHA,
-    DEFAULT_OPEN_SOURCE_APPROVER)
+    DEFAULT_OPEN_SOURCE_APPROVER,
+    USERS)
 from tests.fixtures import *
+from tests.mocks.git_mocks import CommitMock, BranchMock
 
 
 class TestBot:
@@ -102,10 +104,9 @@ class TestBot:
             e for e in emojis if e.name == AwardEmojiManager.UNFINISHED_PROCESSING_EMOJI), (
             'Hasn\'t unfinished processing flag.')
 
-    @pytest.mark.skip(reason="local squash temporary turned off")
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Two commits, squashing is required.
-        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
+        ([{"key": "VMS-666", "branches": ["master"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [{
@@ -124,29 +125,42 @@ class TestBot:
         }),
     ])
     def test_merge_with_local_squash(self, bot, mr, mr_manager, project, repo_accessor):
+        base_commit_mock = CommitMock(self, sha="0123457789AB", message="base commit")
+        remote_branch_name = f"{project.namespace['full_path']}/{mr.source_branch}"
+        repo_accessor.repo.branches[remote_branch_name] = BranchMock(
+            repo_accessor.repo, name=mr.source_branch, commits=[base_commit_mock])
+
         bot.handle(mr_manager)
         assert mr.state == "merged"
         assert not mr.mock_rebased
 
         local_git_actions = repo_accessor.repo.mock_read_commands_log()
         assert len(local_git_actions) == 6, f"Local git actions: {local_git_actions}"
-        assert local_git_actions[0].startswith(f'add remote "{project.namespace["full_path"]}"'), (
+        assert local_git_actions[0].startswith(f"add remote '{project.namespace['full_path']}'"), (
             f"Local git action 1: {local_git_actions[0]}")
-        assert local_git_actions[1].startswith(f'fetch "{project.namespace["full_path"]}"'), (
+        assert local_git_actions[1].startswith(f"fetch '{project.namespace['full_path']}'"), (
             f"Local git actions: {local_git_actions[1]}")
         hard_reset_test_string = (
-            f'hard reset "{mr.source_branch}" to '
-            f'"{project.namespace["full_path"]}/{mr.source_branch}"')
+            f"hard reset '{mr.source_branch}' to "
+            f"'{project.namespace['full_path']}/{mr.source_branch}'")
         assert local_git_actions[2].startswith(hard_reset_test_string), (
             f"Local git actions: {local_git_actions[2]}")
         soft_reset_test_string = (
-            f'soft reset "{mr.source_branch}" to "{mr.mock_base_commit_sha}"')
+            f"soft reset '{mr.source_branch}' to '{mr.mock_base_commit_sha}'")
         assert local_git_actions[3].startswith(soft_reset_test_string), (
             f"Local git actions: {local_git_actions[3]}")
-        assert local_git_actions[4].startswith(f'commit to branch "{mr.source_branch}"'), (
+        commit_author_test_string = (
+            f"author: '{USERS[0]['name']} <{USERS[0]['email']}>'")
+        commit_committer_test_string = (
+            f"committer: '{BOT_NAME} <{BOT_EMAIL}>'")
+        assert commit_author_test_string in local_git_actions[4], (
+            f"Wrong commit author: {local_git_actions[4]}")
+        assert commit_committer_test_string in local_git_actions[4], (
+            f"Wrong commit committer: {local_git_actions[4]}")
+        assert local_git_actions[4].startswith(f"commit to branch '{mr.source_branch}'"), (
             f"Local git actions: {local_git_actions[4]}")
         push_test_string = (
-            f'forced push "{mr.source_branch}" to "{project.namespace["full_path"]}"')
+            f"forced push '{mr.source_branch}' to '{project.namespace['full_path']}'")
         assert local_git_actions[5].startswith(push_test_string), (
             f"Local git actions: {local_git_actions[5]}")
 

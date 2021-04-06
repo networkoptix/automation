@@ -35,7 +35,7 @@ class RepoMock:
         print(command.replace('\n', ' '), file=self._command_log_file)
 
     def clone_from(self, url, path):
-        self.mock_add_command_to_log(f'clone "{url}" to "{path}"')
+        self.mock_add_command_to_log(f"clone {url!r} to {path!r}")
 
     def create_head(self, branch_name: str, commit_path: str) -> HeadMock:
         try:
@@ -44,17 +44,10 @@ class RepoMock:
         except StopIteration:
             try:
                 # Check if commit_path points to the existing branch.
-                branch = next(b[n] for n, b in self.branches.items() if n == commit_path)
+                branch = next(b for n, b in self.branches.items() if n == commit_path)
                 commit = branch.commits[-1]
             except StopIteration as exc:
-                # Create new branch trying to guess the remote name. If the euristics fails, throw
-                # an exception.
-                if not commit_path.endswith(f"/{branch_name}"):
-                    raise RuntimeError(
-                        f'There are no branch for "{commit_path}" and it is not possible to '
-                        f'create one') from exc
-                commit = CommitMock(self, sha=random_sha(), message="")
-                self.branches[commit_path] = BranchMock(self, name=branch_name, commits=[commit])
+                raise git.BadName(commit_path)
 
         return HeadMock(self, branch_name=branch_name, commit=commit)
 
@@ -86,19 +79,19 @@ class RemoteMock:
 
     @classmethod
     def add(cls, repo: RepoMock, name, url):
-        repo.mock_add_command_to_log(f'add remote "{name}" with url "{url}"')
+        repo.mock_add_command_to_log(f"add remote {name!r} with url {url!r}")
         if name in repo.remotes:
-            repo.mock_add_command_to_log(f'remote "{name}" already exists')
+            repo.mock_add_command_to_log(f"remote {name!r} already exists")
             raise git.GitCommandError()
 
         repo.remotes[name] = cls(repo, name, url)
 
     def fetch(self):
-        self._repo.mock_add_command_to_log(f'fetch "{self._name}"')
+        self._repo.mock_add_command_to_log(f"fetch {self._name!r}")
 
     def push(self, branch: str, force: bool = False) -> List[RemoteMock.PushInfo]:
         push = ("forced " if force else "") + "push"
-        self._repo.mock_add_command_to_log(f'{push} "{branch}" to "{self._name}"')
+        self._repo.mock_add_command_to_log(f"{push} {branch!r} to {self._name!r}")
         return [RemoteMock.PushInfo()]
 
 
@@ -119,7 +112,7 @@ class HeadMock:
                 reset_type = "medium"
             else:
                 reset_type = "soft"
-        self._repo.mock_add_command_to_log(f'{reset_type} reset "{self.ref.name}" to "{commit}"')
+        self._repo.mock_add_command_to_log(f"{reset_type} reset {self.ref.name!r} to {commit!r}")
 
     @property
     def reference(self):
@@ -138,13 +131,16 @@ class IndexMock():
     def __init__(self, repo: RepoMock):
         self._repo = repo
 
-    def commit(self, message: str):
+    def commit(self, message: str, author: git.Actor = None, committer: git.Actor = None):
         sha = random_sha()
         commit = CommitMock(self._repo, sha=sha, message=message)
         current_branch = self._repo.head.ref
+        author = f"{author.name} <{author.email}>"
+        committer = f"{committer.name} <{committer.email}>"
         self._repo.mock_add_command_to_log(
-            f'commit to branch "{current_branch.name}" '
-            f'(sha: "{commit.sha}", message: "{commit.message}"')
+            f"commit to branch {current_branch.name!r} "
+            f"(sha: {commit.sha!r}, message: {commit.message!r}, "
+            f"author: {author!r}, committer: {committer!r}")
 
 
 def random_sha():
