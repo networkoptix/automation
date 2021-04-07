@@ -430,6 +430,7 @@ class MergeRequestManager:
             return
 
         approved_by = self._mr.approved_by()
+        logger.debug(f"{self}: squashing locally; approved_by {approved_by!r}")
         project = self._get_project(self._mr.source_branch_project_id, lazy=False)
         latest_diff = self._mr.latest_diff()
         commit_message = f"{self._mr.title}\n\n{self._mr.description}"
@@ -441,7 +442,7 @@ class MergeRequestManager:
         except git.BadName as exc:
             remote_url = f"{project.ssh_url}:{project.namespace}"
             logger.warning(
-                f"Cannot squash commits locally: {exc}. Most likely there is no "
+                f"{self}: Cannot squash commits locally: {exc}. Most likely there is no "
                 f"{self._mr.source_branch!r} branch in {remote_url!r}")
             self._add_comment(
                 "Cannot squash locally", robocat.comments.cannot_squash_locally,
@@ -449,6 +450,7 @@ class MergeRequestManager:
             return
 
         for user_name in approved_by:
+            logger.debug(f"{self}: re-approving on behalf of {user_name!r}")
             user_gitlab = self._gitlab.get_gitlab_object_for_user(user_name)
             user_project = user_gitlab.get_project(self._mr.project_id)
             mr = MergeRequest(user_project.get_raw_mr_by_id(self._mr.id), user_name)
