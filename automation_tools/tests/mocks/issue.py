@@ -9,5 +9,5 @@ class JiraIssue:
         self.key = key
         self.fields = dict2resource(fields)
         project_key, _, __ = key.partition("-")
-        self.fields.project= JiraProject(project_key)
+        self.fields.project = JiraProject(project_key)
         self.fields.comment = dict2resource({"comments": comments})

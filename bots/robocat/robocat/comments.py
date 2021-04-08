@@ -141,3 +141,6 @@ Request:
 """
 
 cannot_squash_locally = "Failed to squash commits locally by git. See bot logs for details."
+
+cannot_restore_approvals = """Failed to restore approvals of some of the following users:
+{approvers}. Please, re-approve manually."""

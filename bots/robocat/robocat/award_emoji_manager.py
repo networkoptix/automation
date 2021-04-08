@@ -22,7 +22,7 @@ class AwardEmojiManager():
     UNFINISHED_PROCESSING_EMOJI = "point_up"
     AUTOCHECK_IMPOSSIBLE_EMOJI = "raised_back_of_hand"
     BAD_ISSUE_EMOJI = "beetle"
-    CANNOT_SQUASH_LOCALLY_EMOJI = "warning"
+    LOCAL_SQUASH_PROBLEMS_EMOJI = "warning"
 
     def __init__(self, gitlab_award_emoji_manager, current_user):
         self._gitlab_manager = gitlab_award_emoji_manager

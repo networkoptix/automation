@@ -3,6 +3,7 @@ import dataclasses
 from functools import lru_cache
 from typing import Set, List, Optional
 import re
+import time
 
 import git
 import gitlab
@@ -446,12 +447,53 @@ class MergeRequestManager:
                 f"{self._mr.source_branch!r} branch in {remote_url!r}")
             self._add_comment(
                 "Cannot squash locally", robocat.comments.cannot_squash_locally,
-                AwardEmojiManager.CANNOT_SQUASH_LOCALLY_EMOJI)
+                AwardEmojiManager.LOCAL_SQUASH_PROBLEMS_EMOJI)
             return
 
-        for user_name in approved_by:
-            logger.debug(f"{self}: re-approving on behalf of {user_name!r}")
+        if not self._restore_approvements(approvers=approved_by):
+            logger.warning(f"{self}: Cannot re-approve merge request.")
+            self._add_comment(
+                "Cannot restore approvals",
+                robocat.comments.cannot_restore_approvals.format(
+                    approvers=f"@{', @'.join(approved_by)}"),
+                AwardEmojiManager.LOCAL_SQUASH_PROBLEMS_EMOJI)
+
+    def _restore_approvements(self, approvers: Set[str], delay_start: bool = True) -> bool:
+        """This function restores approvements for the Merge Requests. The presupposition is that
+
+        no user from the list passed via the `approvers` parameter has approved this Merge Request
+        yet. This presupposition may be false due to the race condition. To address this issue, if
+        the function fails to restore approvement, it tries to do this again after timeout. Also
+        the function has an overall timeout to prevent the situation of endless retries. If the
+        function fails to restore some of the approvements, it checks if the Merge Request already
+        has all the approvements by the users listed in `approvers` parameter and returns the
+        result of the check. Otherwise (if all API calls return "OK" status) it returns true.
+        """
+
+        max_approve_restore_timeout_s = 30
+        retry_timeout_s = 5
+        has_failed_approves = False
+
+        start_time = time.time()
+        if delay_start:
+            time.sleep(retry_timeout_s)
+
+        for user_name in approvers:
+            logger.debug(f"{self}: approving on behalf of {user_name!r}")
             user_gitlab = self._gitlab.get_gitlab_object_for_user(user_name)
             user_project = user_gitlab.get_project(self._mr.project_id)
             mr = MergeRequest(user_project.get_raw_mr_by_id(self._mr.id), user_name)
-            mr.approve()
+            try:
+                mr.approve()
+            except gitlab.exceptions.GitlabAuthenticationError:
+                # Gitlab bug: if the Merge Request is already approved by some user, the API
+                # returns error 401 in response for the "approve" call from the same user.
+                if time.time() - start_time > max_approve_restore_timeout_s:
+                    has_failed_approves = True
+                    continue
+                time.sleep(retry_timeout_s)
+
+        if has_failed_approves:
+            return approvers <= self._mr.approved_by()
+
+        return True

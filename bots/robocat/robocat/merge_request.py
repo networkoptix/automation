@@ -161,7 +161,6 @@ class MergeRequest:
         return {approver["user"]["username"] for approver in approvals.approved_by}
 
     def approve(self):
-        logger.debug(f"{self}: approving merge request")
         self._gitlab_mr.approve()
 
     @property
