@@ -47,9 +47,12 @@ class JiraIssue:
     ]
     _MERGE_REQUEST_LINK_RE = re.compile(r"/merge_requests/(?P<id>\d+)$")
 
+    # TODO: Create common business logic layer for Jira Issue checks and move these constants
+    # there.
     IGNORE_LABEL = "hide_from_police"
     VERSION_SPECIFIC_LABEL = "version_specific"
     DONE_EXTERNALLY_LABEL = "done_externally"
+    PROJECT_KEYS_TO_CHECK = {"VMS"}
 
     def __init__(
             self, jira_handler: jira.JIRA, issue: jira.Issue, branch_mapping: Dict[str, str]):
@@ -214,7 +217,11 @@ class JiraIssue:
         return f"Version set {sorted(version_set)!r} is not allowed."
 
     def should_be_ignored_by_police(self) -> bool:
-        return JiraIssue.IGNORE_LABEL in self._raw_issue.fields.labels
+        project_key = self._raw_issue.fields.project.key
+        if project_key not in self.PROJECT_KEYS_TO_CHECK:
+            return True
+
+        return self.IGNORE_LABEL in self._raw_issue.fields.labels
 
 
 class JiraAccessor:

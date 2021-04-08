@@ -24,6 +24,11 @@ class Comment:
     body: str
 
 
+@dataclass
+class JiraProject:
+    key: str
+
+
 class RemoteLink:
     def __init__(self, url: str):
         self.object = dict2resource({"url": url})

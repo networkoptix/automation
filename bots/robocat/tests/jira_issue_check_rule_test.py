@@ -97,6 +97,12 @@ class TestJiraIssueCheckRule:
         }], {
             "title": "VMS-666: Merge request attached to bad Jira Issue"
         }),
+        # Merge request is ignored because it is attached to the unsupported project.
+        ([{
+            "key": "CI-123", "branches": ["master"],
+        }], {
+            "title": "CI-123: Commit to CI"
+        }),
         # Merge request is attached to one good Jira Issue and to one bad Jira Issue which is
         # ignored because of the label.
         ([{
