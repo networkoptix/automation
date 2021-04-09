@@ -74,15 +74,16 @@ class OpenSourceFileChecker:
         self._lines = file_content.splitlines()
 
     @staticmethod
-    def is_check_needed(file_path: str):
-        if not any(file_path.startswith(f"{d}/") for d in OPENSOURCE_ROOTS):
-            return False
+    def is_check_needed(file_path: str, consider_directory_context: bool = True):
+        if consider_directory_context:
+            if not any(file_path.startswith(f"{d}/") for d in OPENSOURCE_ROOTS):
+                return False
 
-        if any(d for d in EXCLUDED_DIRS if file_path.startswith(f"{d}/")):
-            return False
+            if any(d for d in EXCLUDED_DIRS if file_path.startswith(f"{d}/")):
+                return False
 
-        if file_path in EXCLUDED_FILE_PATHS:
-            return False
+            if file_path in EXCLUDED_FILE_PATHS:
+                return False
 
         file_path_object = Path(file_path)
         for pattern in EXCLUDED_FILE_NAME_PATTERNS:
