@@ -458,7 +458,7 @@ class MergeRequestManager:
                     approvers=f"@{', @'.join(approved_by)}"),
                 AwardEmojiManager.LOCAL_SQUASH_PROBLEMS_EMOJI)
 
-    def _restore_approvements(self, approvers: Set[str], delay_start: bool = True) -> bool:
+    def _restore_approvements(self, approvers: Set[str], first_try_delay_s: int = 5) -> bool:
         """This function restores approvements for the Merge Requests. The presupposition is that
 
         no user from the list passed via the `approvers` parameter has approved this Merge Request
@@ -470,30 +470,36 @@ class MergeRequestManager:
         result of the check. Otherwise (if all API calls return "OK" status) it returns true.
         """
 
-        max_approve_restore_timeout_s = 30
-        retry_timeout_s = 5
-        has_failed_approves = False
+        start_time_s = time.time()
+        if first_try_delay_s:
+            time.sleep(first_try_delay_s)
 
-        start_time = time.time()
-        if delay_start:
-            time.sleep(retry_timeout_s)
-
+        is_ok = True
         for user_name in approvers:
             logger.debug(f"{self}: approving on behalf of {user_name!r}")
             user_gitlab = self._gitlab.get_gitlab_object_for_user(user_name)
             user_project = user_gitlab.get_project(self._mr.project_id)
             mr = MergeRequest(user_project.get_raw_mr_by_id(self._mr.id), user_name)
+            is_ok &= self._try_set_approve(mr, start_time_s)
+
+        return is_ok or approvers <= self._mr.approved_by()
+
+    @staticmethod
+    def _try_set_approve(mr: MergeRequest, start_time_s: float) -> bool:
+        max_approve_restore_timeout_s = 30
+        retry_timeout_s = 5
+
+        while True:
             try:
                 mr.approve()
+                break
             except gitlab.exceptions.GitlabAuthenticationError:
                 # Gitlab bug: if the Merge Request is already approved by some user, the API
                 # returns error 401 in response for the "approve" call from the same user.
-                if time.time() - start_time > max_approve_restore_timeout_s:
-                    has_failed_approves = True
-                    continue
-                time.sleep(retry_timeout_s)
+                pass
 
-        if has_failed_approves:
-            return approvers <= self._mr.approved_by()
+            if time.time() - start_time_s > max_approve_restore_timeout_s:
+                return False
+            time.sleep(retry_timeout_s)
 
         return True
