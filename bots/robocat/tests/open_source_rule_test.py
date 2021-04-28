@@ -1,4 +1,5 @@
 import pytest
+from typing import List
 
 from robocat.award_emoji_manager import AwardEmojiManager
 from tests.common_constants import (
@@ -184,12 +185,15 @@ class TestOpenSourceRule:
 
             comments = mr.comments()
             assert len(comments) == 4, f"Got comments: {comments}"
-            for i, bad_word in enumerate(['Copyrleft', 'shit', 'fuck', 'blya']):
-                assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comments[i], (
-                    f"Comment {i} is: {comments[i]}")
-                assert bad_word in comments[i], f"Comment {i} is: {comments[i]}"
-                assert f"resolved only after" in comments[i], (
-                    f"Comment {i} is: {comments[i]}")
+            for i, comment in enumerate(comments):
+                assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comment, (
+                    f"Comment {i} is: {comment}")
+                assert f"resolved only after" in comment, f"Comment {i} is: {comment}"
+                for bad_word in ['fuck', 'blya', 'shit', 'Copyrleft']:
+                    if bad_word in comment:
+                        break
+                else:
+                    assert False, f"Unexpected comment {comment}"
 
     @pytest.mark.parametrize("mr_state", [
         # Merge allowed if everything is good and merge request approved by eligible user
@@ -220,16 +224,22 @@ class TestOpenSourceRule:
         {"commits_list": [BAD_OPENSOURCE_COMMIT]},
     ])
     def test_update_comments_for_found_errors(self, open_source_rule, mr, mr_manager):
+        def check_comments(bad_words: List[str]):
+            comments = mr.comments()
+            assert len(comments) == len(bad_words), f"Got comments: {comments}"
+            for i, comment in enumerate(comments):
+                assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comment, (
+                    f"Comment {i} is: {comment}")
+                assert f"resolved only after" in comment, f"Comment {i} is: {comment}"
+                for bad_word in bad_words:
+                    if bad_word in comment:
+                        break
+                else:
+                    assert False, f"Unexpected comment {comment}"
+
         open_source_rule.execute(mr_manager)
 
-        comments = mr.comments()
-        assert len(comments) == 4, f"Got comments: {comments}"
-        for i, bad_word in enumerate(['Copyrleft', 'shit', 'fuck', 'blya']):
-            assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comments[i], (
-                f"Comment {i} is: {comments[i]}")
-            assert bad_word in comments[i], f"Comment {i} is: {comments[i]}"
-            assert f"resolved only after" in comments[i], (
-                f"Comment {i} is: {comments[i]}")
+        check_comments(['fuck', 'blya', 'shit', 'Copyrleft'])
 
         # Add commit to the Merge Request with the same file, but without bad words - no new
         # comments must be added.
@@ -241,14 +251,7 @@ class TestOpenSourceRule:
 
         open_source_rule.execute(mr_manager)
 
-        comments = mr.comments()
-        assert len(comments) == 4, f"Got comments: {comments}"
-        for i, bad_word in enumerate(['Copyrleft', 'shit', 'fuck', 'blya']):
-            assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comments[i], (
-                f"Comment {i} is: {comments[i]}")
-            assert bad_word in comments[i], f"Comment {i} is: {comments[i]}"
-            assert f"resolved only after" in comments[i], (
-                f"Comment {i} is: {comments[i]}")
+        check_comments(['fuck', 'blya', 'shit', 'Copyrleft'])
 
         # Add commit to mr with the same "bad" file - comments only for new bad words should be
         # added.
@@ -260,14 +263,7 @@ class TestOpenSourceRule:
 
         open_source_rule.execute(mr_manager)
 
-        comments = mr.comments()
-        assert len(comments) == 5, f"Got comments: {comments}"
-        for i, bad_word in enumerate(['Copyrleft', 'shit', 'fuck', 'blya', 'hanwha']):
-            assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comments[i], (
-                f"Comment {i} is: {comments[i]}")
-            assert bad_word in comments[i], f"Comment {i} is: {comments[i]}"
-            assert f"resolved only after" in comments[i], (
-                f"Comment {i} is: {comments[i]}")
+        check_comments(['fuck', 'blya', 'shit', 'Copyrleft', 'hanwha'])
 
     # Re-check files if the merge request target branch changed.
     @pytest.mark.parametrize("mr_state", [

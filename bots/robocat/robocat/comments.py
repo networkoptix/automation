@@ -71,38 +71,22 @@ the following reason:
 Auto-check has discovered dangerous changes in the open-source part of the project.
 """
 
-incorrect_mpl = """MPL check failed: line is:
+bad_open_source_line = """Check failed at {position}: line is
 
-`{line}`
+`{actual}`
 
 expected:
 
 `{expected}`
 """
 
-missing_mpl = """MPL check failed: line is empty, expected:
+bad_open_source_license_word = "License word at {position}: **{word}**"
 
-`{expected}`
-"""
+bad_open_source_trademark_word = "Trademark at {position}: **{word}**"
 
-unknown_license = "License word: **{word}** at line {line_number}"
+bad_open_source_offensive_word = "Bad word at {position}: **{word}**"
 
-trademark_violation = "Trademark: **{word}** at line {line_number}"
-
-politeness_violation = "Bad word: **{word}** at line {line_number}"
-
-missing_empty_line = "Line is `{line}`, expected to be empty"
-
-unexpected_shebang = """Shebang is:
-
-`{line}`
-
-expected:
-
-`{shebang}`
-"""
-
-unknown_file_type = "Unknown file type: **{file}**"
+bad_open_source_file = "Unknown file type: **{file}**"
 
 failed_pipeline_message = f"""Merge request returned to development.
 Please, fix the errors and [remove WIP]({_wip_url}) to continue merging process.\n
