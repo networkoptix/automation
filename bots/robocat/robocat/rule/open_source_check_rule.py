@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict
+from typing import List, Set, Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -30,13 +30,6 @@ class OpenSourceCheckRuleExecutionResult(RuleExecutionResult, Enum):
             self.not_applicable, self.merge_authorized, self.merged, self.no_manual_check_required]
 
 
-@dataclass(frozen=True)
-class ErrorLocation:
-    file: str
-    line: int
-    column: int
-
-
 class CheckResultsCache:
     def __init__(self):
         self._errors_by_mr = dict()  # Map merge request ids to error set for these merge requests.
@@ -47,31 +40,30 @@ class CheckResultsCache:
         # and there are no errors. This variable must be set to False (via setter must_add_comment)
         # after adding the related comments to the merge request.
         self._must_add_comment = False
-        self._new_errors = dict()
+        self._new_errors = set()
 
     def is_last_mr_commit_checked(self, mr_manager: MergeRequestManager) -> bool:
         return mr_manager.data.sha in self._does_commit_have_errors
 
     def ensure_error(self, mr_manager: MergeRequestManager, file: str, error: FileError) -> None:
-        error_location = ErrorLocation(file=file, line=error.line, column=error.column)
-        if self._has_error_at(mr_manager, error_location):  # Don't add the same error twice.
+        if self._has_error(mr_manager, error):  # Don't add the same error twice.
             return
 
-        self._new_errors[error_location] = error
+        self._new_errors.add(error)
         self._does_commit_have_errors[mr_manager.data.sha] = True
         self._does_commit_need_manual_check[mr_manager.data.sha] = True
         self._must_add_comment = True
-        self._update_mr_errors(mr_manager.data.id, error_location)
+        self._update_mr_errors(mr_manager.data.id, error)
 
-    def _has_error_at(self, mr_manager: MergeRequestManager, location: ErrorLocation) -> bool:
+    def _has_error(self, mr_manager: MergeRequestManager, error: FileError) -> bool:
         mr_results = self._errors_by_mr.get(mr_manager.data.id, set())
-        return location in mr_results
+        return error in mr_results
 
-    def _update_mr_errors(self, mr_id: int, error_location: ErrorLocation = None):
+    def _update_mr_errors(self, mr_id: int, error: Optional[FileError] = None):
         if mr_id not in self._errors_by_mr:
             self._errors_by_mr[mr_id] = set()
-        if error_location is not None:
-            self._errors_by_mr[mr_id].add(error_location)
+        if error is not None:
+            self._errors_by_mr[mr_id].add(error)
 
     def ensure_no_errors(
             self, mr_manager: MergeRequestManager, needs_manual_check: bool = True) -> None:
@@ -90,7 +82,7 @@ class CheckResultsCache:
     def does_last_mr_commit_require_manual_check(self, mr_manager: MergeRequestManager) -> bool:
         return self._does_commit_need_manual_check.get(mr_manager.data.sha, None)
 
-    def get_new_errors(self) -> Dict[ErrorLocation, FileError]:
+    def get_new_errors(self) -> Set[FileError]:
         return self._new_errors
 
     @property
@@ -100,7 +92,7 @@ class CheckResultsCache:
     @must_add_comment.setter
     def must_add_comment(self, value):
         if not value:
-            self._new_errors = dict()
+            self._new_errors = set()
         self._must_add_comment = value
 
 
@@ -233,8 +225,8 @@ class OpenSourceCheckRule(BaseRule):
             return
 
         cache = self._file_check_results_cache
-        for error_location, error in cache.get_new_errors().items():
-            self._create_open_source_discussion(mr_manager, error_location.file, error)
+        for error in cache.get_new_errors():
+            self._create_open_source_discussion(mr_manager, error)
         self._file_check_results_cache.must_add_comment = False
 
     def _ensure_manual_check_required_comment(self, mr_manager: MergeRequestManager):
@@ -248,18 +240,18 @@ class OpenSourceCheckRule(BaseRule):
             emoji=AwardEmojiManager.AUTOCHECK_OK_EMOJI)
         self._file_check_results_cache.must_add_comment = False
 
-    def _create_open_source_discussion(
-            self, mr_manager: MergeRequestManager, file: str, error: FileError):
+    def _create_open_source_discussion(self, mr_manager: MergeRequestManager, error: FileError):
         title = "Autocheck for open source changes failed"
+        message_id = f"bad_open_source_{error.type}"
         message = robocat.comments.has_bad_changes_in_open_source.format(
-            error_message=robocat.comments.__dict__[str(error.type)].format(**error.params),
+            error_message=robocat.comments.__dict__[message_id].format(**error.params),
             approver=self._open_source_approver)
 
         discussion_created = mr_manager.create_thread(
             title=title,
             message=message,
             emoji=AwardEmojiManager.AUTOCHECK_FAILED_EMOJI,
-            file=file, line=error.line)
+            file=error.file, line=error.line)
 
         # If the API call failed to create discussion bonded to the file and line number, we are
         # creating the discussion that is not bonded to the concrete position. TODO: Fix this
@@ -268,5 +260,5 @@ class OpenSourceCheckRule(BaseRule):
         if not discussion_created:
             mr_manager.create_thread(
                 title=title,
-                message=f'Problem in file "{file}": {message}',
+                message=message,
                 emoji=AwardEmojiManager.AUTOCHECK_FAILED_EMOJI)

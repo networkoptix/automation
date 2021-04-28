@@ -61,7 +61,7 @@ def main():
                 errors = Checker(file_name=check_path, file_content=f.read()).file_errors()
                 if not errors:
                     continue
-                errors_as_string = "\n".join(str(e) for e in errors)
+                errors_as_string = "\n".join(e.raw_text for e in errors)
                 logging.info(f"Problems found while checking {entry}:\n{errors_as_string}")
         else:
             logging.debug(f"No check is needed for {check_path}")
