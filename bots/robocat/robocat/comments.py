@@ -86,7 +86,7 @@ bad_open_source_trademark_word = "Trademark at {position}: **{word}**"
 
 bad_open_source_offensive_word = "Bad word at {position}: **{word}**"
 
-bad_open_source_file = "Unknown file type: **{file}**"
+bad_open_source_file_type = "Unknown file type: **{file}**"
 
 failed_pipeline_message = f"""Merge request returned to development.
 Please, fix the errors and [remove WIP]({_wip_url}) to continue merging process.\n
