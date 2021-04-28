@@ -111,5 +111,5 @@ class Project:
             "squash": squash,
             "remove_source_branch": True,
             "target_project_id": target_project_id,
-            "assignee_ids": assignee_ids})
+            "assignee_ids": list(set(assignee_ids))})
         return raw_mr.iid

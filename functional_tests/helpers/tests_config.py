@@ -1,8 +1,12 @@
 FUNCTEST_GROUP_NAME = "dev-functests"
 FUNCTEST_PROJECT_NAME = "testrepo"
-APPROVALS_NUMBER = 2
 BOT_USER_ID = 78
 DO_SQUASH = True
 DO_REMOVE_SOURCE_BRANCH = True
 
-APPROVERS = ["ptolstov", "muskov"]
+JIRA_PROJECT = "VMS"
+JIRA_ASSIGNEE_ID = "557058:d03e1d81-655d-4fe8-a74f-3c1dcb6ba0e9"  # Service account
+
+APPROVERS = ["root", "ptolstov"]
+
+TARGET_BRANCHES = ["master", "vms_4.2", "vms_4.2_patch"]

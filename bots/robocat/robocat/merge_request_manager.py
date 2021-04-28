@@ -391,7 +391,7 @@ class MergeRequestManager:
         if self._mr.award_emoji.find(AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI, own=True):
             return True
 
-        if self._FOLLOWUP_DESCRIPTION_RE.search(self._mr.description):
+        if self._mr.description and self._FOLLOWUP_DESCRIPTION_RE.search(self._mr.description):
             return True
 
         if any(c for c in self._mr.commits() if self._FOLLOWUP_DESCRIPTION_RE.search(c.message)):
