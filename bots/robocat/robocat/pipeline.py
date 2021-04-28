@@ -67,7 +67,9 @@ class Pipeline:
 
     def play(self):
         if self._gitlab_pipeline.status != "manual":
-            raise PlayPipelineError("Only manual pipelines could be played")
+            raise PlayPipelineError(
+                f"Wrong pipeline status: {self._gitlab_pipeline.status!r}. Only manual pipelines "
+                "could be played")
 
         logger.info(f"{self}: Playing...")
 
