@@ -68,6 +68,10 @@ class FileManagerMock():
             FileManagerMock.ProjectFileMock(
                 path="open_candidate/CMakeLists.txt", raw_data=BAD_CMAKELISTS_RAW_DATA),
         ],
+        FILE_COMMITS_SHA["opensource_unknown_file"]: [
+            FileManagerMock.ProjectFileMock(
+                path="open/badtype.foobar", raw_data=""),
+        ],
     })
 
     @dataclass

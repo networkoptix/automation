@@ -14,6 +14,7 @@ FILE_COMMITS_SHA = {
     "new_bad_dontreadme": "104",
     "excluded_open_source_files": "105",
     "bad_opencadidate_source_files": "106",
+    "opensource_unknown_file": "107",
 }
 CONFLICTING_COMMIT_SHA = "1001"
 BAD_OPENSOURCE_COMMIT = {

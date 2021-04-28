@@ -79,8 +79,9 @@ class OpenSourceFileChecker:
             else:
                 assert False, f"Bad raw error type: {raw_error_type!r}"
 
+            error_line = raw_error.line if hasattr(raw_error, 'line') else None
             result.append(FileError(
                 type=error_type, params=error_params,
-                line=raw_error.line, file=str(raw_error.path), raw_text=repr(raw_error)))
+                line=error_line, file=str(raw_error.path), raw_text=repr(raw_error)))
 
         return result

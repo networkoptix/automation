@@ -176,21 +176,30 @@ class TestOpenSourceRule:
                 "files": {"open/dontreadme.md": {"is_new": False}},
             }],
         },
+        # Unknown file type.
+        {
+            "blocking_discussions_resolved": True,
+            "commits_list": [{
+                "sha": FILE_COMMITS_SHA["opensource_unknown_file"],
+                "message": "msg1",
+                "diffs": [],
+                "files": {"open/badtype.foobar": {"is_new": True}},
+            }],
+        },
     ])
     def test_files_are_not_ok_comments(self, open_source_rule, mr, mr_manager):
         for _ in range(2):  # State must not change after any number of rule executions.
             assert not open_source_rule.execute(mr_manager)
-
             assert not mr.blocking_discussions_resolved
 
             comments = mr.comments()
-            assert len(comments) == 4, f"Got comments: {comments}"
+            assert len(comments) == 4 or len(comments) == 1, f"Got comments: {comments}"
             for i, comment in enumerate(comments):
                 assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comment, (
                     f"Comment {i} is: {comment}")
                 assert f"resolved only after" in comment, f"Comment {i} is: {comment}"
-                for bad_word in ['fuck', 'blya', 'shit', 'Copyrleft']:
-                    if bad_word in comment:
+                for error_token in ["fuck", "blya", "shit", "Copyrleft", "Unknown file type"]:
+                    if error_token in comment:
                         break
                 else:
                     assert False, f"Unexpected comment {comment}"
