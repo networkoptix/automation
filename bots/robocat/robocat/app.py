@@ -50,8 +50,7 @@ class Bot:
 
         self._rule_essential = EssentialRule()
         self._rule_open_source_check = OpenSourceCheckRule(
-                project_manager=self._project_manager,
-                **config['open_source_check_rule'])
+            project_manager=self._project_manager, **config["open_source_check_rule"])
         self._rule_jira_issue_check = JiraIssueCheckRule(jira=JiraAccessor(**config["jira"]))
         self._rule_followup = FollowupRule(
             project_manager=self._project_manager,

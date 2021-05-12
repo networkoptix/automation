@@ -88,7 +88,9 @@ def essential_rule(monkeypatch):
 @pytest.fixture
 def open_source_rule(project, repo_accessor):
     project_manager = ProjectManager(project, BOT_USERNAME, repo=repo_accessor)
-    return OpenSourceCheckRule(project_manager, approver_username=DEFAULT_OPEN_SOURCE_APPROVER)
+    approvers = [User(username=DEFAULT_OPEN_SOURCE_APPROVER)]
+    patterns_to_approvers_map = {"open*/": approvers}
+    return OpenSourceCheckRule(project_manager, patterns_to_approvers_map)
 
 
 @pytest.fixture

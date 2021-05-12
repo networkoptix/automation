@@ -11,5 +11,20 @@ repo:
 
 # Configuration for "open source check" rule.
 open_source_check_rule:
-    approver_username: mshevchenko
-    approver_name: Mickhail Shevchenko
+    approve_rules:
+        -
+            patterns:
+                - open_candidate/vms/client/.+
+                - open_candidate/cloud/.+
+            approvers:
+                - workflow-robocat
+        -
+            patterns:
+                - open/.+
+                - open_candidate/build_utils/.+
+                - open_candidate/cmake/.+
+                - open_candidate/dependencies/.+
+                - open_candidate/vms/libs/.+
+                - open_candidate/libs/.+
+            approvers:
+                - ptolstov

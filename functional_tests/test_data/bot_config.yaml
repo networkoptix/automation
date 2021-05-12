@@ -10,6 +10,9 @@ repo:
     url: "git@gitlab.lan.hdw.mx:dev-functests/testrepo.git"
 
 # Configuration for "open source check" rule.
-open_source_check_rule:
-    approver_username: ptolstov
-    approver_name: Pavel Tolstov
+open_source_checkers_map:
+    "open*":
+        - ptolstov
+        - mshevchenko
+    "open_candidate/**/*.cpp":
+        - gdm

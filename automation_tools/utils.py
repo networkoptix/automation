@@ -74,6 +74,6 @@ class cached:
 
 @dataclass
 class User:
-    email: str
-    name: str
     username: str
+    name: str = ""
+    email: str = ""
