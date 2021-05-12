@@ -4,8 +4,9 @@ from robocat.award_emoji_manager import AwardEmojiManager
 from tests.common_constants import (
     BAD_OPENSOURCE_COMMIT,
     DEFAULT_COMMIT,
+    GOOD_README_COMMIT_NEW_FILE,
     FILE_COMMITS_SHA,
-    DEFAULT_OPEN_SOURCE_APPROVER,
+    OPEN_SOURCE_APPROVER_COMMON,
     USERS)
 from tests.fixtures import *
 from tests.mocks.git_mocks import CommitMock, BranchMock
@@ -24,12 +25,7 @@ class TestBot:
         ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
-            "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_dontreadme"],
-                "message": "msg",
-                "diffs": [],
-                "files": {"open/dontreadme.md": {"is_new": True}},
-            }],
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
         }),
     ])
@@ -63,13 +59,8 @@ class TestBot:
         ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
-            "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_dontreadme"],
-                "message": "msg",
-                "diffs": [],
-                "files": {"open/dontreadme.md": {"is_new": True}},
-            }],
-            "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
+            "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
         }),
         # Two commits, no squashing.
@@ -80,13 +71,8 @@ class TestBot:
                 "sha": DEFAULT_COMMIT["sha"],
                 "message": "msg",
                 "files": {},
-            }, {
-                "sha": FILE_COMMITS_SHA["good_dontreadme"],
-                "message": "msg",
-                "diffs": [],
-                "files": {"open/dontreadme.md": {"is_new": True}},
-            }],
-            "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
+            }, GOOD_README_COMMIT_NEW_FILE],
+            "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
             "squash": False,
         }),
@@ -113,13 +99,8 @@ class TestBot:
                 "sha": DEFAULT_COMMIT["sha"],
                 "message": "msg",
                 "files": {},
-            }, {
-                "sha": FILE_COMMITS_SHA["good_dontreadme"],
-                "message": "msg",
-                "diffs": [],
-                "files": {"open/dontreadme.md": {"is_new": True}},
-            }],
-            "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
+            }, GOOD_README_COMMIT_NEW_FILE],
+            "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
             "mock_base_commit_sha": "0123457789AB",
         }),
@@ -174,13 +155,8 @@ class TestBot:
             "mock_needs_rebase": True,
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
-            "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_dontreadme"],
-                "message": "msg",
-                "diffs": [],
-                "files": {"open/dontreadme.md": {"is_new": True}},
-            }],
-            "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
+            "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
         }),
     ])

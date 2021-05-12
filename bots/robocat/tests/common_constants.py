@@ -1,3 +1,6 @@
+from bots.robocat.tests.mocks.file import (
+    GOOD_README_RAW_DATA, BAD_README_RAW_DATA, BAD_CMAKELISTS_RAW_DATA)
+
 BOT_NAME = "Robo Cat"
 BOT_USERNAME = "robocat"
 BOT_USERID = 100
@@ -15,25 +18,50 @@ FILE_COMMITS_SHA = {
     "excluded_open_source_files": "105",
     "bad_opencadidate_source_files": "106",
     "opensource_unknown_file": "107",
+    "good_opensource_file": "108",
 }
 CONFLICTING_COMMIT_SHA = "1001"
 BAD_OPENSOURCE_COMMIT = {
     "sha": FILE_COMMITS_SHA["bad_dontreadme"],
     "message": "msg1",
     "diffs": [],
-    "files": {"open/dontreadme.md": {"is_new": True}}
+    "files": {"open/dontreadme.md": {"is_new": False, "raw_data": BAD_README_RAW_DATA}},
 }
 BAD_OPENCANDIDATE_COMMIT = {
     "sha": FILE_COMMITS_SHA["bad_opencadidate_source_files"],
     "message": "msg1",
     "diffs": [],
-    "files": {"open_candidate/CMakeLists.txt": {"is_new": True}}
+    "files": {
+        "open_candidate/CMakeLists.txt": {"is_new": True, "raw_data": BAD_CMAKELISTS_RAW_DATA}},
 }
-DEFAULT_OPEN_SOURCE_APPROVER = "mshevchenko"
+GOOD_README_COMMIT_CHANGED_FILE = {
+    "sha": FILE_COMMITS_SHA["good_dontreadme"],
+    "message": "msg",
+    "diffs": [],
+    "files": {"open/dontreadme.md": {"is_new": False, "raw_data": GOOD_README_RAW_DATA}},
+}
+GOOD_README_COMMIT_NEW_FILE = {
+    "sha": FILE_COMMITS_SHA["good_dontreadme"],
+    "message": "msg",
+    "diffs": [],
+    "files": {"open/dontreadme.md": {"is_new": True, "raw_data": GOOD_README_RAW_DATA}},
+}
+OPEN_SOURCE_APPROVER_COMMON = "approver1"
+OPEN_SOURCE_APPROVER_CLIENT = "approver2"
+DEFAILT_APPROVE_RULES_LIST = [
+    {
+        "patterns": ["open_candidate/vms/client/.+", "open_candidate/cloud/.+"],
+        "approvers": [OPEN_SOURCE_APPROVER_CLIENT],
+    }, {
+        "patterns": ["open_candidate/.+", "open/.+"],
+        "approvers": [OPEN_SOURCE_APPROVER_COMMON],
+    },
+]
 USERS = [
     {"username": "user1", "name": "User 1", "id": 1, "email": "user1@foo.bar"},
     {"username": "user2", "name": "User 2", "id": 2, "email": "user2@foo.bar"},
-    {"username": "mshevchenko", "name": "M Shevchenko", "id": 10, "email": "mshevchenko@foo.bar"},
+    {"username": "approver1", "name": "Approver 1", "id": 10, "email": "approver1@foo.bar"},
+    {"username": "approver2", "name": "Approver 2", "id": 11, "email": "approver2@foo.bar"},
     {"username": BOT_USERNAME, "name": BOT_USERNAME, "id": BOT_USERID, "email": BOT_EMAIL}
 ]
 MERGED_TO_MASTER_MERGE_REQUESTS = {

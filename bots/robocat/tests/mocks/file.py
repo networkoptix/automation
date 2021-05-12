@@ -1,7 +1,6 @@
 import base64
 from dataclasses import dataclass, field
-
-from tests.common_constants import DEFAULT_COMMIT, BAD_OPENSOURCE_COMMIT, FILE_COMMITS_SHA
+from typing import Dict
 
 GOOD_README_RAW_DATA = """# Nx Meta VMP Open Source Components
 
@@ -31,64 +30,34 @@ BAD_CMAKELISTS_RAW_DATA = """## Copyrleft 2018-present Network Optix, Inc.
 # shit fuck blya
 """
 
+GOOD_CPP_RAW_DATA = """// Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
+
+#include <stdio>
+"""
+
+
+@dataclass
+class ProjectFileMock:
+    path: str = "foobar"
+    ref: str = "11"
+    raw_data: str = b"Some data"
+
+    def decode(self):
+        return self.raw_data.encode('utf-8')
+
+    @property
+    def content(self):
+        return base64.b64encode(self.raw_data)
+
 
 @dataclass
 class FileManagerMock():
-    commit_files: dict = field(default_factory=lambda: {
-        FILE_COMMITS_SHA["good_dontreadme"]: [
-            FileManagerMock.ProjectFileMock(
-                path="open/dontreadme.md", raw_data=GOOD_README_RAW_DATA),
-        ],
-        FILE_COMMITS_SHA["bad_dontreadme"]: [
-            FileManagerMock.ProjectFileMock(
-                path="open/dontreadme.md", raw_data=BAD_README_RAW_DATA),
-        ],
-        FILE_COMMITS_SHA["new_bad_dontreadme"]: [
-            FileManagerMock.ProjectFileMock(
-                path="open/dontreadme.md", raw_data=BAD_README_RAW_DATA_2),
-        ],
-        FILE_COMMITS_SHA["no_open_source_files"]: [
-            FileManagerMock.ProjectFileMock(
-                path="dontreadme.md", raw_data=BAD_README_RAW_DATA),
-        ],
-        FILE_COMMITS_SHA["excluded_open_source_files"]: [
-            FileManagerMock.ProjectFileMock(
-                path="open/readme.md", raw_data=BAD_README_RAW_DATA),
-            FileManagerMock.ProjectFileMock(
-                path="open/licenses/some_file.md", raw_data=BAD_README_RAW_DATA),
-            FileManagerMock.ProjectFileMock(
-                path="open/artifacts/nx_kit/src/json11/a/b/c.c", raw_data=BAD_README_RAW_DATA),
-            FileManagerMock.ProjectFileMock(path="open/1/2/go.sum", raw_data=BAD_README_RAW_DATA),
-            FileManagerMock.ProjectFileMock(
-                path="open_candidate/some_path/go.mod", raw_data=BAD_README_RAW_DATA),
-            FileManagerMock.ProjectFileMock(
-                path="open/1/2/SomeData.json", raw_data=BAD_README_RAW_DATA),
-        ],
-        FILE_COMMITS_SHA["bad_opencadidate_source_files"]: [
-            FileManagerMock.ProjectFileMock(
-                path="open_candidate/CMakeLists.txt", raw_data=BAD_CMAKELISTS_RAW_DATA),
-        ],
-        FILE_COMMITS_SHA["opensource_unknown_file"]: [
-            FileManagerMock.ProjectFileMock(
-                path="open/badtype.foobar", raw_data=""),
-        ],
-    })
+    commit_files: Dict[str, ProjectFileMock] = field(default_factory=dict)
 
-    @dataclass
-    class ProjectFileMock():
-        path: str = "foobar"
-        ref: str = "11"
-        raw_data: str = b"Some data"
-
-        def decode(self):
-            return self.raw_data.encode('utf-8')
-
-        @property
-        def content(self):
-            return base64.b64encode(self.raw_data)
+    def add_mock_file(self, ref: str, path: str, data: str):
+        commit_files = self.commit_files.setdefault(ref, dict())
+        commit_files[path] = ProjectFileMock(path=path, raw_data=data, ref=ref)
 
     def get(self, file_path, ref):
         commit_files = self.commit_files[str(ref)]
-        file_mock = [f for f in commit_files if f.path == file_path][0]
-        file_mock.ref = ref
-        return file_mock
+        return commit_files[file_path]

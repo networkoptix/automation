@@ -66,8 +66,8 @@ class CheckResultsCache:
         self._new_errors = set()
         self._must_add_comment = bool(self._errors_by_mr.get(mr_data.id, True))
         if mr_data.id in self._does_mr_need_manual_check:
-             self._must_add_comment |= (
-                 self._does_mr_need_manual_check[mr_data.id] != needs_manual_check)
+            self._must_add_comment |= (
+                self._does_mr_need_manual_check[mr_data.id] != needs_manual_check)
         self._does_commit_have_errors[mr_data.sha] = False
         self._does_mr_need_manual_check[mr_data.id] = needs_manual_check
         self._errors_by_mr[mr_data.id] = set()
@@ -90,7 +90,6 @@ class CheckResultsCache:
         if not value:
             self._new_errors = set()
         self._must_add_comment = value
-
 
 
 @dataclass

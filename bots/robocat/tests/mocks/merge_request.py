@@ -222,6 +222,15 @@ class MergeRequestMock:
     def _register_commit(self, commit_data):
         commit = CommitMock(**commit_data)
         self.project.commits.add_mock_commit(commit)
+        # Add to current commit files all the files from the previous commits.
+        for listed_commit in self.commits_list:
+            for path, file_data in listed_commit.get("files", {}).items():
+                self.project.files.add_mock_file(
+                    ref=commit.sha, path=path, data=file_data["raw_data"])
+
+    def add_mock_commit(self, commit_data: dict):
+        self.commits_list.append(commit_data)
+        self._register_commit(commit_data)
 
     # Gitlab library merge request interface implementation.
     @property

@@ -10,9 +10,21 @@ repo:
     url: "git@gitlab.lan.hdw.mx:dev-functests/testrepo.git"
 
 # Configuration for "open source check" rule.
-open_source_checkers_map:
-    "open*":
-        - ptolstov
-        - mshevchenko
-    "open_candidate/**/*.cpp":
-        - gdm
+open_source_check_rule:
+    approve_rules:
+        -
+            patterns:
+                - open_candidate/vms/client/.+
+                - open_candidate/cloud/.+
+            approvers:
+                - workflow-robocat
+        -
+            patterns:
+                - open/.+
+                - open_candidate/build_utils/.+
+                - open_candidate/cmake/.+
+                - open_candidate/dependencies/.+
+                - open_candidate/vms/libs/.+
+                - open_candidate/libs/.+
+            approvers:
+                - ptolstov
