@@ -15,7 +15,7 @@ def create_and_push_commit(
     create_commit(repo, branch_name, updated_files, message)
     push(repo, branch_name)
 
-    time.sleep(2)  # Wait for some time to allow gitlab to do all the post-push magic.
+    time.sleep(5)  # Wait for some time to allow gitlab to do all the post-push magic.
 
 
 def create_commit(

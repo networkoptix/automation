@@ -7,7 +7,9 @@ from tests.mocks.project import ProjectMock
 from tests.mocks.merge_request import MergeRequestMock
 from tests.mocks.pipeline import PipelineMock
 import tests.mocks.git_mocks
-from tests.common_constants import BOT_USERNAME, DEFAULT_OPEN_SOURCE_APPROVER, BOT_NAME, BOT_EMAIL
+from tests.common_constants import (
+    BOT_USERNAME, BOT_NAME, BOT_EMAIL, DEFAILT_APPROVE_RULES_LIST,
+    OPEN_SOURCE_APPROVER_COMMON, OPEN_SOURCE_APPROVER_CLIENT)
 
 from robocat.app import Bot
 from robocat.rule.essential_rule import EssentialRule
@@ -88,7 +90,7 @@ def essential_rule(monkeypatch):
 @pytest.fixture
 def open_source_rule(project, repo_accessor):
     project_manager = ProjectManager(project, BOT_USERNAME, repo=repo_accessor)
-    return OpenSourceCheckRule(project_manager, approver_username=DEFAULT_OPEN_SOURCE_APPROVER)
+    return OpenSourceCheckRule(project_manager, approve_rules=DEFAILT_APPROVE_RULES_LIST)
 
 
 @pytest.fixture

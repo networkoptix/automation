@@ -26,49 +26,30 @@ Please, resolve all discussions and [remove WIP]({_wip_url}) to continue merging
 conflicts_message = f"""Merge request returned to development.
 Please, do manual rebase and [remove WIP]({_wip_url}) to continue merging process."""
 
-has_good_changes_in_open_source = """This merge request contains changes in open source part of the
-project. No problems were revealed during autocheck.
-
-**ATTENTION**: This thread should be resolved only after thoroughtly checking that the changes are
-safe for publication as an open source.
-
-This Merge Request **requires approval by @{approver}** due to
-the following reason:
-
-The Merge Request contains new or renamed files in the open-source part of the project.
+has_good_changes_in_open_source = """No problems were revealed by the auto-check. This merge request
+contains new or renamed files in the open source part of the project, so it **must be approved**
+by one of: @{approvers}.
 """
 
-has_unimportant_changes_in_open_source = """This merge request contains changes in open source part
-of the project. No problems were revealed during the auto-check.
-
-This thread is auto-resolved by Robocat because it meets the following criteria:
-1. Auto-check hasn't found any problems.
-2. No new files were added to the open source part of the project.
+has_unimportant_changes_in_open_source = """This merge request contains changes in the open source
+part of the project. No problems were revealed by the auto-check.
 """
 
-may_have_changes_in_open_source = """It is impossible to check if this merge request contains
-changes in open source part of the project due to the huge amount of changes in it. Please, check
-possible changes in the open source part manually.
-
-**ATTENTION**: This thread should be resolved only after thoroughly checking that the issue is
-fixed or irrelevant.
-
-This Merge Request **requires approval by @{approver}** due to
-the following reason:
-
-The Merge Request contains too many changes and can not be automatically checked for potentially
-dangerous changes in the open-source part of the project.
+may_have_changes_in_open_source = """Unable to check whether this merge request contains
+changes in the open source part of the project due to the huge amount of changes (gitlab limitation),
+so it **must be approved** by one of: @{approvers}.
 """
 
 has_bad_changes_in_open_source = """{error_message}
 
-**ATTENTION**: This thread should be resolved only after thoroughly checking that the issue is
-fixed or irrelevant.
+Auto-check of this merge request has failed. Fix all the issues, or ask one of @{approvers} to approve
+this merge request. Otherwise, this merge request **will not be merged**.
+"""
 
-This Merge Request **requires approval by @{approver}** due to
-the following reason:
+has_bad_changes_in_open_source_optional_approval = """{error_message}
 
-Auto-check has discovered dangerous changes in the open-source part of the project.
+Auto-check of this merge request has failed. Also, it contains new or renamed files in the
+open-source part of the project, so it must be approved by one of: @{approvers}.
 """
 
 bad_open_source_line = """Check failed at {position}: line is

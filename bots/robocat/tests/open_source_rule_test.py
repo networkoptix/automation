@@ -5,10 +5,14 @@ from robocat.award_emoji_manager import AwardEmojiManager
 from tests.common_constants import (
     BAD_OPENSOURCE_COMMIT,
     BAD_OPENCANDIDATE_COMMIT,
+    GOOD_README_COMMIT_CHANGED_FILE,
+    GOOD_README_COMMIT_NEW_FILE,
     DEFAULT_COMMIT,
     FILE_COMMITS_SHA,
-    DEFAULT_OPEN_SOURCE_APPROVER,
+    OPEN_SOURCE_APPROVER_COMMON,
     DEFAULT_REQUIRED_APPROVALS_COUNT)
+from tests.mocks.file import (
+    GOOD_README_RAW_DATA, BAD_README_RAW_DATA, BAD_README_RAW_DATA_2, GOOD_CPP_RAW_DATA)
 from tests.fixtures import *
 
 
@@ -20,7 +24,7 @@ class TestOpenSourceRule:
                 "sha": FILE_COMMITS_SHA["no_open_source_files"],
                 "message": "msg",
                 "diffs": [],
-                "files": {"dontreadme.md": {"is_new": True}},
+                "files": {"dontreadme.md": {"is_new": True, "raw_data": BAD_README_RAW_DATA}},
             }]
         },
         # MR is changing only the files that are excluded from the open-source compliance check.
@@ -30,12 +34,18 @@ class TestOpenSourceRule:
                 "message": "msg",
                 "diffs": [],
                 "files": {
-                    "open/readme.md": {"is_new": True},
-                    "open/licenses/some_file.md": {"is_new": True},
-                    "open/artifacts/nx_kit/src/json11/a/b/c.c": {"is_new": True},
-                    "open_candidate/some_path/go.mod": {"is_new": True},
-                    "open/1/2/go.sum": {"is_new": True},
-                    "open/1/2/SomeData.json": {"is_new": True},
+                    "open/readme.md": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
+                    "open/licenses/file.md": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
+                    "open/artifacts/nx_kit/src/json11/a/b/c.c": {
+                        "is_new": True, "raw_data": BAD_README_RAW_DATA},
+                    "open_candidate/some_path/go.mod": {
+                        "is_new": True, "raw_data": BAD_README_RAW_DATA},
+                    "open/1/2/go.sum": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
+                    "open/1/2/SomeData.json": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
+                    "open/1/2/file.ts": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
+                    "open/1/2/file.ts": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
+                    "open/1/2/file.svg": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
+                    "open/1/2/file.ui": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
                 },
             }],
         },
@@ -46,30 +56,15 @@ class TestOpenSourceRule:
 
     @pytest.mark.parametrize("mr_state", [
         {
-            "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_dontreadme"],
-                "message": "msg",
-                "diffs": [],
-                "files": {"open/dontreadme.md": {"is_new": True}},
-            }],
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
             "assignees": [{"username": "user1"}]
         },
         {
-            "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_dontreadme"],
-                "message": "msg",
-                "diffs": [],
-                "files": {"open/dontreadme.md": {"is_new": True}},
-            }],
-            "assignees": [{"username": "user1"}, {"username": DEFAULT_OPEN_SOURCE_APPROVER}]
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
+            "assignees": [{"username": "user1"}, {"username": OPEN_SOURCE_APPROVER_COMMON}]
         },
         {
-            "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_dontreadme"],
-                "message": "msg",
-                "diffs": [],
-                "files": {"open/dontreadme.md": {"is_new": True}},
-            }],
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
             "mock_huge_mr": True,
             "assignees": [{"username": "user1"}]
         },
@@ -81,7 +76,7 @@ class TestOpenSourceRule:
 
             assignees = {a["username"] for a in mr.assignees}
             assert len(assignees) == 2, f"Got assignees: {assignees}"
-            assert DEFAULT_OPEN_SOURCE_APPROVER in assignees, f"Got assignees: {assignees}"
+            assert OPEN_SOURCE_APPROVER_COMMON in assignees, f"Got assignees: {assignees}"
 
             if len(mr.assignees) == initial_assignee_count:
                 assert mr_manager._mr.get_approvers_count() == DEFAULT_REQUIRED_APPROVALS_COUNT
@@ -91,12 +86,7 @@ class TestOpenSourceRule:
     @pytest.mark.parametrize("mr_state", [
         {
             "blocking_discussions_resolved": True,
-            "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_dontreadme"],
-                "message": "msg",
-                "diffs": [],
-                "files": {"open/dontreadme.md": {"is_new": True}},
-            }],
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
             "mock_huge_mr": True,
         },
     ])
@@ -114,12 +104,7 @@ class TestOpenSourceRule:
     @pytest.mark.parametrize("mr_state", [
         {
             "blocking_discussions_resolved": True,
-            "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_dontreadme"],
-                "message": "msg",
-                "diffs": [],
-                "files": {"open/dontreadme.md": {"is_new": True}},
-            }],
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
         },
     ])
     def test_files_are_ok_comments(self, open_source_rule, mr, mr_manager):
@@ -136,12 +121,7 @@ class TestOpenSourceRule:
     @pytest.mark.parametrize("mr_state", [
         {
             "blocking_discussions_resolved": True,
-            "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_dontreadme"],
-                "message": "msg",
-                "diffs": [],
-                "files": {"open/dontreadme.md": {"is_new": False}},
-            }],
+            "commits_list": [GOOD_README_COMMIT_CHANGED_FILE],
         },
     ])
     def test_files_dont_need_manual_check(self, open_source_rule, mr, mr_manager):
@@ -169,12 +149,7 @@ class TestOpenSourceRule:
         # Bad file is not new.
         {
             "blocking_discussions_resolved": True,
-            "commits_list": [{
-                "sha": FILE_COMMITS_SHA["bad_dontreadme"],
-                "message": "msg1",
-                "diffs": [],
-                "files": {"open/dontreadme.md": {"is_new": False}},
-            }],
+            "commits_list": [BAD_OPENSOURCE_COMMIT],
         },
         # Unknown file type.
         {
@@ -183,7 +158,7 @@ class TestOpenSourceRule:
                 "sha": FILE_COMMITS_SHA["opensource_unknown_file"],
                 "message": "msg1",
                 "diffs": [],
-                "files": {"open/badtype.foobar": {"is_new": True}},
+                "files": {"open/badtype.foobar": {"is_new": True, "raw_data": ""}},
             }],
         },
     ])
@@ -197,7 +172,7 @@ class TestOpenSourceRule:
             for i, comment in enumerate(comments):
                 assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comment, (
                     f"Comment {i} is: {comment}")
-                assert f"resolved only after" in comment, f"Comment {i} is: {comment}"
+                assert f"Fix all the issues, or ask" in comment, f"Comment {i} is: {comment}"
                 for error_token in ["fuck", "blya", "shit", "Copyrleft", "Unknown file type"]:
                     if error_token in comment:
                         break
@@ -208,19 +183,14 @@ class TestOpenSourceRule:
         # Merge allowed if everything is good and merge request approved by eligible user
         {
             "blocking_discussions_resolved": True,
-            "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
-            "commits_list": [{
-                "sha": FILE_COMMITS_SHA["good_dontreadme"],
-                "message": "msg",
-                "diffs": [],
-                "files": {"open/dontreadme.md": {"is_new": True}}
-            }],
+            "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
         },
         # Merge allowed even if there are bad files, but merge request approved by an eligible
         # user.
         {
             "blocking_discussions_resolved": True,
-            "approvers_list": [DEFAULT_OPEN_SOURCE_APPROVER],
+            "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
             "commits_list": [BAD_OPENSOURCE_COMMIT]
         },
     ])
@@ -233,30 +203,44 @@ class TestOpenSourceRule:
         {"commits_list": [BAD_OPENSOURCE_COMMIT]},
     ])
     def test_update_comments_for_found_errors(self, open_source_rule, mr, mr_manager):
-        def check_comments(bad_words: List[str]):
+        def check_comments(bad_words: List[str], is_resolved: bool = False):
             comments = mr.comments()
-            assert len(comments) == len(bad_words), f"Got comments: {comments}"
-            for i, comment in enumerate(comments):
+            if is_resolved:
+                error_comments = comments[:-1]
+                ok_comment = comments[-1]
+            else:
+                error_comments = comments
+                ok_comment = None
+
+            assert len(error_comments) == len(bad_words), f"Got comments: {comments}"
+
+            for i, comment in enumerate(error_comments):
                 assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comment, (
                     f"Comment {i} is: {comment}")
-                assert f"resolved only after" in comment, f"Comment {i} is: {comment}"
+                assert f"Fix all the issues, or ask" in comment, (
+                    f"Comment {i} is: {comment}")
                 for bad_word in bad_words:
                     if bad_word in comment:
                         break
                 else:
                     assert False, f"Unexpected comment {comment}"
 
+            if ok_comment:
+                assert f":{AwardEmojiManager.AUTOCHECK_OK_EMOJI}:" in ok_comment, (
+                    f"Last comment is: {ok_comment}")
+
         open_source_rule.execute(mr_manager)
 
         check_comments(['fuck', 'blya', 'shit', 'Copyrleft'])
 
-        # Add commit to the Merge Request with the same file, but without bad words - no new
-        # comments must be added.
-        updated_bad_open_source_commit = BAD_OPENSOURCE_COMMIT.copy()
-        updated_bad_open_source_commit["sha"] = FILE_COMMITS_SHA["good_dontreadme"]
-        updated_bad_open_source_commit["files"] = {"open/dontreadme.md": {"is_new": True}}
-        mr.commits_list.append(updated_bad_open_source_commit)
-        mr._register_commit(updated_bad_open_source_commit)
+        # Add commit to the Merge Request with a "good" file - no new comments must be added.
+        good_commit = {
+            "sha": FILE_COMMITS_SHA["good_opensource_file"],
+            "message": "msg",
+            "diffs": [],
+            "files": {"open/good.cpp": {"is_new": True, "raw_data": GOOD_CPP_RAW_DATA}},
+        }
+        mr.add_mock_commit(good_commit)
 
         open_source_rule.execute(mr_manager)
 
@@ -266,13 +250,25 @@ class TestOpenSourceRule:
         # added.
         updated_bad_open_source_commit = BAD_OPENSOURCE_COMMIT.copy()
         updated_bad_open_source_commit["sha"] = FILE_COMMITS_SHA["new_bad_dontreadme"]
-        updated_bad_open_source_commit["files"] = {"open/dontreadme.md": {"is_new": True}}
-        mr.commits_list.append(updated_bad_open_source_commit)
-        mr._register_commit(updated_bad_open_source_commit)
+        updated_bad_open_source_commit["files"] = {
+            "open/dontreadme.md": {"is_new": True, "raw_data": BAD_README_RAW_DATA_2}}
+        mr.add_mock_commit(updated_bad_open_source_commit)
 
         open_source_rule.execute(mr_manager)
 
         check_comments(['fuck', 'blya', 'shit', 'Copyrleft', 'hanwha'])
+
+        # Add commit to the Merge Request with the same file, but without bad words - "everything
+        # is ok" comment should be added.
+        updated_bad_open_source_commit = BAD_OPENSOURCE_COMMIT.copy()
+        updated_bad_open_source_commit["sha"] = FILE_COMMITS_SHA["good_dontreadme"]
+        updated_bad_open_source_commit["files"] = {
+            "open/dontreadme.md": {"is_new": True, "raw_data": GOOD_README_RAW_DATA}}
+        mr.add_mock_commit(updated_bad_open_source_commit)
+
+        open_source_rule.execute(mr_manager)
+
+        check_comments(['fuck', 'blya', 'shit', 'Copyrleft', 'hanwha'], is_resolved=True)
 
     # Re-check files if the merge request target branch changed.
     @pytest.mark.parametrize("mr_state", [

@@ -1,6 +1,8 @@
 import git
 from pathlib import Path
 import pytest
+import re
+from typing import List
 
 import helpers.jira
 import helpers.gitlab
@@ -13,14 +15,19 @@ import automation_tools.bot_info
 
 class TestOpenSource:
     def test_one_bad_file(self, repo, branch, project, bot):
-        open_source_approver_username = bot._rule_open_source_check._open_source_approver
+        updated_files = ["open/bad_file_1.cpp"]
+        open_source_approvers = get_approvers_by_file_paths(
+            bot._rule_open_source_check, updated_files)
+        assert len(open_source_approvers) == 1, (
+            f"Internal logic error: must have only one approver, got {open_source_approvers!r}")
+        open_source_approver_username = open_source_approvers[0]
 
         file_data = helpers.constants.OPENSOURCE_FILES["test_one_bad_file"][0]
         (Path(repo.working_dir) / file_data["path"]).write_text(file_data["content"])
 
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
-            updated_files=["open/bad_file_1.cpp"],
+            updated_files=updated_files,
             message=f"Test commit 1 ({branch})")
 
         mr = helpers.gitlab.create_merge_request(project, {
@@ -78,8 +85,13 @@ class TestOpenSource:
         assert merged_mr.state == "merged", f"The Merge Request state is {merged_mr.state}"
 
     def test_two_bad_files(self, repo, branch, project, bot):
+        updated_files = ["open/bad_file_2.cpp", "open/bad_file.cpp"]
+        open_source_approvers = get_approvers_by_file_paths(
+            bot._rule_open_source_check, updated_files)
+        assert len(open_source_approvers) == 1, (
+            f"Internal logic error: must have only one approver, got {open_source_approvers!r}")
         open_source_approver = project.manager.gitlab.users.list(
-            search=bot._rule_open_source_check._open_source_approver)[0]
+            search=open_source_approvers[0])[0]
 
         file_data = helpers.constants.OPENSOURCE_FILES["test_two_bad_files"][0]
         (Path(repo.working_dir) / file_data["path"]).write_text(file_data["content"])
@@ -89,7 +101,7 @@ class TestOpenSource:
 
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
-            updated_files=["open/bad_file_2.cpp", "open/bad_file.cpp"],
+            updated_files=updated_files,
             message=f"Test commit 1 ({branch})")
 
         mr = helpers.gitlab.create_merge_request(project, {
@@ -173,8 +185,14 @@ class TestOpenSource:
             f"Unexpected auto-check pass note: {notes[-3].body}")
 
     def test_new_file_good_changes(self, repo, branch, project, bot):
+        updated_files = ["open/good_file_1.cpp"]
+        open_source_approvers = get_approvers_by_file_paths(
+            bot._rule_open_source_check, updated_files)
+        assert len(open_source_approvers) == 1, (
+            f"Internal logic error: must have only one approver, got {open_source_approvers!r}")
         open_source_approver = project.manager.gitlab.users.list(
-            search=bot._rule_open_source_check._open_source_approver)[0]
+            search=open_source_approvers[0])[0]
+
         with open(Path(repo.working_dir) / "open/good_file.cpp", "a") as f:
             f.write("// Some good changes")
 
@@ -183,7 +201,7 @@ class TestOpenSource:
 
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
-            updated_files=["open/good_file_1.cpp"],
+            updated_files=updated_files,
             message=f"Test commit 1 ({branch})")
 
         mr = helpers.gitlab.create_merge_request(project, {
@@ -224,3 +242,11 @@ class TestOpenSource:
 
         merged_mr = helpers.gitlab.update_mr_data(updated_mr)
         assert merged_mr.state == "merged", f"The Merge Request state is {merged_mr.state}"
+
+
+def get_approvers_by_file_paths(check_rule_object, file_paths: List[str]) -> List[str]:
+    for rule in check_rule_object._approve_rules:
+        for file_path in file_paths:
+            if any([re.match(p, file_path) for p in rule.patterns]):
+                return rule.approvers
+    return []

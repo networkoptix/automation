@@ -16,7 +16,7 @@ def create_merge_request(project, mr_parameters: Dict[str, str]):
     parameters.setdefault("remove_source_branch", helpers.tests_config.DO_REMOVE_SOURCE_BRANCH)
     parameters.setdefault("approvals_before_merge ", len(helpers.tests_config.APPROVERS))
 
-    time.sleep(2)  # Wait for some time to allow gitlab to do all the post-MR-creation magic.
+    time.sleep(5)  # Wait for some time to allow gitlab to do all the post-MR-creation magic.
 
     return project.mergerequests.create(parameters)
 

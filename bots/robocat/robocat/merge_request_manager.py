@@ -51,7 +51,7 @@ class FollowupCreationResult:
 @dataclasses.dataclass
 class ApprovalRequirements:
     approvals_left: int = None
-    mandatory_approvers: Set[str] = dataclasses.field(default_factory=set)
+    authorized_approvers: Set[str] = dataclasses.field(default_factory=set)
 
 
 @dataclasses.dataclass
@@ -148,9 +148,13 @@ class MergeRequestManager:
         result = True
         if requirements.approvals_left is not None:
             result &= self._cached_approvals_left() == requirements.approvals_left
-        if requirements.mandatory_approvers:
+        if requirements.authorized_approvers:
             approved_by = self._mr.approved_by()
-            result &= requirements.mandatory_approvers.issubset(approved_by)
+            # If the Merge Request author is an authorized approver, consider this Merge Request
+            # approved by authorized approver.
+            if self._mr.author_name not in requirements.authorized_approvers:
+                result &= bool(requirements.authorized_approvers.intersection(approved_by))
+
         return result
 
     @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
@@ -245,13 +249,21 @@ class MergeRequestManager:
     def _get_commit_diff_hash(self, sha: str):
         return self._get_project().get_commit_diff_hash(sha)
 
-    def ensure_assignee(
-            self, assignee_username: str, increase_needed_approvals_count: bool = False) -> bool:
+    def ensure_assignees(
+            self, assignee_usernames: Set[str],
+            max_added_approvers_count: Optional[int] = None) -> bool:
         assignees = self._mr.assignees
-        if assignee_username in assignees:
+        if assignee_usernames <= assignees:
             return False
 
-        updated_assignees = assignees | set([assignee_username])
+        updated_assignees = assignees | assignee_usernames
+        current_approvers_count = self._mr.get_approvers_count()
+        if max_added_approvers_count is not None:
+            added_approvers_count = len(updated_assignees) - len(assignees)
+            new_approvers_count = current_approvers_count + min(
+                max_added_approvers_count, added_approvers_count)
+        elif len(updated_assignees) > current_approvers_count:
+            new_approvers_count = len(updated_assignees)
         logger.debug(f"{self}: Updating assignees list: {updated_assignees}")
 
         project = self._get_project()
@@ -260,8 +272,8 @@ class MergeRequestManager:
             assignee_ids += project.get_user_ids(assignee)
 
         self._mr.set_assignees_by_ids(assignee_ids)
-        if increase_needed_approvals_count:
-            self._mr.set_approvers_count(self._mr.get_approvers_count() + 1)
+        if new_approvers_count != current_approvers_count:
+            self._mr.set_approvers_count(new_approvers_count)
 
         return True
 
