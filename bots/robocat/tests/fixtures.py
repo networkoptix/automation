@@ -1,15 +1,12 @@
-from pathlib import Path
 import pytest
 
+from automation_tools.tests.mocks.git_mocks import BOT_NAME, BOT_USERNAME
 from robocat.merge_request import MergeRequest
 import robocat.gitlab
 from tests.mocks.project import ProjectMock
 from tests.mocks.merge_request import MergeRequestMock
 from tests.mocks.pipeline import PipelineMock
-import tests.mocks.git_mocks
-from tests.common_constants import (
-    BOT_USERNAME, BOT_NAME, BOT_EMAIL, DEFAILT_APPROVE_RULES_LIST,
-    OPEN_SOURCE_APPROVER_COMMON, OPEN_SOURCE_APPROVER_CLIENT)
+from tests.robocat_constants import DEFAILT_APPROVE_RULES_LIST
 
 from robocat.app import Bot
 from robocat.rule.essential_rule import EssentialRule
@@ -18,24 +15,12 @@ from robocat.rule.followup_rule import FollowupRule
 from robocat.rule.jira_issue_check_rule import JiraIssueCheckRule
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.project_manager import ProjectManager
-from automation_tools.jira import JiraAccessor
-import automation_tools.git
-from automation_tools.tests.mocks.jira import Jira as JiraMock
+from automation_tools.tests.fixtures import jira, repo_accessor
 
 
 @pytest.fixture
 def mr_state():
     return {}
-
-
-@pytest.fixture
-def repo_accessor(monkeypatch):
-    monkeypatch.setattr(automation_tools.git.git, "Repo", tests.mocks.git_mocks.RepoMock)
-    monkeypatch.setattr(
-        automation_tools.git.git.remote, "Remote", tests.mocks.git_mocks.RemoteMock)
-    committer = automation_tools.utils.User(
-        email=BOT_EMAIL, name=BOT_NAME, username=BOT_USERNAME)
-    return automation_tools.git.Repo(Path("foo_path"), "foo_url", committer=committer)
 
 
 @pytest.fixture
@@ -65,21 +50,6 @@ def mr_manager(project):
     first_mr_id = list(project.mergerequests.list())[0].iid
     mr = project.mergerequests.get(first_mr_id)
     return MergeRequestManager(MergeRequest(mr, BOT_USERNAME))
-
-
-@pytest.fixture
-def jira(jira_issues, monkeypatch):
-    def init_with_mock(this):
-        this._jira = JiraMock()
-
-    monkeypatch.setattr(JiraAccessor, "__init__", init_with_mock)
-
-    accessor = JiraAccessor()
-    if jira_issues:
-        for issue_data in jira_issues:
-            accessor._jira.add_mock_issue(**issue_data)
-
-    return accessor
 
 
 @pytest.fixture

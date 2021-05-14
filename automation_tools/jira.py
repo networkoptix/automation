@@ -1,4 +1,4 @@
-from typing import Set, Dict, Optional
+from typing import Set, Dict, List, Optional
 import logging
 import datetime
 import re
@@ -24,6 +24,8 @@ class JiraIssueStatus(Enum):
     progress = "In progress"
     closed = "Closed"
     qa = "Waiting for QA"
+    open = "Open"
+    inqa = "In QA"
 
     def __str__(self):
         return str(self.value)
@@ -38,21 +40,7 @@ class JiraIssueTransition(Enum):
 
 
 class JiraIssue:
-    _ALLOWED_VERSION_SETS = [
-        set(['4.1_patch', '4.2', '4.2_patch', 'master']),
-        set(['4.2', '4.2_patch', 'master']),
-        set(['4.2_patch', 'master']),
-        set(['master']),
-        set(['Future'])
-    ]
     _MERGE_REQUEST_LINK_RE = re.compile(r"/merge_requests/(?P<id>\d+)$")
-
-    # TODO: Create common business logic layer for Jira Issue checks and move these constants
-    # there.
-    IGNORE_LABEL = "hide_from_police"
-    VERSION_SPECIFIC_LABEL = "version_specific"
-    DONE_EXTERNALLY_LABEL = "done_externally"
-    PROJECT_KEYS_TO_CHECK = {"VMS"}
 
     def __init__(
             self, jira_handler: jira.JIRA, issue: jira.Issue, branch_mapping: Dict[str, str]):
@@ -122,6 +110,14 @@ class JiraIssue:
         return {mapping[automation_tools.utils.Version(v.name)] for v in issue.fields.fixVersions}
 
     @property
+    def versions_to_branches_map(self) -> Dict[str, str]:
+        mapping = self._version_to_branch_mapping
+        issue = self._raw_issue
+        return {
+            v.name: mapping[automation_tools.utils.Version(v.name)]
+            for v in issue.fields.fixVersions}
+
+    @property
     def status(self) -> JiraIssueStatus:
         for status in JiraIssueStatus:
             if str(status) == self._raw_issue.fields.status.name:
@@ -129,8 +125,17 @@ class JiraIssue:
         return None
 
     @property
+    def resolution(self) -> Optional[str]:
+        raw_issue = self._raw_issue
+        return str(raw_issue.fields.resolution.name) if raw_issue.fields.resolution else None
+
+    @property
     def type_name(self) -> str:
         return self._raw_issue.fields.issuetype.name
+
+    @property
+    def project(self) -> str:
+        return self._raw_issue.fields.project.key
 
     def try_finalize(self):
         logger.info(f"Trying to close issue {self}")
@@ -204,24 +209,8 @@ class JiraIssue:
         self._add_comment(
             jira_messages.followup_error.format(error=str(error), mr_url=mr_url))
 
-    # TODO: Create common business logic layer for Jira Issue checks and move these functions
-    # there.
-    def version_set_error_string(self) -> Optional[str]:
-        if self.VERSION_SPECIFIC_LABEL in self._raw_issue.fields.labels:
-            return None
-
-        version_set = set(v.name for v in self._raw_issue.fields.fixVersions)
-        if version_set in self._ALLOWED_VERSION_SETS:
-            return None
-
-        return f"Version set {sorted(version_set)!r} is not allowed."
-
-    def should_be_ignored_by_police(self) -> bool:
-        project_key = self._raw_issue.fields.project.key
-        if project_key not in self.PROJECT_KEYS_TO_CHECK:
-            return True
-
-        return self.IGNORE_LABEL in self._raw_issue.fields.labels
+    def has_label(self, label: str) -> bool:
+        return label in self._raw_issue.fields.labels
 
 
 class JiraAccessor:
@@ -235,11 +224,14 @@ class JiraAccessor:
         except jira.exceptions.JIRAError as error:
             raise JiraError(f"Unable to connect to {url} with {login}", error) from error
 
-    def get_recently_closed_issues(self, period_min: int):
+    def get_recently_closed_issues(self, period_min: int) -> List[JiraIssue]:
         closed_issues_filter = JiraIssue.closed_issues_filter(period_min)
         project_closed_issues_filter = f"project = {self.project} AND {closed_issues_filter}"
         logger.debug(f'Searching issues with filter [{project_closed_issues_filter}]')
-        return self._jira.search_issues(project_closed_issues_filter, maxResults=None)
+        branch_mapping = self.version_to_branch_mapping()
+        return [
+            JiraIssue(jira_handler=self._jira, issue=issue, branch_mapping=branch_mapping)
+            for issue in self._jira.search_issues(project_closed_issues_filter, maxResults=None)]
 
     @lru_cache(maxsize=8)
     def get_issue(self, key: str) -> JiraIssue:

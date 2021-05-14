@@ -1,7 +1,8 @@
 import pytest
 
+from automation_tools.tests.mocks.git_mocks import CommitMock, BranchMock, BOT_EMAIL, BOT_NAME
 from robocat.award_emoji_manager import AwardEmojiManager
-from tests.common_constants import (
+from tests.robocat_constants import (
     BAD_OPENSOURCE_COMMIT,
     DEFAULT_COMMIT,
     GOOD_README_COMMIT_NEW_FILE,
@@ -9,7 +10,6 @@ from tests.common_constants import (
     OPEN_SOURCE_APPROVER_COMMON,
     USERS)
 from tests.fixtures import *
-from tests.mocks.git_mocks import CommitMock, BranchMock
 
 
 class TestBot:
@@ -106,7 +106,8 @@ class TestBot:
         }),
     ])
     def test_merge_with_local_squash(self, bot, mr, mr_manager, project, repo_accessor):
-        base_commit_mock = CommitMock(self, sha="0123457789AB", message="base commit")
+        base_commit_mock = CommitMock(
+            repo_accessor.repo, sha="0123457789AB", message="base commit")
         remote_branch_name = f"{project.namespace['full_path']}/{mr.source_branch}"
         repo_accessor.repo.branches[remote_branch_name] = BranchMock(
             repo_accessor.repo, name=mr.source_branch, commits=[base_commit_mock])

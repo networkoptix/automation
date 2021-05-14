@@ -1,7 +1,8 @@
-from typing import List
+from typing import List, Optional
 
 from automation_tools.tests.mocks.issue import JiraIssue
-from automation_tools.tests.mocks.resources import Version, RemoteLink, Status, IssueType, Comment
+from automation_tools.tests.mocks.resources import (
+    Version, RemoteLink, Status, IssueType, Comment, Resolution)
 
 
 class Jira:
@@ -11,12 +12,16 @@ class Jira:
     def issue(self, key):
         return self._issues[key]
 
+    def search_issues(self, *_, **__):
+        return self._issues.values()
+
     def add_mock_issue(
             self, key: str, state: str = "Open", typ: str = "Internal",
             branches: List[str] = None,
             merge_requests: List[int] = None,
             labels: List[str] = None,
-            comments_list: List[str] = None):
+            comments_list: List[str] = None,
+            resolution: Optional[str] = None):
         fixVersions = [
             next(v for v in self.project_versions() if v.description.startswith(f"<{b}>"))
             for b in branches]
@@ -30,6 +35,7 @@ class Jira:
         self._issues[key] = JiraIssue(key=key, comments=comments, fields={
                 "fixVersions": fixVersions,
                 "remoteLinks": remoteLinks,
+                "resolution": Resolution(resolution),
                 "status": status,
                 "labels": labels if labels is not None else [],
                 "issuetype": issuetype})
@@ -47,7 +53,7 @@ class Jira:
         ]
 
     @staticmethod
-    def transitions(issue=None):
+    def transitions(issue: JiraIssue = None):
         if issue.fields.status.name == "Closed":
             return [
                 {"name": "Reopen", "to": {"name": "Open"}},
@@ -71,6 +77,12 @@ class Jira:
             return [
                 {"name": "Start development", "to": {"name": "In progress"}},
                 {"name": "Close", "to": {"name": "Closed"}}]
+
+        if issue.fields.status.name == "Waiting for QA":
+            return [
+                {"name": "Reject", "to": {"name": "Closed"}},
+                {"name": "Back to Development", "to": {"name": "In progress"}},
+                {"name": "I'll test it", "to": {"name": "In QA"}}]
 
         return []
 

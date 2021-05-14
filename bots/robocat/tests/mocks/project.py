@@ -9,7 +9,7 @@ from tests.mocks.commit import CommitsManagerMock
 from tests.mocks.file import FileManagerMock
 from tests.mocks.merge_request import MergeRequestMock
 from tests.mocks.user import UserManagerMock
-from tests.common_constants import DEFAULT_PROJECT_ID
+from tests.robocat_constants import DEFAULT_PROJECT_ID
 
 
 @dataclass

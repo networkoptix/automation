@@ -47,6 +47,25 @@ robocat:test:
     - bots/robocat/**/*
     - automation_tools/**/*
 
+workflow_police:test:
+  image: python:3.8
+  stage: test
+  variables:
+    POLICE_DIR: bots/workflow_police
+    PYTHONPATH: .
+  script:
+  - pip3 install -r $POLICE_DIR/requirements.txt
+  - pytest $POLICE_DIR/tests/ --junitxml=./police_ut_result.xml
+  artifacts:
+    when: always
+    reports:
+      junit: police_ut_result.xml
+  rules:
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    changes:
+    - bots/workflow_police/**/*
+    - automation_tools/**/*
+
 # validate helm charts
 helm:robocat:validate:
   extends: .validate.helm.chart.template

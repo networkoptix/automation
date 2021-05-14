@@ -1,7 +1,7 @@
 import pytest
 
 from robocat.award_emoji_manager import AwardEmojiManager
-from tests.common_constants import DEFAULT_COMMIT
+from tests.robocat_constants import DEFAULT_COMMIT
 from tests.fixtures import *
 
 

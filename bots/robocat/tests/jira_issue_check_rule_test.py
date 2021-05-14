@@ -3,9 +3,11 @@ import pytest
 
 from robocat.rule.jira_issue_check_rule import JiraIssueCheckRuleExecutionResult
 from robocat.award_emoji_manager import AwardEmojiManager
-from tests.common_constants import DEFAULT_COMMIT
+from tests.robocat_constants import DEFAULT_COMMIT
 from tests.fixtures import *
 
+import automation_tools.checkers.config
+from automation_tools.tests.fixtures import jira, repo_accessor
 from automation_tools.tests.mocks.resources import Version
 from automation_tools.jira import JiraIssue
 
@@ -85,7 +87,7 @@ class TestJiraIssueCheckRule:
         ([{
             "key": "VMS-666",
             "branches": ["vms_4.2"],
-            "labels": [JiraIssue.VERSION_SPECIFIC_LABEL]
+            "labels": [automation_tools.checkers.config.VERSION_SPECIFIC_LABEL]
         }], {
             "title": "VMS-666: Merge request attached to bad Jira Issue"
         }),
@@ -93,7 +95,7 @@ class TestJiraIssueCheckRule:
         ([{
             "key": "VMS-666",
             "branches": ["vms_4.2"],
-            "labels": [JiraIssue.IGNORE_LABEL]
+            "labels": [automation_tools.checkers.config.IGNORE_LABEL]
         }], {
             "title": "VMS-666: Merge request attached to bad Jira Issue"
         }),
@@ -108,7 +110,7 @@ class TestJiraIssueCheckRule:
         ([{
             "key": "VMS-666",
             "branches": ["vms_4.2"],
-            "labels": [JiraIssue.IGNORE_LABEL]
+            "labels": [automation_tools.checkers.config.IGNORE_LABEL]
         }, {
             "key": "VMS-667", "branches": ["master", "vms_4.2", "vms_4.2_patch"]
         }], {
