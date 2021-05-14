@@ -4,11 +4,12 @@ from typing import Any
 import time
 from gitlab.exceptions import GitlabMRClosedError
 
+from automation_tools.tests.mocks.git_mocks import BOT_USERNAME
 from tests.mocks.gitlab import GitlabManagerMock
 from tests.mocks.pipeline import PipelineMock
 from tests.mocks.commit import CommitMock
-from tests.common_constants import (
-    BOT_USERNAME, DEFAULT_COMMIT, DEFAULT_PROJECT_ID, USERS, DEFAULT_REQUIRED_APPROVALS_COUNT)
+from tests.robocat_constants import (
+    DEFAULT_COMMIT, DEFAULT_PROJECT_ID, USERS, DEFAULT_REQUIRED_APPROVALS_COUNT)
 
 DEFAULT_APPROVERS_NUMBER = 2
 

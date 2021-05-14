@@ -1,8 +1,9 @@
 import re
 import pytest
 
+from automation_tools.tests.fixtures import jira, repo_accessor
 from robocat.award_emoji_manager import AwardEmojiManager
-from tests.common_constants import (
+from tests.robocat_constants import (
     DEFAULT_COMMIT,
     DEFAULT_PROJECT_ID,
     FORK_PROJECT_ID,

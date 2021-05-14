@@ -1,6 +1,8 @@
 import logging
 from enum import Enum
 
+from automation_tools.checkers.checkers import (
+    WrongVersionChecker, IssueIgnoreLabelChecker, IssueIgnoreProjectChecker)
 from robocat.rule.base_rule import BaseRule, RuleExecutionResult
 from robocat.merge_request_manager import MergeRequestManager
 from automation_tools.jira import JiraAccessor
@@ -47,10 +49,10 @@ class JiraIssueCheckRule(BaseRule):
         self._jira.get_issue.cache_clear()
         for issue_key in jira_issue_keys:
             issue = self._jira.get_issue(issue_key)
-            if issue.should_be_ignored_by_police():
+            if IssueIgnoreLabelChecker().run(issue) or IssueIgnoreProjectChecker().run(issue):
                 continue
 
-            version_error_string = issue.version_set_error_string()
+            version_error_string = WrongVersionChecker().run(issue)
             if version_error_string:
                 jira_issue_errors.append(f"{issue_key}: {version_error_string}")
 

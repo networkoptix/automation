@@ -29,6 +29,11 @@ class JiraProject:
     key: str
 
 
+@dataclass
+class Resolution:
+    name: str
+
+
 class RemoteLink:
     def __init__(self, url: str):
         self.object = dict2resource({"url": url})

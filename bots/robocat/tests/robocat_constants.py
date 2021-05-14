@@ -1,10 +1,9 @@
 from bots.robocat.tests.mocks.file import (
     GOOD_README_RAW_DATA, BAD_README_RAW_DATA, BAD_CMAKELISTS_RAW_DATA)
+from automation_tools.tests.mocks.git_mocks import BOT_EMAIL, BOT_NAME, BOT_USERNAME
 
-BOT_NAME = "Robo Cat"
-BOT_USERNAME = "robocat"
+
 BOT_USERID = 100
-BOT_EMAIL = "robocat@foo.bar"
 DEFAULT_COMMIT = {"sha": "11", "message": "msg1", "diffs": [], "files": {}}
 DEFAULT_MR_ID = 7
 DEFAULT_REQUIRED_APPROVALS_COUNT = 2
@@ -62,7 +61,7 @@ USERS = [
     {"username": "user2", "name": "User 2", "id": 2, "email": "user2@foo.bar"},
     {"username": "approver1", "name": "Approver 1", "id": 10, "email": "approver1@foo.bar"},
     {"username": "approver2", "name": "Approver 2", "id": 11, "email": "approver2@foo.bar"},
-    {"username": BOT_USERNAME, "name": BOT_USERNAME, "id": BOT_USERID, "email": BOT_EMAIL}
+    {"username": BOT_USERNAME, "name": BOT_NAME, "id": BOT_USERID, "email": BOT_EMAIL}
 ]
 MERGED_TO_MASTER_MERGE_REQUESTS = {
     "merged": {"iid": 10, "target_branch": "master", "state": "merged"},

@@ -8,6 +8,10 @@ import dataclasses
 
 import git
 
+BOT_NAME = "Robo Cat"
+BOT_USERNAME = "robocat"
+BOT_EMAIL = "robocat@foo.bar"
+
 
 class RepoMock:
     def __init__(self, path):
@@ -50,6 +54,19 @@ class RepoMock:
                 raise git.BadName(commit_path)
 
         return HeadMock(self, branch_name=branch_name, commit=commit)
+
+    def rev_parse(self, full_branch_name: str) -> str:
+        if full_branch_name in self.branches:
+            return repr(self.branches[full_branch_name])
+        raise git.BadName(full_branch_name)
+
+    def iter_commits(self, branch: str, grep: str, since: str):
+        result = []
+        branch = self.branches[branch]
+        for commit in branch.commits:
+            if grep in commit.message:
+                result.append(commit)
+        return result
 
 
 @dataclasses.dataclass

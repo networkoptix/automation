@@ -2,7 +2,7 @@ import pytest
 from typing import List
 
 from robocat.award_emoji_manager import AwardEmojiManager
-from tests.common_constants import (
+from tests.robocat_constants import (
     BAD_OPENSOURCE_COMMIT,
     BAD_OPENCANDIDATE_COMMIT,
     GOOD_README_COMMIT_CHANGED_FILE,

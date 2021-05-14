@@ -10,10 +10,13 @@ import logging
 import argparse
 import sys
 
+from automation_tools.checkers.checkers import (
+    WrongVersionChecker, MasterMissingIssueCommitChecker, VersionMissingIssueCommitChecker,
+    BranchMissingChecker, IssueTypeChecker, IssueIsFixedChecker, IssueIgnoreLabelChecker,
+    IssueIgnoreProjectChecker)
 import automation_tools.utils
-from automation_tools.jira import JiraAccessor, JiraError
+from automation_tools.jira import JiraAccessor, JiraError, JiraIssue
 import automation_tools.git
-from police.checkers import *
 
 logger = logging.getLogger(__name__)
 
@@ -25,23 +28,56 @@ class ServiceNameFilter(logging.Filter):
         return True
 
 
-class WorkflowEnforcer:
-    def __init__(self, config: Dict):
-        self._polling_period_min = config["polling_period_min"]
-        self._last_check_file = config["last_check_file"]
+class WorkflowViolationChecker:
+    def __init__(self):
+        self.reopen_checkers = []
+        self.ignore_checkers = []
 
-        self._jira = JiraAccessor(**config["jira"])
-        self._repo = automation_tools.git.Repo(**config["repo"])
+    def should_ignore_issue(self, issue: jira.Issue) -> Optional[str]:
+        return self._run_checkers(issue, self.ignore_checkers)
+
+    def should_reopen_issue(self, issue: jira.Issue) -> Optional[str]:
+        return self._run_checkers(issue, self.reopen_checkers)
+
+    @staticmethod
+    def _run_checkers(issue: JiraIssue, checkers: List) -> Optional[str]:
+        for checker in checkers:
+            try:
+                reason = checker.run(issue)
+                if reason:
+                    return reason
+            except gitlab.exceptions.GitlabOperationError as e:
+                logger.warning(f"Gitlab error while processing {issue}: {e}")
+            except JiraError as e:
+                logger.error(f"Jira error while processing {issue}: {e}")
+            except git.GitError as e:
+                logger.error(f"Git error while processing {issue}: {e}")
+        return None
+
+
+class WorkflowEnforcer:
+    def __init__(
+            self, config: Dict, jira: JiraAccessor = None, repo: automation_tools.git.Repo = None):
+        self._polling_period_min = config.get("polling_period_min", 5)
+        self._last_check_file = config.get("last_check_file", "/tmp/last_check")
+
+        self._jira = jira if jira else JiraAccessor(**config["jira"])
+        self._repo = repo if repo else automation_tools.git.Repo(**config["repo"])
 
         self._workflow_checker = WorkflowViolationChecker()
-        self._workflow_checker.register_ignore_checker(check_issue_ignore_label)
-        self._workflow_checker.register_ignore_checker(check_issue_type)
-        self._workflow_checker.register_ignore_checker(check_issue_not_fixed)
+        self._workflow_checker.ignore_checkers = [
+            IssueIgnoreLabelChecker(),
+            IssueIgnoreProjectChecker(),
+            IssueTypeChecker(),
+            IssueIsFixedChecker(),
+        ]
 
-        self._workflow_checker.register_reopen_checker(WrongVersionChecker(self._jira))
-        self._workflow_checker.register_reopen_checker(BranchMissingChecker(self._jira, self._repo))
-        self._workflow_checker.register_reopen_checker(VersionMissingIssueCommitChecker(self._jira, self._repo))
-        self._workflow_checker.register_reopen_checker(MasterMissingIssueCommitChecker(self._repo))
+        self._workflow_checker.reopen_checkers = [
+            WrongVersionChecker(),
+            BranchMissingChecker(self._repo),
+            VersionMissingIssueCommitChecker(self._repo),
+            MasterMissingIssueCommitChecker(self._repo),
+        ]
 
     def get_recent_issues_interval_min(self):
         try:
@@ -57,7 +93,7 @@ class WorkflowEnforcer:
         with open(self._last_check_file, "w") as f:
             f.write(str(int(datetime.datetime.now().timestamp())))
 
-    def run(self):
+    def run(self, run_once: bool = False):
         while True:
             recent_issues_interval_min = self.get_recent_issues_interval_min()
             logger.debug(f"Verifying issues updated for last {recent_issues_interval_min} minutes")
@@ -69,14 +105,18 @@ class WorkflowEnforcer:
                 if reason:
                     logger.debug(f"Ignoring {issue}: {reason}")
                     continue
-                logger.info(f"Checking issue: {issue} ({issue.fields.status}) "
-                            f"with versions {[v.name for v in issue.fields.fixVersions]}")
+                logger.info(f"Checking issue: {issue} ({issue.status}) "
+                            f"with versions {issue.versions_to_branches_map.keys()}")
                 reason = self._workflow_checker.should_reopen_issue(issue)
                 if not reason:
                     continue
+                issue.return_issue(reason)
 
             logger.debug(f"All {len(issues)} issues handled")
             self.update_last_check_timestamp()
+
+            if run_once:
+                break
 
             time.sleep(self._polling_period_min * 60)
 
