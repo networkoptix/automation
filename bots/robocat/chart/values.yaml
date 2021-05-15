@@ -40,7 +40,7 @@ robocatConfig: |
           - open_candidate/vms/client/.+
           - open_candidate/cloud/.+
         approvers:
-          - workflow-robocat
+          - sivanov
       -
         patterns:
           - open/.+

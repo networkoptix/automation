@@ -17,7 +17,7 @@ open_source_check_rule:
                 - open_candidate/vms/client/.+
                 - open_candidate/cloud/.+
             approvers:
-                - workflow-robocat
+                - sivanov
         -
             patterns:
                 - open/.+
