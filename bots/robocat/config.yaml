@@ -2,7 +2,7 @@ jira:
     url: https://networkoptix.atlassian.net/
     login: service@networkoptix.com
     password: PASSWORD_HERE
-    timeout: 5
+    timeout: 10
     retries: 1
 
 repo:
@@ -17,7 +17,7 @@ open_source_check_rule:
                 - open_candidate/vms/client/.+
                 - open_candidate/cloud/.+
             approvers:
-                - workflow-robocat
+                - sivanov
         -
             patterns:
                 - open/.+

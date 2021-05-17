@@ -20,10 +20,10 @@ logLevel: DEBUG
 gelfServer: graylog.lan.hdw.mx:12201
 
 # jira login api token
-jiraPassword: 
+jiraPassword:
 
 # gitlab ssh private key
-gitSshKey: 
+gitSshKey:
 
 # workflow police config file
 config: |
@@ -31,12 +31,12 @@ config: |
     url: https://networkoptix.atlassian.net/
     login: service@networkoptix.com
     password: {{ .Values.jiraPassword }}
-    timeout: 5
+    timeout: 10
     retries: 1
   repo:
     path: /var/workflow_police/nx
     url: "git@gitlab.lan.hdw.mx:dev/nx.git"
-  polling_period_min: 5 
+  polling_period_min: 5
   last_check_file: /var/workflow_police/last_check
 
 persistence:
@@ -55,7 +55,7 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name:
 
-podSecurityContext: 
+podSecurityContext:
   runAsUser: 1000
   runAsGroup: 1000
   fsGroup: 1000
