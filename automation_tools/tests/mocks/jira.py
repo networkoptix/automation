@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+from automation_tools.checkers.config import PROJECT_KEYS_TO_CHECK
 from automation_tools.tests.mocks.issue import JiraIssue
 from automation_tools.tests.mocks.resources import (
     Version, RemoteLink, Status, IssueType, Comment, Resolution)
@@ -13,7 +14,12 @@ class Jira:
         return self._issues[key]
 
     def search_issues(self, *_, **__):
-        return self._issues.values()
+        issues = []
+        for key, issue in self._issues.items():
+            project, _, __ = key.partition("-")
+            if project in PROJECT_KEYS_TO_CHECK:
+                issues.append(issue)
+        return issues
 
     def add_mock_issue(
             self, key: str, state: str = "Open", typ: str = "Internal",
@@ -22,9 +28,15 @@ class Jira:
             labels: List[str] = None,
             comments_list: List[str] = None,
             resolution: Optional[str] = None):
-        fixVersions = [
-            next(v for v in self.project_versions() if v.description.startswith(f"<{b}>"))
-            for b in branches]
+        project, _, __ = key.partition("-")
+        fixVersions = []
+        for branch in branches:
+            versions = [
+                v for v in self.project_versions(project)
+                if v.description.startswith(f"<{branch}>")]
+            if versions:
+                fixVersions.append(versions[0])
+
         remoteLinks = [
             RemoteLink(f"https://gitlab.lan.hdw.mx/-/dev/nx/merge_requests/{mr_id}")
             for mr_id in (merge_requests or [])]
@@ -41,16 +53,24 @@ class Jira:
                 "issuetype": issuetype})
 
     @staticmethod
-    def project_versions(_=None):
-        return [
-            Version("4.0", "<vms_4.0_release>"),
-            Version("4.0_patch", "<vms_4.0> 4.0 Monthly patches"),
-            Version("4.1", "<vms_4.1_release> Minor release with Health Monitoring"),
-            Version("4.1_patch", "<vms_4.1> 4.1 Monthly patches"),
-            Version("4.2", "<vms_4.2> Major release with plugins"),
-            Version("4.2_patch", "<vms_4.2_patch> 4.2 Monthly patches"),
-            Version("master", "<master> Major release with a lot of tech debt")
-        ]
+    def project_versions(project: str):
+        return {
+            "VMS": [
+                Version("4.0", "<vms_4.0_release>"),
+                Version("4.0_patch", "<vms_4.0> 4.0 Monthly patches"),
+                Version("4.1", "<vms_4.1_release> Minor release with Health Monitoring"),
+                Version("4.1_patch", "<vms_4.1> 4.1 Monthly patches"),
+                Version("4.2", "<vms_4.2> Major release with plugins"),
+                Version("4.2_patch", "<vms_4.2_patch> 4.2 Monthly patches"),
+                Version("master", "<master> Major release with a lot of tech debt")
+            ],
+            "MOBILE": [
+                Version("20.3", "<mobile_20.3>"),
+                Version("20.4", "<mobile_20.4>"),
+                Version("21.1", "<mobile_21.1>"),
+                Version("master", "<master> Ongoing development"),
+            ]
+        }.get(project, {})
 
     @staticmethod
     def transitions(issue: JiraIssue = None):

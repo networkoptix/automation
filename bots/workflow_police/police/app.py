@@ -1,8 +1,9 @@
 import jira
+import git
 import graypy
 
 from pathlib import Path
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Optional
 
 import time
 import datetime
@@ -46,8 +47,6 @@ class WorkflowViolationChecker:
                 reason = checker.run(issue)
                 if reason:
                     return reason
-            except gitlab.exceptions.GitlabOperationError as e:
-                logger.warning(f"Gitlab error while processing {issue}: {e}")
             except JiraError as e:
                 logger.error(f"Jira error while processing {issue}: {e}")
             except git.GitError as e:

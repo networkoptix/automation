@@ -71,8 +71,15 @@ MERGED_TO_4_1_MERGE_REQUESTS = {
     "merged": {"iid": 20, "target_branch": "vms_4.1", "state": "merged"},
     "opened": {"iid": 21, "target_branch": "vms_4.1", "state": "opened"},
 }
-
 MERGED_TO_4_2_MERGE_REQUESTS = {
     "merged": {"iid": 30, "target_branch": "vms_4.2", "state": "merged"},
     "opened": {"iid": 31, "target_branch": "vms_4.2", "state": "opened"},
+}
+MERGED_TO_MASTER_MERGE_REQUESTS_MOBILE = {
+    "merged": {"iid": 110, "target_branch": "master", "state": "merged"},
+    "opened": {"iid": 111, "target_branch": "master", "state": "opened"},
+}
+MERGED_TO_21_1_MERGE_REQUESTS_MOBILE = {
+    "merged": {"iid": 120, "target_branch": "vms_4.1", "state": "merged"},
+    "opened": {"iid": 121, "target_branch": "vms_4.1", "state": "opened"},
 }
