@@ -1,6 +1,6 @@
+import datetime
 from typing import Set, Dict, List, Optional
 import logging
-import datetime
 import re
 from enum import Enum
 from functools import lru_cache
@@ -10,6 +10,7 @@ import jira.exceptions
 import automation_tools.utils
 import automation_tools.jira_comments as jira_messages
 import automation_tools.bot_info
+from automation_tools.checkers.config import PROJECT_KEYS_TO_CHECK
 
 logger = logging.getLogger(__name__)
 
@@ -214,8 +215,6 @@ class JiraIssue:
 
 
 class JiraAccessor:
-    project = "VMS"
-
     def __init__(self, url: str, login: str, password: str, timeout: int, retries: int):
         try:
             self._jira = jira.JIRA(
@@ -226,19 +225,29 @@ class JiraAccessor:
 
     def get_recently_closed_issues(self, period_min: int) -> List[JiraIssue]:
         closed_issues_filter = JiraIssue.closed_issues_filter(period_min)
-        project_closed_issues_filter = f"project = {self.project} AND {closed_issues_filter}"
+        projects_string = '"' + '", "'.join(PROJECT_KEYS_TO_CHECK) + '"'
+        project_closed_issues_filter = f"project in ({projects_string}) AND {closed_issues_filter}"
         logger.debug(f'Searching issues with filter [{project_closed_issues_filter}]')
-        branch_mapping = self.version_to_branch_mapping()
-        return [
-            JiraIssue(jira_handler=self._jira, issue=issue, branch_mapping=branch_mapping)
-            for issue in self._jira.search_issues(project_closed_issues_filter, maxResults=None)]
+
+        issues = []
+        branch_mappings = self.version_to_branch_mappings()
+        for raw_issue in self._jira.search_issues(project_closed_issues_filter, maxResults=None):
+            project = raw_issue.fields.project.key
+            assert project in branch_mappings, (
+                f"Internal logic error: project {project!r} is not in branch mappings.")
+            issues.append(JiraIssue(
+                jira_handler=self._jira, issue=raw_issue, branch_mapping=branch_mappings[project]))
+
+        return issues
 
     @lru_cache(maxsize=8)
     def get_issue(self, key: str) -> JiraIssue:
         try:
+            raw_issue = self._jira.issue(key)
+            project = raw_issue.fields.project.key
+            branch_mapping = self.version_to_branch_mappings().get(project, {})
             return JiraIssue(
-                jira_handler=self._jira, issue=self._jira.issue(key),
-                branch_mapping=self.version_to_branch_mapping())
+                jira_handler=self._jira, issue=raw_issue, branch_mapping=branch_mapping)
 
         except jira.exceptions.JIRAError as error:
             raise JiraError(f"Unable to obtain issue {key}", error) from error
@@ -246,18 +255,14 @@ class JiraAccessor:
     def get_issues(self, keys: Set[str]) -> Set[JiraIssue]:
         return {self.get_issue(k) for k in keys}
 
-    # TODO: Refactor workflow-police bot for working with JiraIssue object instead of raw
-    # jira.Issue.
-    def return_issue(self, issue: jira.Issue, reason: str):
-        jira_issue = JiraIssue(
-            jira_handler=self._jira, issue=issue, branch_mapping=self.version_to_branch_mapping())
-        return jira_issue.return_issue(reason)
-
     @automation_tools.utils.cached(datetime.timedelta(minutes=10))
-    def version_to_branch_mapping(self):
+    def version_to_branch_mappings(self) -> Dict[str, Dict[str, str]]:
+        return {p: self._version_to_branch_mapping(p) for p in PROJECT_KEYS_TO_CHECK}
+
+    def _version_to_branch_mapping(self, project: str) -> Dict[str, str]:
         try:
             mapping = {}
-            for v in self._jira.project_versions(self.project):
+            for v in self._jira.project_versions(project):
                 if v.archived:
                     continue
                 branch = branch_from_release(v)

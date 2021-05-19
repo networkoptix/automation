@@ -12,12 +12,17 @@ def police_test_repo(repo_accessor):
         repo_accessor.repo, sha="6789A", message="VMS-2: Fix another bug")
     vms3_commit_mock = CommitMock(
         repo_accessor.repo, sha="BCDEF", message="VMS-3: Fix brand new bug")
+    mobile1_commit_mock = CommitMock(repo_accessor.repo, sha="23456", message="MOBILE-1: Fix bug")
+
     repo_accessor.repo.branches["origin/master"] = BranchMock(
-        repo_accessor.repo, name="master", commits=[vms1_commit_mock, vms2_commit_mock])
+        repo_accessor.repo, name="master",
+        commits=[vms1_commit_mock, vms2_commit_mock, mobile1_commit_mock])
     repo_accessor.repo.branches["origin/vms_4.2"] = BranchMock(
         repo_accessor.repo, name="vms_4.2", commits=[vms2_commit_mock])
     repo_accessor.repo.branches["origin/vms_4.2_patch"] = BranchMock(
         repo_accessor.repo, name="vms_4.2_patch", commits=[vms1_commit_mock,  vms3_commit_mock])
+    repo_accessor.repo.branches["origin/mobile_21.1"] = BranchMock(
+        repo_accessor.repo, name="mobile_21.1", commits=[mobile1_commit_mock])
 
     return repo_accessor
 

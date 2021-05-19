@@ -2,7 +2,6 @@ from typing import Optional
 
 from automation_tools.jira import JiraIssue, JiraIssueStatus
 from automation_tools.git import Repo
-import automation_tools.utils
 import automation_tools.checkers.config as config
 
 
@@ -20,7 +19,7 @@ class WrongVersionChecker(WorkflowPolicyChecker):
             return
 
         version_set = set(issue.versions_to_branches_map.keys())
-        if version_set in config.ALLOWED_VERSIONS_SETS:
+        if version_set in config.ALLOWED_VERSIONS_SETS[issue.project]:
             return
 
         return f"Version set {sorted(version_set)!r} is not allowed."

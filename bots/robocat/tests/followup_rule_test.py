@@ -10,7 +10,9 @@ from tests.robocat_constants import (
     CONFLICTING_COMMIT_SHA,
     MERGED_TO_MASTER_MERGE_REQUESTS,
     MERGED_TO_4_1_MERGE_REQUESTS,
-    MERGED_TO_4_2_MERGE_REQUESTS)
+    MERGED_TO_4_2_MERGE_REQUESTS,
+    MERGED_TO_MASTER_MERGE_REQUESTS_MOBILE,
+    MERGED_TO_21_1_MERGE_REQUESTS_MOBILE)
 from tests.fixtures import *
 
 
@@ -355,6 +357,22 @@ class TestFollowupRule:
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "vms_4.1",
         }),
+        # The same that the first but for the different Jira project.
+        ([{
+            "key": "MOBILE-666",
+            "branches": ["master", "mobile_21.1"],
+            "merge_requests": [
+                MERGED_TO_MASTER_MERGE_REQUESTS_MOBILE["merged"]["iid"],
+                MERGED_TO_21_1_MERGE_REQUESTS_MOBILE["merged"]["iid"]
+            ],
+            "state": "In Review",
+        }], {
+            "state": "merged",
+            "title": "MOBILE-666: Test mr",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash_commit_sha": MERGED_TO_MASTER_MERGE_REQUESTS_MOBILE["merged"]["iid"],
+            "target_branch": "mobile_21.1",
+        }),
         # Has merged merge requests for all issue branches, follow-up merge request just merged,
         # issue is in "good" state, follow-up state detection from description.
         ([{
@@ -408,7 +426,7 @@ class TestFollowupRule:
                 "branches": ["master", "vms_4.1"],
                 "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
                 "state": "In Review",
-            }
+            },
         ], {
             "state": "merged",
             "title": "VMS-666, VMS-667: Test mr",
@@ -439,11 +457,13 @@ class TestFollowupRule:
             "target_branch": "master",
         })
     ])
-    def test_close_jira_issue(self, project, followup_rule, mr, mr_manager, jira):
+    def test_close_jira_issue(self, project, followup_rule, mr, mr_manager, jira_issues, jira):
         # Init project state. TODO: Move project state to parameters.
         MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS["merged"])
         MergeRequestMock(project=project, **MERGED_TO_4_1_MERGE_REQUESTS["merged"])
         MergeRequestMock(project=project, **MERGED_TO_4_2_MERGE_REQUESTS["merged"])
+        MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS_MOBILE["merged"])
+        MergeRequestMock(project=project, **MERGED_TO_21_1_MERGE_REQUESTS_MOBILE["merged"])
 
         mr_count_before = len(project.mergerequests.list())
 
@@ -451,7 +471,7 @@ class TestFollowupRule:
         assert len(mr.comments()) == 0
         assert len(project.mergerequests.list()) == mr_count_before
 
-        issue = jira._jira.issue("VMS-666")
+        issue = jira._jira.issue(jira_issues[0]["key"])
         assert issue.fields.status.name == "Closed"
         assert len(issue.fields.comment.comments) == 1
         assert issue.fields.comment.comments[0].body.startswith("Issue closed")

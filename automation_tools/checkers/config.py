@@ -1,11 +1,18 @@
-ALLOWED_VERSIONS_SETS = [
-    set(['4.1_patch', '4.2', '4.2_patch', 'master']),
-    set(['4.2', '4.2_patch', 'master']),
-    set(['4.2_patch', 'master']),
-    set(['master']),
-    set(['Future']),
-]
-PROJECT_KEYS_TO_CHECK = {"VMS"}
+ALLOWED_VERSIONS_SETS = {
+    "VMS": [
+        set(['4.1_patch', '4.2', '4.2_patch', 'master']),
+        set(['4.2', '4.2_patch', 'master']),
+        set(['4.2_patch', 'master']),
+        set(['master']),
+        set(['Future']),
+    ],
+    "MOBILE": [
+        set(['21.1', 'master']),
+        set(['master']),
+        set(['Future']),
+    ],
+}
+PROJECT_KEYS_TO_CHECK = {"VMS", "MOBILE"}
 
 IGNORE_LABEL = "hide_from_police"
 VERSION_SPECIFIC_LABEL = "version_specific"

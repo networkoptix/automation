@@ -41,6 +41,8 @@ class TestPoliceChecker:
     @pytest.mark.parametrize("jira_issues", [
         # Bad version set.
         [{"key": "VMS-1", "branches": ["master", "vms_4.2"]}],
+        # Bad version set for another project.
+        [{"key": "MOBILE-1", "branches": ["master", "mobile_20.3"]}],
         # Non-existing branch "vms_4.1_patch".
         [{"key": "VMS-1", "branches": ["vms_4.1", "vms_4.2", "vms_4.2_patch", "master"]}],
         # Commit is not found in branch "vms_4.2_patch".
@@ -56,6 +58,8 @@ class TestPoliceChecker:
     @pytest.mark.parametrize("jira_issues", [
         # "Good" issue.
         [{"key": "VMS-1", "branches": ["master", "vms_4.2_patch"]}],
+        # "Good" issue for another project.
+        [{"key": "MOBILE-1", "branches": ["master", "mobile_21.1"]}],
         # Bad version set, but has "version_specific" label.
         [{"key": "VMS-2", "branches": ["master", "vms_4.2"], "labels": ["version_specific"]}],
         # Commit is not found in branch "master", but has "version_specific" label.
