@@ -16,7 +16,7 @@ EXCLUDED_FILE_PATHS = {"open/readme.md"}
 # go.mod and go.sum are auto-generated, so they do not need to be checked.
 EXCLUDED_FILE_NAME_PATTERNS = {
     "go.mod", "go.sum", "*.json", "*.pyc", "*.bmp", "*.gif", "*.mkv", "*.avi", "*.png", "*.jpg",
-    "*.jpeg", "*.svg", "*.ui", "*.ts", "*.rc",
+    "*.jpeg", "*.svg", "*.ui", "*.ts", "*.rc", "qmldir",
 }
 
 
