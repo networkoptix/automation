@@ -2,6 +2,7 @@ import sys
 import time
 from typing import Optional
 from pathlib import Path
+import requests
 
 import argparse
 import logging
@@ -87,7 +88,7 @@ class Bot:
         for mr_manager in self.get_merge_requests_manager(mr_poll_rate):
             try:
                 self.handle(mr_manager)
-            except gitlab.exceptions.GitlabOperationError as e:
+            except gitlab.exceptions.GitlabError as e:
                 logger.warning(f"{mr_manager}: Gitlab error: {e}")
             except JiraError as e:
                 logger.warning(f"{mr_manager}: Jira error: {e}")
@@ -95,6 +96,8 @@ class Bot:
                 logger.warning(f"{mr_manager}: Git error: {e}")
             except PlayPipelineError as e:
                 logger.warning(f"{mr_manager}: Error: {e}")
+            except requests.exceptions.ConnectionError as e:
+                logger.warning(f"{mr_manager}: Connection error: {e}")
 
     def get_merge_requests_manager(self, mr_poll_rate):
         while True:
