@@ -23,6 +23,7 @@ class AwardEmojiManager():
     AUTOCHECK_IMPOSSIBLE_EMOJI = "raised_back_of_hand"
     BAD_ISSUE_EMOJI = "beetle"
     LOCAL_SQUASH_PROBLEMS_EMOJI = "warning"
+    NOTIFICATION_EMOJI = "bell"
 
     def __init__(self, gitlab_award_emoji_manager, current_user):
         self._gitlab_manager = gitlab_award_emoji_manager

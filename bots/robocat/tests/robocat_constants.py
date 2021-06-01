@@ -52,7 +52,7 @@ DEFAILT_APPROVE_RULES_LIST = [
         "patterns": ["open_candidate/vms/client/.+", "open_candidate/cloud/.+"],
         "approvers": [OPEN_SOURCE_APPROVER_CLIENT],
     }, {
-        "patterns": ["open_candidate/.+", "open/.+"],
+        "patterns": ["open_candidate/.+", "open/((?!unknown_approver_prefix_).+)"],
         "approvers": [OPEN_SOURCE_APPROVER_COMMON],
     },
 ]

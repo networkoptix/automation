@@ -1,5 +1,5 @@
 import pytest
-from typing import List
+from typing import List, Tuple
 
 from robocat.award_emoji_manager import AwardEmojiManager
 from tests.robocat_constants import (
@@ -10,6 +10,7 @@ from tests.robocat_constants import (
     DEFAULT_COMMIT,
     FILE_COMMITS_SHA,
     OPEN_SOURCE_APPROVER_COMMON,
+    OPEN_SOURCE_APPROVER_CLIENT,
     DEFAULT_REQUIRED_APPROVALS_COUNT)
 from tests.mocks.file import (
     GOOD_README_RAW_DATA, BAD_README_RAW_DATA, BAD_README_RAW_DATA_2, GOOD_CPP_RAW_DATA)
@@ -64,7 +65,14 @@ class TestOpenSourceRule:
             "assignees": [{"username": "user1"}, {"username": OPEN_SOURCE_APPROVER_COMMON}]
         },
         {
-            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
+            "commits_list": [{
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
+                "message": "msg",
+                "diffs": [],
+                "files": {"open/unknown_approver_prefix_dontreadme.md": {
+                    "is_new": True, "raw_data": GOOD_README_RAW_DATA
+                }},
+            }],
             "mock_huge_mr": True,
             "assignees": [{"username": "user1"}]
         },
@@ -75,8 +83,12 @@ class TestOpenSourceRule:
             assert not open_source_rule.execute(mr_manager)
 
             assignees = {a["username"] for a in mr.assignees}
-            assert len(assignees) == 2, f"Got assignees: {assignees}"
             assert OPEN_SOURCE_APPROVER_COMMON in assignees, f"Got assignees: {assignees}"
+            if mr.mock_huge_mr:
+                assert OPEN_SOURCE_APPROVER_CLIENT in assignees, f"Got assignees: {assignees}"
+                assert len(assignees) == 3, f"Got assignees: {assignees}"
+            else:
+                assert len(assignees) == 2, f"Got assignees: {assignees}"
 
             if len(mr.assignees) == initial_assignee_count:
                 assert mr_manager._mr.get_approvers_count() == DEFAULT_REQUIRED_APPROVALS_COUNT
@@ -97,9 +109,11 @@ class TestOpenSourceRule:
             assert not mr.blocking_discussions_resolved
 
             comments = mr.comments()
-            assert len(comments) == 1, f"Got comments: {comments}"
-            assert f":{AwardEmojiManager.AUTOCHECK_IMPOSSIBLE_EMOJI}:" in comments[0], (
-                f"Last comment is: {comments[0]}")
+            assert len(comments) == 2, f"Got comments: {comments}"
+            assert f"Update assignee list" in comments[0], (
+                f"First comment is: {comments[0]}")
+            assert f":{AwardEmojiManager.AUTOCHECK_IMPOSSIBLE_EMOJI}:" in comments[1], (
+                f"Last comment is: {comments[1]}")
 
     @pytest.mark.parametrize("mr_state", [
         {
@@ -114,9 +128,11 @@ class TestOpenSourceRule:
             assert not mr.blocking_discussions_resolved
 
             comments = mr.comments()
-            assert len(comments) == 1, f"Got comments: {comments}"
-            assert f":{AwardEmojiManager.AUTOCHECK_OK_EMOJI}:" in comments[0], (
-                f"Last comment is: {comments[0]}")
+            assert len(comments) == 2, f"Got comments: {comments}"
+            assert f"Update assignee list" in comments[0], (
+                f"First comment is: {comments[0]}")
+            assert f":{AwardEmojiManager.AUTOCHECK_OK_EMOJI}:" in comments[1], (
+                f"Last comment is: {comments[1]}")
 
     @pytest.mark.parametrize("mr_state", [
         {
@@ -163,16 +179,30 @@ class TestOpenSourceRule:
         },
     ])
     def test_files_are_not_ok_comments(self, open_source_rule, mr, mr_manager):
+        has_new_files = next(iter(mr.commits_list[0]["files"].values()))["is_new"]
+        file_type_is_unknown = (
+            mr.commits_list[0]["sha"] == FILE_COMMITS_SHA["opensource_unknown_file"])
+
         for _ in range(2):  # State must not change after any number of rule executions.
             assert not open_source_rule.execute(mr_manager)
             assert not mr.blocking_discussions_resolved
 
             comments = mr.comments()
-            assert len(comments) == 4 or len(comments) == 1, f"Got comments: {comments}"
+            if has_new_files:
+                check_phrase = "must be approved"
+                comments_number = 5 if not file_type_is_unknown else 2
+            else:
+                check_phrase = "Fix all the issues, or ask"
+                comments_number = 4
+            assert len(comments) == comments_number, f"Got comments: {comments}"
             for i, comment in enumerate(comments):
+                if has_new_files and i == 0:
+                    assert f"Update assignee list" in comments[0], (
+                        f"First comment is: {comments[0]}")
+                    continue
                 assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comment, (
                     f"Comment {i} is: {comment}")
-                assert f"Fix all the issues, or ask" in comment, f"Comment {i} is: {comment}"
+                assert check_phrase in comment, f"Comment {i} is: {comment}"
                 for error_token in ["fuck", "blya", "shit", "Copyrleft", "Unknown file type"]:
                     if error_token in comment:
                         break
@@ -203,7 +233,10 @@ class TestOpenSourceRule:
         {"commits_list": [BAD_OPENSOURCE_COMMIT]},
     ])
     def test_update_comments_for_found_errors(self, open_source_rule, mr, mr_manager):
-        def check_comments(bad_words: List[str], is_resolved: bool = False):
+        def check_comments(
+                bad_words: List[Tuple[str, bool]],
+                expected_comments_number: int,
+                is_resolved: bool = False):
             comments = mr.comments()
             if is_resolved:
                 error_comments = comments[:-1]
@@ -212,16 +245,29 @@ class TestOpenSourceRule:
                 error_comments = comments
                 ok_comment = None
 
-            assert len(error_comments) == len(bad_words), f"Got comments: {comments}"
+            assert len(error_comments) == expected_comments_number, f"Got comments: {comments}"
 
+            has_approvers_added_comment = expected_comments_number > len(bad_words)
             for i, comment in enumerate(error_comments):
+                if has_approvers_added_comment and i == 0:
+                    assert f"Update assignee list" in comments[0], (
+                        f"First comment is: {comments[0]}")
+                    continue
                 assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comment, (
                     f"Comment {i} is: {comment}")
-                assert f"Fix all the issues, or ask" in comment, (
-                    f"Comment {i} is: {comment}")
-                for bad_word in bad_words:
-                    if bad_word in comment:
-                        break
+                for bad_word_tuples in bad_words:
+                    bad_word, has_new_files = bad_word_tuples
+                    if bad_word not in comment:
+                        continue
+
+                    if has_new_files:
+                        check_phrase = "must be approved"
+                    else:
+                        check_phrase = "Fix all the issues, or ask"
+                    assert check_phrase in comment, (
+                        f"Comment {i} is: {comment}")
+
+                    break
                 else:
                     assert False, f"Unexpected comment {comment}"
 
@@ -229,9 +275,13 @@ class TestOpenSourceRule:
                 assert f":{AwardEmojiManager.AUTOCHECK_OK_EMOJI}:" in ok_comment, (
                     f"Last comment is: {ok_comment}")
 
+        expected_comments_number = 4
+
         open_source_rule.execute(mr_manager)
 
-        check_comments(['fuck', 'blya', 'shit', 'Copyrleft'])
+        check_comments(
+            [('fuck', False), ('blya', False), ('shit', False), ('Copyrleft', False)],
+            expected_comments_number=expected_comments_number)
 
         # Add commit to the Merge Request with a "good" file - no new comments must be added.
         good_commit = {
@@ -241,10 +291,13 @@ class TestOpenSourceRule:
             "files": {"open/good.cpp": {"is_new": True, "raw_data": GOOD_CPP_RAW_DATA}},
         }
         mr.add_mock_commit(good_commit)
+        expected_comments_number += 1  # New file added.
 
         open_source_rule.execute(mr_manager)
 
-        check_comments(['fuck', 'blya', 'shit', 'Copyrleft'])
+        check_comments(
+            [('fuck', False), ('blya', False), ('shit', False), ('Copyrleft', False)],
+            expected_comments_number=expected_comments_number)
 
         # Add commit to mr with the same "bad" file - comments only for new bad words should be
         # added.
@@ -253,10 +306,14 @@ class TestOpenSourceRule:
         updated_bad_open_source_commit["files"] = {
             "open/dontreadme.md": {"is_new": True, "raw_data": BAD_README_RAW_DATA_2}}
         mr.add_mock_commit(updated_bad_open_source_commit)
+        expected_comments_number += 1  # Error added.
 
         open_source_rule.execute(mr_manager)
 
-        check_comments(['fuck', 'blya', 'shit', 'Copyrleft', 'hanwha'])
+        check_comments([
+            ('fuck', False), ('blya', False), ('shit', False), ('Copyrleft', False),
+            ('hanwha', True)],
+            expected_comments_number=expected_comments_number)
 
         # Add commit to the Merge Request with the same file, but without bad words - "everything
         # is ok" comment should be added.
@@ -268,16 +325,21 @@ class TestOpenSourceRule:
 
         open_source_rule.execute(mr_manager)
 
-        check_comments(['fuck', 'blya', 'shit', 'Copyrleft', 'hanwha'], is_resolved=True)
+        check_comments([
+            ('fuck', False), ('blya', False), ('shit', False), ('Copyrleft', False),
+            ('hanwha', True)],
+            expected_comments_number=expected_comments_number,
+            is_resolved=True)
 
     # Re-check files if the merge request target branch changed.
     @pytest.mark.parametrize("mr_state", [
         {"commits_list": [BAD_OPENSOURCE_COMMIT]},
     ])
     def test_re_check_after_mr_target_branch_changed(self, open_source_rule, mr, mr_manager):
+        initial_approvers_count = mr_manager._mr.get_approvers_count()
         assert not open_source_rule.execute(mr_manager)
         assert not mr.blocking_discussions_resolved
-        assert mr_manager._mr.get_approvers_count() == DEFAULT_REQUIRED_APPROVALS_COUNT + 1
+        assert mr_manager._mr.get_approvers_count() == initial_approvers_count
 
         # Fix files in commit leaving the same sha. We emulate different changes when the user sets
         # the new target branch to the Merge Request.
@@ -288,4 +350,72 @@ class TestOpenSourceRule:
         mr.target_branch = "changed_branch"
 
         assert open_source_rule.execute(mr_manager)
-        assert mr_manager._mr.get_approvers_count() == DEFAULT_REQUIRED_APPROVALS_COUNT + 1
+        assert mr_manager._mr.get_approvers_count() == initial_approvers_count
+
+    @pytest.mark.parametrize("mr_state", [
+        {
+            "blocking_discussions_resolved": True,
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
+            "author": {"username": OPEN_SOURCE_APPROVER_COMMON},
+        },
+    ])
+    def test_files_are_ok_comments_author_is_approver(self, open_source_rule, mr, mr_manager):
+        for _ in range(2):  # State must not change after any number of rule executions.
+            assert open_source_rule.execute(mr_manager)
+            assert mr.blocking_discussions_resolved
+
+            comments = mr.comments()
+            assert len(comments) == 1, f"Got comments: {comments}"
+            assert f":{AwardEmojiManager.AUTOCHECK_OK_EMOJI}:" in comments[0], (
+                f"Last comment is: {comments[0]}")
+
+    @pytest.mark.parametrize("mr_state", [
+        # File is in the "open" directory.
+        {
+            "blocking_discussions_resolved": True,
+            "commits_list": [BAD_OPENSOURCE_COMMIT],
+            "author": {"username": OPEN_SOURCE_APPROVER_COMMON},
+        },
+        # File is in the "open_candidate" directory.
+        {
+            "blocking_discussions_resolved": True,
+            "commits_list": [BAD_OPENCANDIDATE_COMMIT],
+            "author": {"username": OPEN_SOURCE_APPROVER_COMMON},
+        },
+        # Bad file is not new.
+        {
+            "blocking_discussions_resolved": True,
+            "commits_list": [BAD_OPENSOURCE_COMMIT],
+            "author": {"username": OPEN_SOURCE_APPROVER_COMMON},
+        },
+        # Unknown file type.
+        {
+            "blocking_discussions_resolved": True,
+            "commits_list": [{
+                "sha": FILE_COMMITS_SHA["opensource_unknown_file"],
+                "message": "msg1",
+                "diffs": [],
+                "files": {"open/badtype.foobar": {"is_new": True, "raw_data": ""}},
+            }],
+            "author": {"username": OPEN_SOURCE_APPROVER_COMMON},
+        },
+    ])
+    def test_files_are_not_ok_comments_author_is_approver(self, open_source_rule, mr, mr_manager):
+        for _ in range(2):  # State must not change after any number of rule executions.
+            assert open_source_rule.execute(mr_manager)
+            assert not mr.blocking_discussions_resolved
+
+            comments = mr.comments()
+            file_type_is_unknown = (
+                mr.commits_list[0]["sha"] == FILE_COMMITS_SHA["opensource_unknown_file"])
+            expected_comments_count = 1 if file_type_is_unknown else 4
+            assert len(comments) == expected_comments_count, f"Got comments: {comments}"
+            for i, comment in enumerate(comments):
+                assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comment, (
+                    f"Comment {i} is: {comment}")
+                assert "check carefully all the issues" in comment, f"Comment {i} is: {comment}"
+                for error_token in ["fuck", "blya", "shit", "Copyrleft", "Unknown file type"]:
+                    if error_token in comment:
+                        break
+                else:
+                    assert False, f"Unexpected comment {comment}"

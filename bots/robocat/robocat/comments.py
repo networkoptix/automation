@@ -26,9 +26,9 @@ Please, resolve all discussions and [remove WIP]({_wip_url}) to continue merging
 conflicts_message = f"""Merge request returned to development.
 Please, do manual rebase and [remove WIP]({_wip_url}) to continue merging process."""
 
-has_good_changes_in_open_source = """No problems were revealed by the auto-check. This merge request
-contains new or renamed files in the open source part of the project, so it **must be approved**
-by one of: @{approvers}.
+has_good_changes_in_open_source = """No problems were revealed by the auto-check. This merge
+request contains new or renamed files in the open source part of the project, so it **must be
+approved** by one of: @{approvers}.
 """
 
 has_unimportant_changes_in_open_source = """This merge request contains changes in the open source
@@ -36,17 +36,28 @@ part of the project. No problems were revealed by the auto-check.
 """
 
 may_have_changes_in_open_source = """Unable to check whether this merge request contains
-changes in the open source part of the project due to the huge amount of changes (gitlab limitation),
-so it **must be approved** by one of: @{approvers}.
+changes in the open source part of the project due to the huge amount of changes (gitlab
+limitation), so it **must be approved** by one of: @{approvers}.
 """
 
-has_bad_changes_in_open_source = """{error_message}
-
-Auto-check of this merge request has failed. Fix all the issues, or ask one of @{approvers} to approve
-this merge request. Otherwise, this merge request **will not be merged**.
+check_changes_manually = """Unable to check whether this merge request contains changes in the open
+source part of the project due to the huge amount of changes (gitlab limitation). Please, check it
+manually for dangerous changes.
 """
 
 has_bad_changes_in_open_source_optional_approval = """{error_message}
+
+Auto-check of this merge request has failed. Fix all the issues, or ask one of @{approvers} to
+approve this merge request. Otherwise, this merge request **will not be merged**.
+"""
+
+has_bad_changes_from_authorized_approver = """{error_message}
+
+Auto-check of this merge request has failed. Please, check carefully all the issues and fix them if
+needed.
+"""
+
+has_bad_changes_in_open_source = """{error_message}
 
 Auto-check of this merge request has failed. Also, it contains new or renamed files in the
 open-source part of the project, so it must be approved by one of: @{approvers}.
@@ -109,3 +120,6 @@ cannot_squash_locally = "Failed to squash commits locally by git. See bot logs f
 
 cannot_restore_approvals = """Failed to restore approvals of some of the following users:
 {approvers}. Please, re-approve manually."""
+
+authorized_approvers_assigned = """@{approvers} were assinged to this merge request because it
+contains new or renamed files in the open-source part of the project."""

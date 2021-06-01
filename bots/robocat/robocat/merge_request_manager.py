@@ -251,9 +251,10 @@ class MergeRequestManager:
 
     def ensure_assignees(
             self, assignee_usernames: Set[str],
-            max_added_approvers_count: Optional[int] = None) -> bool:
+            max_added_approvers_count: Optional[int] = None,
+            message: Optional[str] = None) -> bool:
         assignees = self._mr.assignees
-        if assignee_usernames <= assignees:
+        if assignee_usernames <= assignees or assignee_usernames == set([self._mr.author_name]):
             return False
 
         updated_assignees = assignees | assignee_usernames
@@ -274,6 +275,12 @@ class MergeRequestManager:
         self._mr.set_assignees_by_ids(assignee_ids)
         if new_approvers_count != current_approvers_count:
             self._mr.set_approvers_count(new_approvers_count)
+
+        if message:
+            self._add_comment(
+                title="Update assignee list",
+                message=message,
+                emoji=AwardEmojiManager.NOTIFICATION_EMOJI)
 
         return True
 

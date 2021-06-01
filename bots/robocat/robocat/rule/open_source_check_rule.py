@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Dict, List, Set, Optional
+from typing import Dict, List, Set, NamedTuple
 from dataclasses import dataclass
 from enum import Enum
 
@@ -31,65 +31,47 @@ class OpenSourceCheckRuleExecutionResult(RuleExecutionResult, Enum):
             self.not_applicable, self.merge_authorized, self.merged, self.no_manual_check_required]
 
 
+class ErrorCheckResult(NamedTuple):
+    must_add_comment: bool
+    has_errors: bool
+    new_errors: Set[FileError]
+
+
 class CheckResultsCache:
     def __init__(self):
         self._errors_by_mr = dict()  # Map merge request ids to error set for these merge requests.
         self._does_commit_have_errors = dict()
-        self._does_mr_need_manual_check = dict()
-
-        # Comments are added only if the last check revealed new errors OR it is the first check
-        # and there are no errors. This variable must be set to False (via setter must_add_comment)
-        # after adding the related comments to the merge request.
-        self._must_add_comment = False
-        self._new_errors = set()
+        self.has_mr_new_open_source_files = dict()
 
     def is_last_mr_commit_checked(self, mr_manager: MergeRequestManager) -> bool:
         return mr_manager.data.sha in self._does_commit_have_errors
 
-    def ensure_error(self, mr_manager: MergeRequestManager, file: str, error: FileError) -> None:
+    def ensure_error(self, mr_manager: MergeRequestManager, file: str, error: FileError) -> bool:
         if self._has_error(mr_manager, error):  # Don't add the same error twice.
-            return
+            return False
 
-        self._new_errors.add(error)
-        self._must_add_comment = True
         self._does_commit_have_errors[mr_manager.data.sha] = True
-        self._does_mr_need_manual_check[mr_manager.data.id] = True
         self._errors_by_mr.setdefault(mr_manager.data.id, set()).add(error)
+        return True
 
     def _has_error(self, mr_manager: MergeRequestManager, error: FileError) -> bool:
         mr_results = self._errors_by_mr.get(mr_manager.data.id, set())
         return error in mr_results
 
-    def ensure_no_errors(
-            self, mr_manager: MergeRequestManager, needs_manual_check: bool = True) -> None:
+    def ensure_no_errors(self, mr_manager: MergeRequestManager) -> bool:
         mr_data = mr_manager.data
-        self._new_errors = set()
-        self._must_add_comment = bool(self._errors_by_mr.get(mr_data.id, True))
-        if mr_data.id in self._does_mr_need_manual_check:
-            self._must_add_comment |= (
-                self._does_mr_need_manual_check[mr_data.id] != needs_manual_check)
+        # If there were errors found in the previous versions of this merge request OR it is the
+        # first check, we have to add a comment.
+        must_add_comment = bool(self._errors_by_mr.get(mr_data.id, True))
+        if not must_add_comment:
+            return False
+
         self._does_commit_have_errors[mr_data.sha] = False
-        self._does_mr_need_manual_check[mr_data.id] = needs_manual_check
         self._errors_by_mr[mr_data.id] = set()
+        return True
 
     def does_last_mr_commit_have_errors(self, mr_manager: MergeRequestManager) -> bool:
         return self._does_commit_have_errors.get(mr_manager.data.sha, None)
-
-    def does_last_mr_commit_require_manual_check(self, mr_manager: MergeRequestManager) -> bool:
-        return self._does_mr_need_manual_check.get(mr_manager.data.id, None)
-
-    def get_new_errors(self) -> Set[FileError]:
-        return self._new_errors
-
-    @property
-    def must_add_comment(self):
-        return self._must_add_comment
-
-    @must_add_comment.setter
-    def must_add_comment(self, value):
-        if not value:
-            self._new_errors = set()
-        self._must_add_comment = value
 
 
 @dataclass
@@ -127,7 +109,7 @@ class OpenSourceCheckRule(BaseRule):
         if self._is_diff_complete(mr_manager) and not self._changed_open_source_files(mr_manager):
             return OpenSourceCheckRuleExecutionResult.not_applicable
 
-        self._update_file_check_results_cache(mr_manager)
+        error_check_result = self._do_error_check_updating_cache(mr_manager)
 
         authorized_approvers = self._get_approvers_by_changed_files(mr_manager)
         logger.debug(f"{mr_manager}: Authorized approvers are {authorized_approvers!r}")
@@ -135,28 +117,25 @@ class OpenSourceCheckRule(BaseRule):
 
         if self._is_manual_check_required(mr_manager):
             are_assignees_added = mr_manager.ensure_assignees(
-                authorized_approvers, max_added_approvers_count=1)
+                authorized_approvers,
+                max_added_approvers_count=1,
+                message=robocat.comments.authorized_approvers_assigned.format(
+                    approvers=", @".join(authorized_approvers)))
             if are_assignees_added:
                 logger.debug(f"{mr_manager}: Authorized approvers assigned to MR.")
 
-            if self._are_problems_found(mr_manager):
-                self._ensure_problem_comments(mr_manager, needs_approval=True)
-                if mr_manager.satisfies_approval_requirements(approval_requirements):
-                    return OpenSourceCheckRuleExecutionResult.merge_authorized
-                return OpenSourceCheckRuleExecutionResult.files_not_ok
-
-            self._ensure_problems_not_found_comment(mr_manager, needs_approval=True)
-            if mr_manager.satisfies_approval_requirements(approval_requirements):
-                return OpenSourceCheckRuleExecutionResult.merge_authorized
-            return OpenSourceCheckRuleExecutionResult.manual_check_required
-
-        if self._are_problems_found(mr_manager):
-            self._ensure_problem_comments(mr_manager, needs_approval=False)
+        if self._are_problems_found(mr_manager, error_check_result):
+            self._ensure_problem_comments(mr_manager, error_check_result)
             if mr_manager.satisfies_approval_requirements(approval_requirements):
                 return OpenSourceCheckRuleExecutionResult.merge_authorized
             return OpenSourceCheckRuleExecutionResult.files_not_ok
 
-        self._ensure_problems_not_found_comment(mr_manager, needs_approval=False)
+        self._ensure_problems_not_found_comment(mr_manager, error_check_result)
+        if self._is_manual_check_required(mr_manager):
+            if mr_manager.satisfies_approval_requirements(approval_requirements):
+                return OpenSourceCheckRuleExecutionResult.merge_authorized
+            return OpenSourceCheckRuleExecutionResult.manual_check_required
+
         return OpenSourceCheckRuleExecutionResult.no_manual_check_required
 
     @staticmethod
@@ -171,14 +150,20 @@ class OpenSourceCheckRule(BaseRule):
             if not c["deleted_file"] and OpenSourceFileChecker.is_check_needed(c["new_path"])]
         return open_source_files
 
-    def _update_file_check_results_cache(self, mr_manager: MergeRequestManager):
+    def _do_error_check_updating_cache(
+            self, mr_manager: MergeRequestManager) -> ErrorCheckResult:
         cache = self._file_check_results_cache
         if cache.is_last_mr_commit_checked(mr_manager):
-            return
+            return ErrorCheckResult(
+                must_add_comment=False,
+                has_errors=cache.does_last_mr_commit_have_errors(mr_manager),
+                new_errors=set())
 
         # Check files for the first time OR after a new commit added to the merge request OR
         # the merge request was ammended OR the merge request was rebased.
+        must_add_comment = False
         has_errors = False
+        new_errors = set()
         for file_name in self._changed_open_source_files(mr_manager):
             # TODO: Before reading file, check what is it. No need to read files that we are not
             # intended to check (i.e. *.png files).
@@ -187,10 +172,25 @@ class OpenSourceCheckRule(BaseRule):
             file_checker = OpenSourceFileChecker(file_name=file_name, file_content=file_content)
             for error in file_checker.file_errors():
                 has_errors = True
-                cache.ensure_error(mr_manager, file=file_name, error=error)
+                if cache.ensure_error(mr_manager, file=file_name, error=error):
+                    must_add_comment = True
+                    new_errors.add(error)
 
-        if not has_errors:
-            cache.ensure_no_errors(mr_manager, self._has_new_open_source_files(mr_manager))
+        if not has_errors and cache.ensure_no_errors(mr_manager):
+            must_add_comment = True
+
+        mr_id = mr_manager.data.id
+        has_mr_new_open_source_files = cache.has_mr_new_open_source_files.get(mr_id, False)
+        # If we have new open source files and previous version has not (or vice versa) we
+        # have to add a comment. If it is the first check, we suppose that previously there were no
+        # new source files ("must_add_comment" is already true in this case due to either
+        # ensure_no_errors() or ensure_error() returning true).
+        if has_mr_new_open_source_files != self._has_new_open_source_files(mr_manager):
+            cache.has_mr_new_open_source_files[mr_id] = not has_mr_new_open_source_files
+            must_add_comment = True
+
+        return ErrorCheckResult(
+            must_add_comment=must_add_comment, has_errors=has_errors, new_errors=new_errors)
 
     @staticmethod
     def _has_new_open_source_files(mr_manager) -> bool:
@@ -202,42 +202,49 @@ class OpenSourceCheckRule(BaseRule):
         if not self._is_diff_complete(mr_manager):
             return True
 
-        cache = self._file_check_results_cache
-        return cache.does_last_mr_commit_require_manual_check(mr_manager)
-
-    def _are_problems_found(self, mr_manager: MergeRequestManager) -> bool:
-        if not self._is_diff_complete(mr_manager):
+        if self._has_new_open_source_files(mr_manager):
             return True
 
-        cache = self._file_check_results_cache
-        return cache.does_last_mr_commit_have_errors(mr_manager)
+        return False
 
-    def _ensure_problem_comments(self, mr_manager: MergeRequestManager, needs_approval: bool):
-        if not self._file_check_results_cache.must_add_comment:
+    def _are_problems_found(
+            self, mr_manager: MergeRequestManager, error_check_result: ErrorCheckResult) -> bool:
+        if not self._is_diff_complete(mr_manager):
+            return True
+        return error_check_result.has_errors
+
+    def _ensure_problem_comments(
+            self, mr_manager: MergeRequestManager, error_check_result: ErrorCheckResult):
+        if not error_check_result.must_add_comment:
             return
 
+        authorized_approvers = self._get_approvers_by_changed_files(mr_manager)
+        is_author_authorized_approver = (mr_manager.data.author_name in authorized_approvers)
         if not self._is_diff_complete(mr_manager):
-            authorized_approvers = self._get_approvers_by_changed_files(mr_manager)
+            if is_author_authorized_approver:
+                message = robocat.comments.check_changes_manually
+            else:
+                message = robocat.comments.may_have_changes_in_open_source.format(
+                    approvers=", @".join(authorized_approvers))
             mr_manager.create_thread(
                 title="Can't auto-check open source changes",
-                message=robocat.comments.may_have_changes_in_open_source.format(
-                    approvers=", @".join(authorized_approvers)),
+                message=message,
                 emoji=AwardEmojiManager.AUTOCHECK_IMPOSSIBLE_EMOJI)
-            self._file_check_results_cache.must_add_comment = False
             return
 
-        cache = self._file_check_results_cache
-        for error in cache.get_new_errors():
-            self._create_open_source_discussion(mr_manager, error, needs_approval)
-        self._file_check_results_cache.must_add_comment = False
+        for error in error_check_result.new_errors:
+            self._create_open_source_discussion(mr_manager, error)
 
-    def _create_open_source_discussion(
-            self, mr_manager: MergeRequestManager, error: FileError, needs_approval: bool):
+    def _create_open_source_discussion(self, mr_manager: MergeRequestManager, error: FileError):
         title = "Autocheck for open source changes failed"
         message_id = f"bad_open_source_{error.type}"
 
         authorized_approvers = self._get_approvers_by_changed_files(mr_manager)
-        if needs_approval:
+        is_author_authorized_approver = (mr_manager.data.author_name in authorized_approvers)
+        if is_author_authorized_approver:
+            message = robocat.comments.has_bad_changes_from_authorized_approver.format(
+                error_message=robocat.comments.__dict__[message_id].format(**error.params))
+        elif self._has_new_open_source_files(mr_manager):
             message = robocat.comments.has_bad_changes_in_open_source.format(
                 error_message=robocat.comments.__dict__[message_id].format(**error.params),
                 approvers=", @".join(authorized_approvers))
@@ -263,12 +270,13 @@ class OpenSourceCheckRule(BaseRule):
                 emoji=AwardEmojiManager.AUTOCHECK_FAILED_EMOJI)
 
     def _ensure_problems_not_found_comment(
-            self, mr_manager: MergeRequestManager, needs_approval: bool):
-        if not self._file_check_results_cache.must_add_comment:
+            self, mr_manager: MergeRequestManager, error_check_result: ErrorCheckResult):
+        if not error_check_result.must_add_comment:
             return
 
-        if needs_approval:
-            authorized_approvers = self._get_approvers_by_changed_files(mr_manager)
+        authorized_approvers = self._get_approvers_by_changed_files(mr_manager)
+        is_author_authorized_approver = (mr_manager.data.author_name in authorized_approvers)
+        if self._has_new_open_source_files(mr_manager) and not is_author_authorized_approver:
             message = robocat.comments.has_good_changes_in_open_source.format(
                 approvers=", @".join(authorized_approvers))
             autoresolve = False
@@ -279,7 +287,6 @@ class OpenSourceCheckRule(BaseRule):
         mr_manager.create_thread(
             title="Auto-check for open source changes passed", message=message,
             emoji=AwardEmojiManager.AUTOCHECK_OK_EMOJI, autoresolve=autoresolve)
-        self._file_check_results_cache.must_add_comment = False
 
     def _get_approvers_by_changed_files(self, mr_manager: MergeRequestManager) -> Set[str]:
         files = self._changed_open_source_files(mr_manager)
@@ -287,4 +294,6 @@ class OpenSourceCheckRule(BaseRule):
             for file_name in files:
                 if any([re.match(p, file_name) for p in rule.patterns]):
                     return set(rule.approvers)
-        return set()
+
+        # Return all approvers if we can't determine who is the best match.
+        return set(sum([r.approvers for r in self._approve_rules], []))
