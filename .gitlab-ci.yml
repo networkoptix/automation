@@ -121,7 +121,7 @@ k8s:workflow_police:deploy:
     HELM_CHART_DIR: "$DOCKER_DIR/chart"
     PRODUCT: "workflow-police"
     PRE_SCRIPT: |
-      HELM_CHART_VERSION="$(awk -F": +['\"]?" "/^version/{print \$$NF}" ${HELM_CHART_DIR}/Chart.yaml)";
+      HELM_CHART_VERSION="$(awk -F"['\"]" "/^version:/{print \$$2}" ${HELM_CHART_DIR}/Chart.yaml)";
       echo "gitSshKey: |"
         > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
       vault kv get --field="workflow-robocat-ssh-private-key" "apptokens/gitlab/prod" | sed 's/^/  /'
@@ -145,7 +145,7 @@ k8s:robocat:deploy:
     HELM_CHART_DIR: "$DOCKER_DIR/chart"
     PRODUCT: "workflow-police-robocat"
     PRE_SCRIPT: |
-      HELM_CHART_VERSION="$(awk -F": +['\"]?" "/^version/{print \$$NF}" ${HELM_CHART_DIR}/Chart.yaml)";
+      HELM_CHART_VERSION="$(awk -F"['\"]" "/^version:/{print \$$2}" ${HELM_CHART_DIR}/Chart.yaml)";
       echo "gitSshKey: |"
         > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
       vault kv get --field="workflow-robocat-ssh-private-key" "apptokens/gitlab/prod" | sed 's/^/  /'

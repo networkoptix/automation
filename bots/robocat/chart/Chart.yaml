@@ -6,7 +6,7 @@ type: application
 
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates.
-version: 1.0.1
+version: '1.0.1'
 
 # Version number of the docker image being deployed.
 appVersion: '2.0'
