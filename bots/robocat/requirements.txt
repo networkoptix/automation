@@ -5,5 +5,5 @@ python-gitlab>=2.5.0
 graypy>=2.1.0
 pyaml>=20.4.0
 gitpython>=3.1.7
-git+http://gerrit.lan.hdw.mx/qa/func_tests@5f170d30#subdirectory=source_file_compliance
+git+http://gerrit.lan.hdw.mx/qa/func_tests@8e5b7dfd#subdirectory=source_file_compliance
 
