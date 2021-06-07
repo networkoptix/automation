@@ -167,8 +167,14 @@ class MergeRequest:
     def assignees(self) -> Set[str]:
         return {assignee["username"] for assignee in self._gitlab_mr.assignees}
 
+    @property
+    def reviewers(self) -> Set[str]:
+        return {reviewer["username"] for reviewer in self._gitlab_mr.reviewers}
+
     def set_assignees_by_ids(self, assignee_ids: Set[int]) -> None:
-        self._gitlab_mr.assignee_ids = assignee_ids
+        # "assignee_ids" must consist of unique values so we use "set" type for the function
+        # parameter to enforce this, but "assignee_ids" must be of type "list".
+        self._gitlab_mr.assignee_ids = list(assignee_ids)
         self._gitlab_mr.save()
 
     def latest_diff(self):

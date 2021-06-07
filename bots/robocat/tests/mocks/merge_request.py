@@ -150,6 +150,7 @@ class MergeRequestMock:
     work_in_progress: bool = False
     blocking_discussions_resolved: bool = True
     assignees: list = field(default_factory=list)
+    reviewers: list = field(default_factory=list)
     squash: bool = True
     description: str = ""
     state: str = "opened"
@@ -173,6 +174,7 @@ class MergeRequestMock:
     pipelines_list: list = field(default_factory=lambda: [(DEFAULT_COMMIT["sha"], "manual")])
     commits_list: list = field(default_factory=lambda: [DEFAULT_COMMIT])
     assignee_ids: list = field(default_factory=list)
+    reviewer_ids: list = field(default_factory=list)
 
     # Managers, must not be directly initialized.
     awardemojis: AwardEmojiManagerMock = field(default_factory=AwardEmojiManagerMock, init=False)
@@ -219,6 +221,10 @@ class MergeRequestMock:
         for assignee in self.assignees:
             assignee = self.project.users.list(username=assignee["username"])[0]
             self.assignee_ids.append(assignee.id)
+
+        for reviewer in self.reviewers:
+            reviewer = self.project.users.list(username=reviewer["username"])[0]
+            self.reviewer_ids.append(reviewer.id)
 
     def _register_commit(self, commit_data):
         commit = CommitMock(**commit_data)
@@ -286,9 +292,14 @@ class MergeRequestMock:
 
     def save(self):
         users = self.project.users.list()
+
         for assignee_id in self.assignee_ids:
             assignee = [u for u in users if u.id == assignee_id][0]
             self.assignees.append({"username": assignee.username})
+
+        for reviewer_id in self.reviewer_ids:
+            reviewer = [u for u in users if u.id == reviewer_id][0]
+            self.reviewers.append({"username": reviewer.username})
 
     def comments(self):
         return self.notes.list() + self.discussions.list()

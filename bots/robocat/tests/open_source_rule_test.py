@@ -65,6 +65,11 @@ class TestOpenSourceRule:
             "assignees": [{"username": "user1"}, {"username": OPEN_SOURCE_APPROVER_COMMON}]
         },
         {
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
+            "reviewers": [{"username": OPEN_SOURCE_APPROVER_COMMON}],
+            "assignees": [{"username": "user1"}]
+        },
+        {
             "commits_list": [{
                 "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
@@ -78,19 +83,26 @@ class TestOpenSourceRule:
         },
     ])
     def test_set_assignee(self, open_source_rule, mr, mr_manager):
-        initial_assignee_count = len(mr.assignees)
+        reviewers_before = {r["username"] for r in mr.reviewers}
+        approvers_before = {a["username"] for a in mr.assignees} | reviewers_before
+        authorized_approvers = {OPEN_SOURCE_APPROVER_COMMON, OPEN_SOURCE_APPROVER_CLIENT}
+
         for _ in range(2):  # State must not change after any number of rule executions.
             assert not open_source_rule.execute(mr_manager)
 
             assignees = {a["username"] for a in mr.assignees}
-            assert OPEN_SOURCE_APPROVER_COMMON in assignees, f"Got assignees: {assignees}"
-            if mr.mock_huge_mr:
-                assert OPEN_SOURCE_APPROVER_CLIENT in assignees, f"Got assignees: {assignees}"
-                assert len(assignees) == 3, f"Got assignees: {assignees}"
+            if OPEN_SOURCE_APPROVER_COMMON in reviewers_before:
+                assert OPEN_SOURCE_APPROVER_COMMON not in assignees, f"Got assignees: {assignees}"
             else:
-                assert len(assignees) == 2, f"Got assignees: {assignees}"
+                assert OPEN_SOURCE_APPROVER_COMMON in assignees, f"Got assignees: {assignees}"
 
-            if len(mr.assignees) == initial_assignee_count:
+            approvers = {r["username"] for r in mr.reviewers} | assignees
+            if mr.mock_huge_mr:
+                assert len(approvers) == 3, f"Got assignees: {assignees}"
+            else:
+                assert len(approvers) == 2, f"Got assignees: {assignees}"
+
+            if approvers_before.intersection(authorized_approvers):
                 assert mr_manager._mr.get_approvers_count() == DEFAULT_REQUIRED_APPROVALS_COUNT
             else:
                 assert mr_manager._mr.get_approvers_count() == DEFAULT_REQUIRED_APPROVALS_COUNT + 1

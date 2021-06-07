@@ -116,12 +116,7 @@ class OpenSourceCheckRule(BaseRule):
         approval_requirements = ApprovalRequirements(authorized_approvers=authorized_approvers)
 
         if self._is_manual_check_required(mr_manager):
-            are_assignees_added = mr_manager.ensure_assignees(
-                authorized_approvers,
-                max_added_approvers_count=1,
-                message=robocat.comments.authorized_approvers_assigned.format(
-                    approvers=", @".join(authorized_approvers)))
-            if are_assignees_added:
+            if mr_manager.ensure_authorized_approvers(authorized_approvers):
                 logger.debug(f"{mr_manager}: Authorized approvers assigned to MR.")
 
         if self._are_problems_found(mr_manager, error_check_result):

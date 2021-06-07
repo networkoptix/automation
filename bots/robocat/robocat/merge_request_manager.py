@@ -249,38 +249,29 @@ class MergeRequestManager:
     def _get_commit_diff_hash(self, sha: str):
         return self._get_project().get_commit_diff_hash(sha)
 
-    def ensure_assignees(
-            self, assignee_usernames: Set[str],
-            max_added_approvers_count: Optional[int] = None,
-            message: Optional[str] = None) -> bool:
-        assignees = self._mr.assignees
-        if assignee_usernames <= assignees or assignee_usernames == set([self._mr.author_name]):
+    def ensure_authorized_approvers(self, approvers: Set[str]) -> bool:
+        current_approvers = self._mr.assignees | self._mr.reviewers | set([self._mr.author_name])
+        new_approvers = approvers - current_approvers
+        if not new_approvers:
             return False
 
-        updated_assignees = assignees | assignee_usernames
-        current_approvers_count = self._mr.get_approvers_count()
-        if max_added_approvers_count is not None:
-            added_approvers_count = len(updated_assignees) - len(assignees)
-            new_approvers_count = current_approvers_count + min(
-                max_added_approvers_count, added_approvers_count)
-        elif len(updated_assignees) > current_approvers_count:
-            new_approvers_count = len(updated_assignees)
-        logger.debug(f"{self}: Updating assignees list: {updated_assignees}")
-
+        assignee_ids = []
         project = self._get_project()
-        assignee_ids = list()
+        updated_assignees = self._mr.assignees | new_approvers
         for assignee in updated_assignees:
             assignee_ids += project.get_user_ids(assignee)
 
-        self._mr.set_assignees_by_ids(assignee_ids)
-        if new_approvers_count != current_approvers_count:
-            self._mr.set_approvers_count(new_approvers_count)
+        self._mr.set_assignees_by_ids(set(assignee_ids))
 
-        if message:
-            self._add_comment(
-                title="Update assignee list",
-                message=message,
-                emoji=AwardEmojiManager.NOTIFICATION_EMOJI)
+        # We've added someone to the authorized approvers list, so we should increase needed
+        # approval count for the MR.
+        self._mr.set_approvers_count(self._mr.get_approvers_count() + 1)
+
+        self._add_comment(
+            title="Update assignee list",
+            message=robocat.comments.authorized_approvers_assigned.format(
+                approvers=", @".join(new_approvers)),
+            emoji=AwardEmojiManager.NOTIFICATION_EMOJI)
 
         return True
 
