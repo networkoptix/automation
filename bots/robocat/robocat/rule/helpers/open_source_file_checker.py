@@ -12,11 +12,16 @@ EXCLUDED_DIRS = {
     "open/licenses",
     "open_candidate/artifacts",
 }
-EXCLUDED_FILE_PATHS = {"open/readme.md"}
+EXCLUDED_FILE_PATHS = {
+    "open/readme.md",
+    "open_candidate/build_info.txt",
+    "open_candidate/vms/distribution/unit_tests/build_distribution_conf.py.in",
+}
 # go.mod and go.sum are auto-generated, so they do not need to be checked.
 EXCLUDED_FILE_NAME_PATTERNS = {
-    "go.mod", "go.sum", "*.json", "*.pyc", "*.bmp", "*.gif", "*.mkv", "*.avi", "*.png", "*.jpg",
-    "*.jpeg", "*.svg", "*.ui", "*.ts", "*.rc", "qmldir",
+    "go.mod", "go.sum", "*.json", "*.json.in", "*.pyc", "*.bmp", "*.gif", "*.mkv", "*.avi",
+    "*.png", "*.jpg", "*.jpeg", "*.svg", "*.ui", "*.ts", "*.rc", "qmldir", "control.template",
+    "*.wxs", "*.wxl", "*.wxi", "*.xml", "*.conf", "*.conf.in", "*.desktop", "*.plist", "*.def",
 }
 
 
