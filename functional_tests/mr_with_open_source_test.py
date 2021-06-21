@@ -1,6 +1,4 @@
-import git
 from pathlib import Path
-import pytest
 import re
 from typing import List
 
@@ -9,15 +7,42 @@ import helpers.gitlab
 import helpers.repo
 import helpers.tests_config
 import helpers.constants
-
-import automation_tools.bot_info
+from robocat.app import Bot
 
 
 class TestOpenSource:
-    def test_one_bad_file(self, repo, branch, project, bot):
+    def test_one_bad_file(self, repo, branch, project, bot_config):
+        def check_open_source_check_result(approved_mr) -> List:
+            approvals = approved_mr.approvals.get()
+            assert approvals.approvals_left == 0, (
+                "Wrong number of approvals: "
+                f"{[a['user']['username'] for a in approvals.approved_by]}")
+
+            notes = list(approved_mr.notes.list())
+            assert len(notes) == 9, "Unexpected notes count: \n{}".format(
+                "\n======\n".join([n.body for n in notes]))
+            assert notes[-4].body.startswith(
+                "### :stop_sign: Autocheck for open source changes failed"), (
+                f"Unexpected auto-check failed note: {notes[-4].body}")
+            assert notes[-5].body.startswith(
+                "### :stop_sign: Autocheck for open source changes failed"), (
+                f"Unexpected auto-check failed note: {notes[-5].body}")
+            assert not approved_mr.blocking_discussions_resolved
+            assert approved_mr.work_in_progress
+
+            # "notes" and "discussions" are ordered in reverse order to each other.
+            open_source_discussion_1 = approved_mr.discussions.list()[3]
+            assert open_source_discussion_1.attributes["notes"][0]["id"] == notes[-4].id
+            open_source_discussion_2 = approved_mr.discussions.list()[4]
+            assert open_source_discussion_2.attributes["notes"][0]["id"] == notes[-5].id
+
+            return [open_source_discussion_1, open_source_discussion_2]
+
+        bot_1 = Bot(bot_config, project.id)
+
         updated_files = ["open/bad_file_1.cpp"]
         open_source_approvers = get_approvers_by_file_paths(
-            bot._rule_open_source_check, updated_files)
+            bot_1._rule_open_source_check, updated_files)
         assert len(open_source_approvers) == 1, (
             f"Internal logic error: must have only one approver, got {open_source_approvers!r}")
         open_source_approver_username = open_source_approvers[0]
@@ -37,10 +62,10 @@ class TestOpenSource:
             "approvals_before_merge": 1,
         })
 
-        bot.run()
+        bot_1.run()
         helpers.gitlab.approve_mr_and_wait_pipeline(
             mr, exclude_approvers=[open_source_approver_username])
-        bot.run()
+        bot_1.run()
 
         updated_mr = helpers.gitlab.update_mr_data(mr)
         assert updated_mr.state == "opened", f"The Merge Request state is {updated_mr.state}"
@@ -50,38 +75,25 @@ class TestOpenSource:
             f"Wrong number of approvals: {[a['user']['username'] for a in approvals.approved_by]}")
 
         helpers.gitlab.approve_mr_as_user(updated_mr, open_source_approver_username)
-        bot.run()
 
-        approved_mr = helpers.gitlab.update_mr_data(mr)
-        approvals = approved_mr.approvals.get()
-        assert approvals.approvals_left == 0, (
-            f"Wrong number of approvals: {[a['user']['username'] for a in approvals.approved_by]}")
+        bot_1.run()
+        approved_mr_1 = helpers.gitlab.update_mr_data(mr)
+        check_open_source_check_result(approved_mr_1)
 
-        notes = list(approved_mr.notes.list())
-        assert len(notes) == 9, "Unexpected notes count: \n{}".format(
-            "\n======\n".join([n.body for n in notes]))
-        assert notes[-4].body.startswith(
-            "### :stop_sign: Autocheck for open source changes failed"), (
-            f"Unexpected auto-check failed note: {notes[-4].body}")
-        assert notes[-5].body.startswith(
-            "### :stop_sign: Autocheck for open source changes failed"), (
-            f"Unexpected auto-check failed note: {notes[-5].body}")
-        assert not approved_mr.blocking_discussions_resolved
-        assert approved_mr.work_in_progress
+        # Check that re-creating of the Bot object (simulation of Robocat restart) doesn't affect
+        # the result of the check of the Merge Request.
+        bot_2 = Bot(bot_config, project.id)
+        bot_2.run()
+        approved_mr_2 = helpers.gitlab.update_mr_data(mr)
+        open_source_discussions = check_open_source_check_result(approved_mr_2)
 
-        # "notes" and "discussions" are ordered in reverse order to each other.
-        open_source_discussion_1 = approved_mr.discussions.list()[3]
-        assert open_source_discussion_1.attributes["notes"][0]["id"] == notes[-4].id
-        open_source_discussion_2 = approved_mr.discussions.list()[4]
-        assert open_source_discussion_2.attributes["notes"][0]["id"] == notes[-5].id
+        approved_mr_2.notes.create({'body': "/wip"})
+        for open_source_discussion in open_source_discussions:
+            helpers.gitlab.resolve_discussion(mr, open_source_discussion.id)
 
-        approved_mr.notes.create({'body': "/wip"})
-        helpers.gitlab.resolve_discussion(mr, open_source_discussion_1.id)
-        helpers.gitlab.resolve_discussion(mr, open_source_discussion_2.id)
+        bot_2.run()
 
-        bot.run()
-
-        merged_mr = helpers.gitlab.update_mr_data(approved_mr)
+        merged_mr = helpers.gitlab.update_mr_data(approved_mr_2)
         assert merged_mr.state == "merged", f"The Merge Request state is {merged_mr.state}"
 
     def test_two_bad_files(self, repo, branch, project, bot):

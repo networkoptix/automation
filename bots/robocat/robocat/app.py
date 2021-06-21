@@ -103,9 +103,9 @@ class Bot:
         while True:
             start_time = time.time()
             for mr in self._project_manager.get_next_unfinished_merge_request():
-                yield MergeRequestManager(mr)
+                yield MergeRequestManager(mr, self._username)
             for mr in self._project_manager.get_next_open_merge_request():
-                yield MergeRequestManager(mr)
+                yield MergeRequestManager(mr, self._username)
 
             if mr_poll_rate is None:
                 break

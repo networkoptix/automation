@@ -1,7 +1,8 @@
 import logging
 import dataclasses
 from functools import lru_cache
-from typing import Set, List, Optional
+import json
+from typing import Any, Dict, Set, List, Optional
 import re
 import time
 
@@ -13,7 +14,8 @@ from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.pipeline import Pipeline, PipelineStatus, PlayPipelineError, RunPipelineReason
 from robocat.action_reasons import WaitReason, ReturnToDevelopmentReason
 from robocat.merge_request import MergeRequest
-from robocat.project import Project, MergeRequestDiffData
+from robocat.note import MessageId, Note
+from robocat.project import MergeRequestDiffData
 from robocat.gitlab import Gitlab
 import automation_tools.bot_info
 import automation_tools.git
@@ -114,9 +116,10 @@ class MergeRequestData:
 class MergeRequestManager:
     _FOLLOWUP_DESCRIPTION_RE = re.compile(r"\(cherry picked from commit (?P<sha>[a-f0-9]{40})\)")
 
-    def __init__(self, mr: MergeRequest):
+    def __init__(self, mr: MergeRequest, current_user: str = None):
         logger.debug(f"Initialize MR manager for {mr.id}: '{mr.title}'")
         self._mr = mr
+        self._current_user = current_user
         self._gitlab = Gitlab(self._mr.raw_gitlab_object)
 
     def __str__(self):
@@ -170,14 +173,26 @@ class MergeRequestManager:
         message = robocat.comments.initial_message.format(
             approvals_left=self._cached_approvals_left())
         self._add_comment(
-            "Looking after this MR", message, AwardEmojiManager.INITIAL_EMOJI)
+            "Looking after this MR",
+            message,
+            emoji=AwardEmojiManager.INITIAL_EMOJI,
+            message_id=MessageId.Initial)
         return True
 
-    def _add_comment(self, title, message, emoji=""):
+    def _add_comment(
+            self, title, message: str, emoji: str = None,
+            message_id: MessageId = None, message_data: Dict[str, Any] = None):
         logger.debug(f"{self}: Adding comment with title: {title}")
-        message_params = locals()
-        message_params['revision'] = automation_tools.bot_info.revision()
-        self._mr.create_note(body=robocat.comments.template.format(**locals()))
+        message_params = {}
+        message_params["title"] = title
+        message_params["message"] = message
+        if message_id:
+            message_params["message"] += Note.format_details_string(
+                message_id=message_id, sha=self._mr.sha, data=message_data)
+        if emoji:
+            message_params["emoji"] = emoji
+        message_params["revision"] = automation_tools.bot_info.revision()
+        self._mr.create_note(body=robocat.comments.template.format(**message_params))
 
     def ensure_user_requeseted_pipeline_run(self) -> bool:
         if not self._mr.award_emoji.find(AwardEmojiManager.PIPELINE_EMOJI, own=False):
@@ -378,6 +393,7 @@ class MergeRequestManager:
 
     def create_thread(
             self, title, message, emoji,
+            message_id: MessageId = None, message_data: Dict[str, Any] = None,
             file: str = None, line: int = None, autoresolve: bool = False) -> bool:
         if file is not None and line is not None:
             latest_diff = self._mr.latest_diff()
@@ -395,6 +411,9 @@ class MergeRequestManager:
         body = robocat.comments.template.format(
             title=title, message=message, emoji=emoji,
             revision=automation_tools.bot_info.revision())
+        if message_id:
+            body += Note.format_details_string(
+                message_id=message_id, sha=self._mr.sha, data=message_data)
         return self._mr.create_discussion(body=body, position=position, autoresolve=autoresolve)
 
     def is_followup(self):
@@ -513,3 +532,9 @@ class MergeRequestManager:
             time.sleep(retry_timeout_s)
 
         return True
+
+    def notes(self, bot_only: bool = True) -> List[Note]:
+        all_notes = [Note(note_data) for note_data in self._mr.notes_data()]
+        if bot_only and self._current_user:
+            return [n for n in all_notes if n.author == self._current_user]
+        return all_notes

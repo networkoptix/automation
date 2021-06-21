@@ -90,7 +90,7 @@ def bot_config(pytestconfig):
     return config
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def bot(bot_config, project):
     return Bot(bot_config, project.id)
 

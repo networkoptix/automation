@@ -1,19 +1,21 @@
 import logging
-from typing import Set, List, Dict
+from typing import Any, Dict, List, Set
 import re
 import gitlab
 
-from robocat.gitlab import Gitlab
-from robocat.pipeline import Pipeline
 from robocat.award_emoji_manager import AwardEmojiManager
 
 logger = logging.getLogger(__name__)
 
 
 class MergeRequest:
+    DISCUSSIONS_PAGE_SIZE = 100
+
     def __init__(self, gitlab_mr, current_user):
         self._gitlab_mr = gitlab_mr
         self._award_emoji = AwardEmojiManager(gitlab_mr.awardemojis, current_user)
+        self._discussions = []
+        self.load_discussions()
 
     def __str__(self):
         return f"MR!{self.id}"
@@ -23,6 +25,26 @@ class MergeRequest:
 
     def __hash__(self):
         return int(self._gitlab_mr.iid)
+
+    def load_discussions(self):
+        self._discussions = []
+        current_page = 1
+        while True:
+            current_page_discussions = self._gitlab_mr.discussions.list(
+                page=current_page, per_page=self.DISCUSSIONS_PAGE_SIZE)
+            self._discussions += current_page_discussions
+            if len(current_page_discussions) < self.DISCUSSIONS_PAGE_SIZE:
+                break
+            current_page += 1
+
+    def notes_data(self) -> List[Dict[str, Any]]:
+        result = []
+        for discussion in self._discussions:
+            for note in discussion.attributes["notes"]:
+                note_copy = note.copy()
+                note_copy["_discussion_id"] = discussion.id
+                result.append(note_copy)
+        return sorted(result, key=lambda n: n["created_at"])
 
     @property
     def id(self):

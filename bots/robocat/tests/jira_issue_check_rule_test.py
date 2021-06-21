@@ -182,8 +182,8 @@ class TestJiraIssueCheckRule:
             emojis = mr.awardemojis.list()
             assert any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
 
-            assert len(mr.comments()) == 1
-            first_comment = mr.comments()[0]
+            assert len(mr.mock_comments()) == 1
+            first_comment = mr.mock_comments()[0]
             has_bad_jira_issue_token = (
                 f':{AwardEmojiManager.BAD_ISSUE_EMOJI}: Bad "fixVersions" field')
             assert has_bad_jira_issue_token in first_comment

@@ -14,10 +14,10 @@ class TestEssentialRule:
             assert any(e for e in emojis if e.name == AwardEmojiManager.WATCH_EMOJI), (
                 "Has watch emoji.")
 
-            comments = mr.comments()
+            comments = mr.mock_comments()
             assert len(comments) == 2, f"Got comments: {comments}"
             assert any(c for c in comments if f":{AwardEmojiManager.INITIAL_EMOJI}:" in c), (
-                f"Last comment: {mr.comments()[0]}.")
+                f"Last comment: {mr.mock_comments()[0]}.")
 
     @pytest.mark.parametrize("mr_state", [
         {"commits_list": []}
@@ -30,7 +30,7 @@ class TestEssentialRule:
             assert any(e for e in emojis if e.name == AwardEmojiManager.WAIT_EMOJI), (
                 "Has wait emoji.")
 
-            comments = mr.comments()
+            comments = mr.mock_comments()
             assert len(comments) == 1, f"Got comments: {comments}"
             assert "Waiting for commits" in comments[-1], (f"Last comment: {comments[-1]}.")
 
@@ -49,7 +49,7 @@ class TestEssentialRule:
             assert any(e for e in emojis if e.name == AwardEmojiManager.WAIT_EMOJI), (
                 "Has wait emoji.")
 
-            comments = mr.comments()
+            comments = mr.mock_comments()
             assert len(comments) == 2, f"Got comments: {comments}"
             assert "Waiting for approvals" in comments[-1], (f"Last comment: {comments[-1]}.")
 
@@ -68,7 +68,7 @@ class TestEssentialRule:
             assert any(e for e in emojis if e.name == AwardEmojiManager.WAIT_EMOJI), (
                 "Has wait emoji.")
 
-            comments = mr.comments()
+            comments = mr.mock_comments()
             assert len(comments) == 2, f"Got comments: {comments}"
             assert "Waiting for pipeline" in comments[-1], (f"Last comment: {comments[-1]}.")
 
@@ -185,14 +185,15 @@ class TestEssentialRule:
         is_pipeline_creation_requested = any(
             e for e in mr.emojis_list if e == AwardEmojiManager.PIPELINE_EMOJI)
         initial_pipelines_number = len(mr.pipelines())
+        expected_comments_count = 2 if mr.blocking_discussions_resolved else 3
 
         for _ in range(2):  # State must not change after any number of rule executions.
             assert not essential_rule.execute(mr_manager)
 
             assert not mr.work_in_progress
 
-            comments = mr.comments()
-            assert len(comments) == 2, f"Got comments: {comments}"
+            comments = mr.mock_comments()
+            assert len(comments) == expected_comments_count, f"Got comments: {comments}"
             assert f":{AwardEmojiManager.PIPELINE_EMOJI}:" in comments[-1], (
                 f"Last comment: {comments[-1]}.")
 
@@ -302,7 +303,7 @@ class TestEssentialRule:
             if mr.sha and last_pipeline_status != "running":
                 assert pipelines[0]["status"] != "running", f"Got pipelines: {pipelines}"
 
-            comments = mr.comments()
+            comments = mr.mock_comments()
             assert not any(
                 c for c in comments if f"# :{AwardEmojiManager.PIPELINE_EMOJI}:" in c), (
                 f"Got comments: {comments}")
@@ -337,7 +338,7 @@ class TestEssentialRule:
 
             assert mr.work_in_progress
 
-            comments = mr.comments()
+            comments = mr.mock_comments()
             assert "Merge request returned to development" in comments[-1], (
                 f"Got comments: {comments}")
 

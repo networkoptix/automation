@@ -39,7 +39,7 @@ class TestBot:
         assert mr.work_in_progress
 
         # Nothing changes after the third handler run.
-        comments_before = mr.comments()
+        comments_before = mr.mock_comments()
         pipelines_before = mr.pipelines()
         emojis_before = [e.name for e in mr.awardemojis.list()]
 
@@ -47,7 +47,7 @@ class TestBot:
         assert not mr.state == "merged"
         assert mr.work_in_progress
 
-        comments_after = mr.comments()
+        comments_after = mr.mock_comments()
         pipelines_after = mr.pipelines()
         emojis_after = [e.name for e in mr.awardemojis.list()]
         assert comments_before == comments_after

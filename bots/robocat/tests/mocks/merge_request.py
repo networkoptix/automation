@@ -1,7 +1,10 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 from functools import namedtuple
 from typing import Any
 import time
+import uuid
+
 from gitlab.exceptions import GitlabMRClosedError
 
 from automation_tools.tests.mocks.git_mocks import BOT_USERNAME
@@ -97,15 +100,30 @@ class NotesManagerMock:
     merge_request: Any
     notes: list = field(default_factory=list)
 
-    def create(self, params):
+    def create(self, params, mock_discussion=None):
         if params["body"] == "/wip":
             self.merge_request.work_in_progress = True
             return
 
-        self.notes.append(params["body"])
+        note = {
+            "body": params["body"],
+            "created_at": datetime.now().isoformat(),
+            "author": {"username": params.get("author", BOT_USERNAME)},
+            "resolvable": params.get("resolvable", False),
+            "resolved": params.get("resolved", None),
+            "resolved_by": params.get("resolved_by", None),
+        }
+
+        if not mock_discussion:
+            discussion_params = {"body": params["body"], "position": None, "mock_resolved": True}
+            mock_discussion = self.merge_request.discussions.create(
+                discussion_params, mock_note=note)
+
+        self.notes.append(note)
+        return note
 
     def list(self):
-        return self.notes
+        return list(reversed(self.notes))  # Gitlab returns notes in the reversed order.
 
 
 @dataclass
@@ -116,10 +134,15 @@ class DiscussionsManagerMock:
     @dataclass
     class DiscussionMock:
         manager: Any
-        body: str = ""
         position: dict = field(default_factory=dict)
         resolved: bool = False
         mock_is_visible: bool = True  # Fake field for testing purposes.
+        id: str = field(default_factory=lambda: uuid.uuid1().hex, init=False)
+        notes: list = field(default_factory=list, init=False)
+
+        @property
+        def attributes(self):
+            return {"notes": self.notes}
 
         def save(self):
             for d in self.manager.discussions:
@@ -129,15 +152,22 @@ class DiscussionsManagerMock:
 
             self.manager.merge_request.blocking_discussions_resolved = True
 
-    def create(self, params, mock_is_visible: bool = True):
+    def create(self, params, mock_is_visible: bool = True, mock_note: str = None):
+        is_resolved = params.get("mock_resolved", False)
         discussion = self.DiscussionMock(
-            manager=self, body=params["body"], position=params["position"], mock_is_visible=mock_is_visible)
+            manager=self, position=params["position"], mock_is_visible=mock_is_visible)
+
+        if not mock_note:
+            note_params = {"body": params["body"], "resolvable": True, "resolved": is_resolved}
+            mock_note = self.merge_request.notes.create(note_params, mock_discussion=discussion)
+
+        discussion.notes.append(mock_note)
         self.discussions.append(discussion)
-        self.merge_request.blocking_discussions_resolved = False
+        self.merge_request.blocking_discussions_resolved &= is_resolved
         return discussion
 
-    def list(self):
-        return [d.body for d in self.discussions if d.mock_is_visible]
+    def list(self, **_):
+        return [d for d in self.discussions if d.mock_is_visible]
 
 
 @dataclass
@@ -301,8 +331,9 @@ class MergeRequestMock:
             reviewer = [u for u in users if u.id == reviewer_id][0]
             self.reviewers.append({"username": reviewer.username})
 
-    def comments(self):
-        return self.notes.list() + self.discussions.list()
+    def mock_comments(self):
+        # Reverse notes list for the more convinient order (from the earliest note to the lateset).
+        return [n["body"] for n in reversed(self.notes.list())]
 
     def commits(self):
         return [self.project.commits.get(c["sha"]) for c in reversed(self.commits_list)]

@@ -2,6 +2,7 @@ import pytest
 from typing import List, Tuple
 
 from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.note import Note, MessageId
 from tests.robocat_constants import (
     BAD_OPENSOURCE_COMMIT,
     BAD_OPENCANDIDATE_COMMIT,
@@ -120,12 +121,17 @@ class TestOpenSourceRule:
 
             assert not mr.blocking_discussions_resolved
 
-            comments = mr.comments()
+            comments = mr.mock_comments()
             assert len(comments) == 2, f"Got comments: {comments}"
             assert f"Update assignee list" in comments[0], (
                 f"First comment is: {comments[0]}")
             assert f":{AwardEmojiManager.AUTOCHECK_IMPOSSIBLE_EMOJI}:" in comments[1], (
                 f"Last comment is: {comments[1]}")
+            message_details = (
+                f"<details><pre>{Note.ID_KEY}: {MessageId.OpenSourceHugeDiffCallKeeper.value}")
+            assert message_details in comments[1], f"Last comment is: {comments[1]}"
+
+            mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
 
     @pytest.mark.parametrize("mr_state", [
         {
@@ -139,12 +145,17 @@ class TestOpenSourceRule:
 
             assert not mr.blocking_discussions_resolved
 
-            comments = mr.comments()
+            comments = mr.mock_comments()
             assert len(comments) == 2, f"Got comments: {comments}"
             assert f"Update assignee list" in comments[0], (
                 f"First comment is: {comments[0]}")
             assert f":{AwardEmojiManager.AUTOCHECK_OK_EMOJI}:" in comments[1], (
                 f"Last comment is: {comments[1]}")
+            message_details = (
+                f"<details><pre>{Note.ID_KEY}: {MessageId.OpenSourceNoProblemNeedApproval.value}")
+            assert message_details in comments[1], f"Last comment is: {comments[1]}"
+
+            mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
 
     @pytest.mark.parametrize("mr_state", [
         {
@@ -158,10 +169,12 @@ class TestOpenSourceRule:
 
             assert mr.blocking_discussions_resolved
 
-            comments = mr.comments()
+            comments = mr.mock_comments()
             assert len(comments) == 1, f"Got comments: {comments}"
             assert f":{AwardEmojiManager.AUTOCHECK_OK_EMOJI}:" in comments[0], (
                 f"Last comment is: {comments[0]}")
+
+            mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
 
     @pytest.mark.parametrize("mr_state", [
         # File is in the "open" directory.
@@ -199,7 +212,7 @@ class TestOpenSourceRule:
             assert not open_source_rule.execute(mr_manager)
             assert not mr.blocking_discussions_resolved
 
-            comments = mr.comments()
+            comments = mr.mock_comments()
             if has_new_files:
                 check_phrase = "must be approved"
                 comments_number = 5 if not file_type_is_unknown else 2
@@ -220,6 +233,8 @@ class TestOpenSourceRule:
                         break
                 else:
                     assert False, f"Unexpected comment {comment}"
+
+            mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
 
     @pytest.mark.parametrize("mr_state", [
         # Merge allowed if everything is good and merge request approved by eligible user
@@ -249,7 +264,7 @@ class TestOpenSourceRule:
                 bad_words: List[Tuple[str, bool]],
                 expected_comments_number: int,
                 is_resolved: bool = False):
-            comments = mr.comments()
+            comments = mr.mock_comments()
             if is_resolved:
                 error_comments = comments[:-1]
                 ok_comment = comments[-1]
@@ -261,9 +276,9 @@ class TestOpenSourceRule:
 
             has_approvers_added_comment = expected_comments_number > len(bad_words)
             for i, comment in enumerate(error_comments):
-                if has_approvers_added_comment and i == 0:
-                    assert f"Update assignee list" in comments[0], (
-                        f"First comment is: {comments[0]}")
+                if has_approvers_added_comment and "Update assignee list" in comment:
+                    assert f":{AwardEmojiManager.NOTIFICATION_EMOJI}:" in comment, (
+                        f"Comment {i} is: {comment}")
                     continue
                 assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comment, (
                     f"Comment {i} is: {comment}")
@@ -294,8 +309,10 @@ class TestOpenSourceRule:
         check_comments(
             [('fuck', False), ('blya', False), ('shit', False), ('Copyrleft', False)],
             expected_comments_number=expected_comments_number)
+        mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
 
-        # Add commit to the Merge Request with a "good" file - no new comments must be added.
+        # Add commit to the Merge Request with a "good" file - now we have new files in MR, so it
+        # must be checked manually.
         good_commit = {
             "sha": FILE_COMMITS_SHA["good_opensource_file"],
             "message": "msg",
@@ -310,6 +327,7 @@ class TestOpenSourceRule:
         check_comments(
             [('fuck', False), ('blya', False), ('shit', False), ('Copyrleft', False)],
             expected_comments_number=expected_comments_number)
+        mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
 
         # Add commit to mr with the same "bad" file - comments only for new bad words should be
         # added.
@@ -326,6 +344,7 @@ class TestOpenSourceRule:
             ('fuck', False), ('blya', False), ('shit', False), ('Copyrleft', False),
             ('hanwha', True)],
             expected_comments_number=expected_comments_number)
+        mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
 
         # Add commit to the Merge Request with the same file, but without bad words - "everything
         # is ok" comment should be added.
@@ -376,10 +395,12 @@ class TestOpenSourceRule:
             assert open_source_rule.execute(mr_manager)
             assert mr.blocking_discussions_resolved
 
-            comments = mr.comments()
+            comments = mr.mock_comments()
             assert len(comments) == 1, f"Got comments: {comments}"
             assert f":{AwardEmojiManager.AUTOCHECK_OK_EMOJI}:" in comments[0], (
                 f"Last comment is: {comments[0]}")
+
+            mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
 
     @pytest.mark.parametrize("mr_state", [
         # File is in the "open" directory.
@@ -417,7 +438,7 @@ class TestOpenSourceRule:
             assert open_source_rule.execute(mr_manager)
             assert not mr.blocking_discussions_resolved
 
-            comments = mr.comments()
+            comments = mr.mock_comments()
             file_type_is_unknown = (
                 mr.commits_list[0]["sha"] == FILE_COMMITS_SHA["opensource_unknown_file"])
             expected_comments_count = 1 if file_type_is_unknown else 4
@@ -431,3 +452,5 @@ class TestOpenSourceRule:
                         break
                 else:
                     assert False, f"Unexpected comment {comment}"
+
+            mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.

@@ -42,8 +42,8 @@ class TestFollowupRule:
             assert len(issue.fields.comment.comments) == 0, (
                 f"Got Jira issue comments: {issue.fields.comment.comments}")
 
-            assert len(mr.comments()) == 0, (
-                f"Got merge request comments: {mr.comments()}")
+            assert len(mr.mock_comments()) == 0, (
+                f"Got merge request comments: {mr.mock_comments()}")
 
             emojis = mr.awardemojis.list()
             assert not any(
@@ -88,7 +88,7 @@ class TestFollowupRule:
         assert issue.fields.comment.comments[0].body.startswith(
             "An error occured while trying to execute follow-up actions for merge request ")
 
-        assert len(mr.comments()) == 0
+        assert len(mr.mock_comments()) == 0
         emojis = mr.awardemojis.list()
 
         assert not any(
@@ -196,10 +196,10 @@ class TestFollowupRule:
         assert issue.fields.comment.comments[0].body.startswith(
             "Merge requests for cherry-picking changes were autocreated ")
 
-        assert len(mr.comments()) == len(issue.fields.fixVersions) - 1
+        assert len(mr.mock_comments()) == len(issue.fields.fixVersions) - 1
         follow_up_created_comment_token = (
             f":{AwardEmojiManager.FOLLOWUP_CREATED_EMOJI}: Follow-up merge request added")
-        assert follow_up_created_comment_token in mr.comments()[0]
+        assert follow_up_created_comment_token in mr.mock_comments()[0]
 
         source_project_branches = source_project.branches.branches
         assert f"{mr.source_branch}_vms_4.1" in source_project_branches, (
@@ -221,7 +221,7 @@ class TestFollowupRule:
             e for e in emojis if e.name == AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI), (
             'Is follow-up merge request')
 
-        new_comments = new_mr.comments()
+        new_comments = new_mr.mock_comments()
         has_conflicts = mr.squash_commit_sha == CONFLICTING_COMMIT_SHA or any(
             mr for mr in mr.commits() if mr.sha == CONFLICTING_COMMIT_SHA)
         if has_conflicts:
@@ -280,7 +280,7 @@ class TestFollowupRule:
         issue_state_before = issue.fields.status.name
 
         assert followup_rule.execute(mr_manager)
-        assert len(mr.comments()) == 0
+        assert len(mr.mock_comments()) == 0
         assert len(project.mergerequests.list()) == mr_count_before
 
         issue = jira._jira.issue("VMS-666")
@@ -314,7 +314,7 @@ class TestFollowupRule:
         issue_state_before = issue.fields.status.name
 
         assert not followup_rule.execute(mr_manager)
-        assert len(mr.comments()) == 0
+        assert len(mr.mock_comments()) == 0
         assert len(project.mergerequests.list()) == mr_count_before
 
         issue = jira._jira.issue("VMS-666")
@@ -468,7 +468,7 @@ class TestFollowupRule:
         mr_count_before = len(project.mergerequests.list())
 
         assert followup_rule.execute(mr_manager)
-        assert len(mr.comments()) == 0
+        assert len(mr.mock_comments()) == 0
         assert len(project.mergerequests.list()) == mr_count_before
 
         issue = jira._jira.issue(jira_issues[0]["key"])
