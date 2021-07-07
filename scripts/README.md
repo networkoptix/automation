@@ -15,4 +15,4 @@ to run it from the repository root).
 Also there is a non-standard library `source_file_compliance` that is needed by this script. To
 install it, run
 
-`pip install git+http://gerrit.lan.hdw.mx/qa/func_tests@3f3dd14e#subdirectory=source_file_compliance`
+`pip install git+http://gerrit.lan.hdw.mx/qa/func_tests@a1a1a349#subdirectory=source_file_compliance`
