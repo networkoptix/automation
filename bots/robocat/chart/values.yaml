@@ -41,6 +41,7 @@ robocatConfig: |
           - open_candidate/cloud/.+
         approvers:
           - sivanov
+          - mshevchenko
       -
         patterns:
           - open/.+
@@ -51,6 +52,7 @@ robocatConfig: |
           - open_candidate/libs/.+
         approvers:
           - ptolstov
+          - mshevchenko
 
 persistence:
   existingClaim: '{{ .Release.Name }}'

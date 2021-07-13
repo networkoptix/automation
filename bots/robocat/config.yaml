@@ -18,6 +18,7 @@ open_source_check_rule:
                 - open_candidate/cloud/.+
             approvers:
                 - sivanov
+                - mshevchenko
         -
             patterns:
                 - open/.+
@@ -28,3 +29,4 @@ open_source_check_rule:
                 - open_candidate/libs/.+
             approvers:
                 - ptolstov
+                - mshevchenko
