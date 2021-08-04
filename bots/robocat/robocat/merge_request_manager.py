@@ -343,7 +343,7 @@ class MergeRequestManager:
         else:
             assert False, f"Unknown reason: {reason}"
 
-        self._mr.create_note(body="/wip")
+        self._mr.create_note(body="/draft")
         if message is not None:
             self._add_comment(title, message, AwardEmojiManager.RETURN_TO_DEVELOPMENT_EMOJI)
         self.unset_wait_state()

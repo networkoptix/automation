@@ -101,7 +101,7 @@ class NotesManagerMock:
     notes: list = field(default_factory=list)
 
     def create(self, params, mock_discussion=None):
-        if params["body"] == "/wip":
+        if params["body"] == "/draft":
             self.merge_request.work_in_progress = True
             return
 

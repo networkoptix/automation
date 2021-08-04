@@ -87,7 +87,7 @@ class TestOpenSource:
         approved_mr_2 = helpers.gitlab.update_mr_data(mr)
         open_source_discussions = check_open_source_check_result(approved_mr_2)
 
-        approved_mr_2.notes.create({'body': "/wip"})
+        approved_mr_2.notes.create({'body': "/draft"})
         for open_source_discussion in open_source_discussions:
             helpers.gitlab.resolve_discussion(mr, open_source_discussion.id)
 
@@ -247,7 +247,7 @@ class TestOpenSource:
         open_source_discussion = updated_mr.discussions.list()[2]
         assert open_source_discussion.attributes["notes"][0]["id"] == notes[-3].id
 
-        updated_mr.notes.create({'body': "/wip"})
+        updated_mr.notes.create({'body': "/draft"})
         helpers.gitlab.resolve_discussion(mr, open_source_discussion.id)
 
         bot.run()
