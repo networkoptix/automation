@@ -305,7 +305,10 @@ class OpenSourceCheckRule(BaseRule):
         for rule in self._approve_rules:
             for file_name in files:
                 if any([re.match(p, file_name) for p in rule.patterns]):
+                    logger.debug(f"{mr_manager}: Preferred approvers found for file {file_name!r}")
                     return set(rule.approvers)
 
         # Return all approvers if we can't determine who is the best match.
+        logger.debug(
+            f"{mr_manager}: No preferred approvers found, returning complete approver list.")
         return set(sum([r.approvers for r in self._approve_rules], []))

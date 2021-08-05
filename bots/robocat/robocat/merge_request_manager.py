@@ -266,13 +266,12 @@ class MergeRequestManager:
 
     def ensure_authorized_approvers(self, approvers: Set[str]) -> bool:
         current_approvers = self._mr.assignees | self._mr.reviewers | set([self._mr.author_name])
-        new_approvers = approvers - current_approvers
-        if not new_approvers:
+        if current_approvers.intersection(approvers):
             return False
 
         assignee_ids = []
         project = self._get_project()
-        updated_assignees = self._mr.assignees | new_approvers
+        updated_assignees = self._mr.assignees | approvers
         for assignee in updated_assignees:
             assignee_ids += project.get_user_ids(assignee)
 
@@ -285,7 +284,7 @@ class MergeRequestManager:
         self._add_comment(
             title="Update assignee list",
             message=robocat.comments.authorized_approvers_assigned.format(
-                approvers=", @".join(new_approvers)),
+                approvers=", @".join(approvers)),
             emoji=AwardEmojiManager.NOTIFICATION_EMOJI)
 
         return True

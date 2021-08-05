@@ -47,13 +47,14 @@ GOOD_README_COMMIT_NEW_FILE = {
 }
 OPEN_SOURCE_APPROVER_COMMON = "approver1"
 OPEN_SOURCE_APPROVER_CLIENT = "approver2"
+OPEN_SOURCE_APPROVER_COMMON_2 = "approver3"
 DEFAILT_APPROVE_RULES_LIST = [
     {
         "patterns": ["open_candidate/vms/client/.+", "open_candidate/cloud/.+"],
         "approvers": [OPEN_SOURCE_APPROVER_CLIENT],
     }, {
         "patterns": ["open_candidate/.+", "open/((?!unknown_approver_prefix_).+)"],
-        "approvers": [OPEN_SOURCE_APPROVER_COMMON],
+        "approvers": [OPEN_SOURCE_APPROVER_COMMON, OPEN_SOURCE_APPROVER_COMMON_2],
     },
 ]
 USERS = [
@@ -61,6 +62,7 @@ USERS = [
     {"username": "user2", "name": "User 2", "id": 2, "email": "user2@foo.bar"},
     {"username": "approver1", "name": "Approver 1", "id": 10, "email": "approver1@foo.bar"},
     {"username": "approver2", "name": "Approver 2", "id": 11, "email": "approver2@foo.bar"},
+    {"username": "approver3", "name": "Approver 4", "id": 13, "email": "approver3@foo.bar"},
     {"username": BOT_USERNAME, "name": BOT_NAME, "id": BOT_USERID, "email": BOT_EMAIL}
 ]
 MERGED_TO_MASTER_MERGE_REQUESTS = {

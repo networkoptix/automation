@@ -11,6 +11,7 @@ from tests.robocat_constants import (
     DEFAULT_COMMIT,
     FILE_COMMITS_SHA,
     OPEN_SOURCE_APPROVER_COMMON,
+    OPEN_SOURCE_APPROVER_COMMON_2,
     OPEN_SOURCE_APPROVER_CLIENT,
     DEFAULT_REQUIRED_APPROVALS_COUNT)
 from tests.mocks.file import (
@@ -71,6 +72,11 @@ class TestOpenSourceRule:
             "assignees": [{"username": "user1"}]
         },
         {
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
+            "reviewers": [{"username": OPEN_SOURCE_APPROVER_COMMON_2}],
+            "assignees": [{"username": "user1"}]
+        },
+        {
             "commits_list": [{
                 "sha": FILE_COMMITS_SHA["good_dontreadme"],
                 "message": "msg",
@@ -85,23 +91,32 @@ class TestOpenSourceRule:
     ])
     def test_set_assignee(self, open_source_rule, mr, mr_manager):
         reviewers_before = {r["username"] for r in mr.reviewers}
-        approvers_before = {a["username"] for a in mr.assignees} | reviewers_before
-        authorized_approvers = {OPEN_SOURCE_APPROVER_COMMON, OPEN_SOURCE_APPROVER_CLIENT}
+        approvers_before = (
+            {a["username"] for a in mr.assignees} | reviewers_before | set([mr.author["username"]])
+        )
+        authorized_approvers = {
+            OPEN_SOURCE_APPROVER_COMMON, OPEN_SOURCE_APPROVER_COMMON_2,
+            OPEN_SOURCE_APPROVER_CLIENT}
 
         for _ in range(2):  # State must not change after any number of rule executions.
             assert not open_source_rule.execute(mr_manager)
 
             assignees = {a["username"] for a in mr.assignees}
-            if OPEN_SOURCE_APPROVER_COMMON in reviewers_before:
-                assert OPEN_SOURCE_APPROVER_COMMON not in assignees, f"Got assignees: {assignees}"
+            if reviewers_before.intersection(authorized_approvers):
+                assert not authorized_approvers.intersection(assignees), (
+                    f"Authorized approver(s) assigned: {assignees}")
             else:
-                assert OPEN_SOURCE_APPROVER_COMMON in assignees, f"Got assignees: {assignees}"
+                assert assignees.intersection(authorized_approvers), (
+                    f"Authorized approver(s) not assigned: {assignees}")
 
-            approvers = {r["username"] for r in mr.reviewers} | assignees
+            approvers = (
+                {r["username"] for r in mr.reviewers} | assignees | set([mr.author["username"]]))
             if mr.mock_huge_mr:
-                assert len(approvers) == 3, f"Got assignees: {assignees}"
+                assert len(approvers) == 4, f"Got approvers: {approvers}"
+            elif approvers_before.intersection(authorized_approvers):
+                assert len(approvers) == 2, f"Got approvers: {approvers}"
             else:
-                assert len(approvers) == 2, f"Got assignees: {assignees}"
+                assert len(approvers) == 3, f"Got approvers: {approvers}"
 
             if approvers_before.intersection(authorized_approvers):
                 assert mr_manager._mr.get_approvers_count() == DEFAULT_REQUIRED_APPROVALS_COUNT
