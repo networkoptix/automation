@@ -327,7 +327,7 @@ class MergeRequestManager:
         return self._get_last_pipeline(include_skipped=True)
 
     def return_to_development(self, reason) -> None:
-        logger.info(f"{self}: Moving to WIP: {reason}")
+        logger.info(f"{self}: Marking as Draft: {reason}")
 
         if reason == ReturnToDevelopmentReason.failed_pipeline:
             last_pipeline = self._get_last_pipeline()

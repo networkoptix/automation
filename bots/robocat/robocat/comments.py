@@ -1,12 +1,13 @@
-_wip_url = ("https://docs.gitlab.com/ee/user/project/merge_requests/work_in_progress_merge_requests.html"
-            "#removing-the-draft-flag-from-a-merge-request")
+_mark_as_ready_url = (
+    "https://docs.gitlab.com/ee/user/project/merge_requests/work_in_progress_merge_requests.html"
+    "#removing-the-draft-flag-from-a-merge-request")
 
 initial_message = """Hi, I am Robocat and I will help you merging this MR.
 Once the Merge Request is ready I will run the pipeline and automatically merge it.
 
 Please note, I consider Merge Request ready when:
 1. It's approved by reviewers *({approvals_left} more required at the moment)*
-2. It's not in Draft/WIP status
+2. It's not in Draft status
 3. It's assigned to me
 
 P.S. You may set :construction_site: emoji on Merge Request and I will run the pipeline even if MR isn't ready."""
@@ -21,10 +22,10 @@ approval_wait_message = """Not enough approvals, **{approvals_left} more** requi
 I will start merging process once all approvals are collected."""
 
 unresolved_threads_message = f"""Merge request returned to development.
-Please, resolve all discussions and [remove WIP]({_wip_url}) to continue merging process."""
+Please, resolve all discussions and [mark as Ready]({_mark_as_ready_url}) to continue merging process."""
 
 conflicts_message = f"""Merge request returned to development.
-Please, do manual rebase and [remove WIP]({_wip_url}) to continue merging process."""
+Please, do manual rebase and [mark as Ready]({_mark_as_ready_url}) to continue merging process."""
 
 has_good_changes_in_open_source = """No problems were revealed by the auto-check. This merge
 request contains new or renamed files in the open source part of the project, so it **must be
@@ -81,7 +82,7 @@ bad_open_source_offensive_word = "Bad word at {position}: **{word}**"
 bad_open_source_file_type = "Unknown file type: **{file}**"
 
 failed_pipeline_message = f"""Merge request returned to development.
-Please, fix the errors and [remove WIP]({_wip_url}) to continue merging process.\n
+Please, fix the errors and [mark as Ready]({_mark_as_ready_url}) to continue merging process.\n
 You may rebase or run new pipeline manually if errors are resolved outside MR."""
 
 template = """### :{emoji}: {title}
