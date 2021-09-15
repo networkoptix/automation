@@ -197,6 +197,7 @@ class MergeRequestMock:
     mock_rebased: bool = field(default=False, init=False)
     mock_huge_mr: bool = False
     mock_base_commit_sha: str = "000000000000"
+    mock_ignored_sha: list = field(default_factory=list)
 
     emojis_list: list = field(default_factory=list)
     approvers_list: list = field(default_factory=list)
@@ -258,12 +259,19 @@ class MergeRequestMock:
 
     def _register_commit(self, commit_data):
         commit = CommitMock(**commit_data)
-        self.project.commits.add_mock_commit(commit)
+        self.mock_source_project.commits.add_mock_commit(commit)
         # Add to current commit files all the files from the previous commits.
         for listed_commit in self.commits_list:
             for path, file_data in listed_commit.get("files", {}).items():
                 self.project.files.add_mock_file(
                     ref=commit.sha, path=path, data=file_data["raw_data"])
+
+    @property
+    def mock_source_project(self):
+        try:
+            return self.manager.gitlab.projects.get(self.source_project_id)
+        except KeyError:
+            return self.project
 
     def add_mock_commit(self, commit_data: dict):
         self.commits_list.append(commit_data)
@@ -336,7 +344,8 @@ class MergeRequestMock:
         return [n["body"] for n in reversed(self.notes.list())]
 
     def commits(self):
-        return [self.project.commits.get(c["sha"]) for c in reversed(self.commits_list)]
+        return [
+            self.mock_source_project.commits.get(c["sha"]) for c in reversed(self.commits_list)]
 
     def approve(self):
         pass

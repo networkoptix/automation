@@ -21,7 +21,7 @@ class CommitMock:
     def cherry_pick(self, branch):
         if self.sha in self.project.branches.mock_conflicts.get(branch, []):
             raise GitlabCherryPickError
-        self.project.add_mock_commit_to_mr_by_branch(branch, self.sha)
+        self.project.add_mock_commit(branch, self.sha, self.message)
 
 
 @dataclass

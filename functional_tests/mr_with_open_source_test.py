@@ -19,24 +19,24 @@ class TestOpenSource:
                 f"{[a['user']['username'] for a in approvals.approved_by]}")
 
             notes = list(approved_mr.notes.list())
-            assert len(notes) == 9, "Unexpected notes count: \n{}".format(
+            assert len(notes) == 11, "Unexpected notes count: \n{}".format(
                 "\n======\n".join([n.body for n in notes]))
-            assert notes[-4].body.startswith(
-                "### :stop_sign: Autocheck for open source changes failed"), (
-                f"Unexpected auto-check failed note: {notes[-4].body}")
-            assert notes[-5].body.startswith(
-                "### :stop_sign: Autocheck for open source changes failed"), (
-                f"Unexpected auto-check failed note: {notes[-5].body}")
+            for autochek_comment_number in [-6, -7]:
+                assert notes[autochek_comment_number].body.startswith(
+                    "### :stop_sign: Autocheck for open source changes failed"), (
+                    f"Unexpected auto-check failed note: {notes[autochek_comment_number].body}")
             assert not approved_mr.blocking_discussions_resolved
             assert approved_mr.work_in_progress
 
             # "notes" and "discussions" are ordered in reverse order to each other.
-            open_source_discussion_1 = approved_mr.discussions.list()[3]
-            assert open_source_discussion_1.attributes["notes"][0]["id"] == notes[-4].id
-            open_source_discussion_2 = approved_mr.discussions.list()[4]
-            assert open_source_discussion_2.attributes["notes"][0]["id"] == notes[-5].id
+            open_source_discussions = []
+            for autochek_comment_number in [-6, -7]:
+                open_source_discussions.append(
+                    approved_mr.discussions.list()[-1-autochek_comment_number])
+                discussion_note = open_source_discussions[-1].attributes["notes"][0]
+                assert discussion_note["id"] == notes[autochek_comment_number].id
 
-            return [open_source_discussion_1, open_source_discussion_2]
+            return open_source_discussions
 
         bot_1 = Bot(bot_config, project.id)
 
@@ -134,32 +134,22 @@ class TestOpenSource:
             f"Wrong number of approvals: {[a['user']['username'] for a in approvals.approved_by]}")
 
         notes = list(updated_mr.notes.list())
-        assert len(notes) == 5, "Unexpected notes count: \n{}".format(
+        assert len(notes) == 6, "Unexpected notes count: \n{}".format(
             "\n======\n".join([n.body for n in notes]))
-        assert notes[-3].body.startswith(
-            "### :stop_sign: Autocheck for open source changes failed"), (
-            f"Unexpected auto-check failed note: {notes[-3].body}")
-        assert notes[-4].body.startswith(
-            "### :stop_sign: Autocheck for open source changes failed"), (
-            f"Unexpected auto-check failed note: {notes[-4].body}")
-        assert notes[-4].body.startswith(
-            "### :stop_sign: Autocheck for open source changes failed"), (
-            f"Unexpected auto-check failed note: {notes[-5].body}")
+        for autochek_comment_number in [-4, -5, -6]:
+            assert notes[autochek_comment_number].body.startswith(
+                "### :stop_sign: Autocheck for open source changes failed"), (
+                f"Unexpected auto-check failed note: {notes[autochek_comment_number].body}")
         assert not updated_mr.blocking_discussions_resolved
         # Robocat doesn't move unapproved MRs to "WIP" status.
         assert not updated_mr.work_in_progress
 
         # "notes" and "discussions" are ordered in reverse order to each other.
-        open_source_discussion_1 = updated_mr.discussions.list()[2]
-        assert open_source_discussion_1.attributes["notes"][0]["id"] == notes[-3].id
-        open_source_discussion_2 = updated_mr.discussions.list()[3]
-        assert open_source_discussion_2.attributes["notes"][0]["id"] == notes[-4].id
-        open_source_discussion_3 = updated_mr.discussions.list()[4]
-        assert open_source_discussion_3.attributes["notes"][0]["id"] == notes[-5].id
+        for open_source_discussion in updated_mr.discussions.list()[3:6]:
+            discussion_note = open_source_discussion.attributes["notes"][0]
+            assert discussion_note["id"] == notes[autochek_comment_number].id
+            helpers.gitlab.resolve_discussion(mr, open_source_discussion.id)
 
-        helpers.gitlab.resolve_discussion(mr, open_source_discussion_1.id)
-        helpers.gitlab.resolve_discussion(mr, open_source_discussion_2.id)
-        helpers.gitlab.resolve_discussion(mr, open_source_discussion_3.id)
         helpers.gitlab.approve_mr(mr)
 
         bot.run()
@@ -190,11 +180,11 @@ class TestOpenSource:
         assert updated_mr.state == "merged", f"The Merge Request state is {updated_mr.state}"
 
         notes = list(updated_mr.notes.list())
-        assert len(notes) == 7, "Unexpected notes count: \n{}".format(
+        assert len(notes) == 8, "Unexpected notes count: \n{}".format(
             "\n======\n".join([n.body for n in notes]))
-        assert notes[-3].body.startswith(
+        assert notes[-4].body.startswith(
             "### :white_check_mark: Auto-check for open source changes passed"), (
-            f"Unexpected auto-check pass note: {notes[-3].body}")
+            f"Unexpected auto-check pass note: {notes[-4].body}")
 
     def test_new_file_good_changes(self, repo, branch, project, bot):
         updated_files = ["open/good_file_1.cpp"]
@@ -235,17 +225,17 @@ class TestOpenSource:
             f"Wrong number of approvals: {[a['user']['username'] for a in approvals.approved_by]}")
 
         notes = list(updated_mr.notes.list())
-        assert len(notes) == 7, "Unexpected notes count: \n{}".format(
+        assert len(notes) == 8, "Unexpected notes count: \n{}".format(
             "\n======\n".join([n.body for n in notes]))
-        assert notes[-3].body.startswith(
+        assert notes[-4].body.startswith(
             "### :white_check_mark: Auto-check for open source changes passed"), (
-            f"Unexpected auto-check pass note: {notes[-3].body}")
+            f"Unexpected auto-check pass note: {notes[-4].body}")
         assert not updated_mr.blocking_discussions_resolved
         assert updated_mr.work_in_progress
 
         # "notes" and "discussions" are ordered in reverse order to each other.
-        open_source_discussion = updated_mr.discussions.list()[2]
-        assert open_source_discussion.attributes["notes"][0]["id"] == notes[-3].id
+        open_source_discussion = updated_mr.discussions.list()[3]
+        assert open_source_discussion.attributes["notes"][0]["id"] == notes[-4].id
 
         updated_mr.notes.create({'body': "/draft"})
         helpers.gitlab.resolve_discussion(mr, open_source_discussion.id)

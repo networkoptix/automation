@@ -38,6 +38,8 @@ class VersionMissingIssueCommitChecker(WorkflowPolicyChecker):
     def run(self, issue: JiraIssue) -> Optional[str]:
         issue_key = str(issue)
         for version, branch in issue.versions_to_branches_map.items():
+            if issue.has_label(issue.alredy_in_version_label(version)):
+                continue
             # NOTE: Сhecking only recent commits as an optimization.
             if len(self._repo.grep_recent_commits(issue_key, branch)) == 0:
                 return f"No commits in {version} version (branch: {branch})"

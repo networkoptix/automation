@@ -2,6 +2,7 @@ import re
 import pytest
 
 from automation_tools.tests.fixtures import jira, repo_accessor
+from automation_tools.tests.mocks.git_mocks import RemoteMock
 from robocat.award_emoji_manager import AwardEmojiManager
 from tests.robocat_constants import (
     DEFAULT_COMMIT,
@@ -172,21 +173,39 @@ class TestFollowupRule:
             "target_branch": "master",
         }),
     ])
-    def test_create_followup(self, project, followup_rule, mr, mr_manager, jira):
+    def test_create_followup(self, project, followup_rule, mr, mr_manager, jira, repo_accessor):
         # Init project state. TODO: Move project state to parameters.
+
         MergeRequestMock(project=project, **MERGED_TO_4_1_MERGE_REQUESTS["opened"])
         MergeRequestMock(project=project, **MERGED_TO_4_1_MERGE_REQUESTS["merged"])
-        project.branches.create({"branch": "existing_branch_vms_4.1", "ref": "vms_4.1"})
-        project.branches.mock_conflicts["feature_vms_4.1"] = {CONFLICTING_COMMIT_SHA}
-        project.branches.mock_conflicts["existing_branch_vms_4.1"] = {CONFLICTING_COMMIT_SHA}
+        project.branches.create({"branch": "existing_branch_vms_4.1"})
+
         # Set the source project for the MR. If it is not default project, create it.
+
         if mr.source_project_id != DEFAULT_PROJECT_ID:
             source_project = ProjectMock(id=mr.source_project_id, manager=project.manager)
+            for c in mr.commits_list:
+                source_project.add_mock_commit("master", c["sha"], c["message"])
         else:
             source_project = project
 
-        before_mergrequests_count = len(project.mergerequests.list())
+        # Init git repo state. TODO: Move git repo state to parameters.
 
+        project_remote = project.namespace["full_path"]
+        RemoteMock.add(repo=repo_accessor.repo, name=project_remote, url="")
+        repo_accessor.create_branch(
+            target_remote=project_remote, new_branch="vms_4.1", source_branch="master")
+        repo_accessor.create_branch(
+            target_remote=project_remote, new_branch="vms_4.2", source_branch="master")
+        for c in mr.commits_list:
+            repo_accessor.repo.add_mock_commit(c["sha"], c["message"])
+        repo_accessor.repo.remotes[project_remote].mock_attach_gitlab_project(project)
+        repo_accessor.repo.mock_add_gitlab_project(source_project)
+        repo_accessor.repo.mock_cherry_pick_conflicts.append(CONFLICTING_COMMIT_SHA)
+
+        # Start tests.
+
+        before_mergrequests_count = len(project.mergerequests.list())
         assert followup_rule.execute(mr_manager)
 
         issue = jira._jira.issue("VMS-666")
@@ -201,12 +220,12 @@ class TestFollowupRule:
             f":{AwardEmojiManager.FOLLOWUP_CREATED_EMOJI}: Follow-up merge request added")
         assert follow_up_created_comment_token in mr.mock_comments()[0]
 
-        source_project_branches = source_project.branches.branches
+        source_project_branches = [b.name for b in source_project.branches.list()]
         assert f"{mr.source_branch}_vms_4.1" in source_project_branches, (
             f"New branch {mr.source_branch}_vms_4.1 is not created: {source_project_branches}")
 
         if project != source_project:
-            project_branches = project.branches.branches
+            project_branches = [b.name for b in project.branches.branches]
             assert f"{mr.source_branch}_vms_4.1" not in project_branches, (
                 f"Branch {mr.source_branch}_vms_4.1 created in the wrong project")
 
@@ -235,6 +254,40 @@ class TestFollowupRule:
 
         assert new_comments[0].startswith(
             f"### :{AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI}: Follow-up merge request")
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        # Squashed merge request (issue detection from the title).
+        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"], "state": "In Review"}], {
+            "state": "merged",
+            "title": "VMS-666: Test mr",
+            "squash_commit_sha": DEFAULT_COMMIT["sha"],
+            "target_branch": "master",
+        }),
+    ])
+    def test_empty_followup(self, project, followup_rule, mr, mr_manager, jira, repo_accessor):
+        # Init git repo state. TODO: Move git repo state to parameters.
+
+        project_remote = project.namespace["full_path"]
+        RemoteMock.add(repo=repo_accessor.repo, name=project_remote, url="")
+        repo_accessor.create_branch(
+            target_remote=project_remote, new_branch="vms_4.1", source_branch="master")
+        for c in mr.commits_list:
+            repo_accessor.repo.add_mock_commit(c["sha"], c["message"])
+        repo_accessor.repo.remotes[project_remote].mock_attach_gitlab_project(project)
+        repo_accessor.repo.mock_changes_already_in_branch.append(DEFAULT_COMMIT["sha"])
+
+        # Start tests.
+
+        before_mergrequests_count = len(project.mergerequests.list())
+        assert followup_rule.execute(mr_manager)
+
+        issue = jira._jira.issue("VMS-666")
+        assert issue.fields.status.name == "Closed"
+        assert len(issue.fields.comment.comments) == 1, (
+            f"Got Jira issue comments: {issue.fields.comment.comments}")
+        assert issue.fields.comment.comments[0].body.startswith("Issue closed")
+        assert before_mergrequests_count == len(project.mergerequests.list()), (
+            "New Merge Request was created")
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Has opened merge requests to follow-up branches, follow-up merge request just merged,

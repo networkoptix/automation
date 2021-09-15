@@ -11,3 +11,9 @@ class JiraIssue:
         project_key, _, __ = key.partition("-")
         self.fields.project = JiraProject(project_key)
         self.fields.comment = dict2resource({"comments": comments})
+
+    def update(self, fields: dict = None):
+        if not fields:
+            return
+        for field, value in fields.items():
+            self.fields.field = value

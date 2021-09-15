@@ -14,7 +14,7 @@ BOT_EMAIL = "robocat@foo.bar"
 
 
 class RepoMock:
-    def __init__(self, path):
+    def __init__(self, *_):
         self._command_log_file = tempfile.TemporaryFile(mode="w+")
         original_commit = CommitMock(self, sha="000000000000", message="")
         self.commits = [original_commit]
@@ -24,6 +24,10 @@ class RepoMock:
         self.remotes = {"origin": RemoteMock(self, name="origin", url="")}
         self.head = HeadMock(self, branch_name="master", commit=original_commit)
         self.heads = {"master": self.head}
+        self.git = GitCommandMock(self)
+        self.mock_gitlab_projects = {}
+        self.mock_cherry_pick_conflicts = []
+        self.mock_changes_already_in_branch = []
 
     def __del__(self):
         self._command_log_file.close()
@@ -38,20 +42,30 @@ class RepoMock:
     def mock_add_command_to_log(self, command: str):
         print(command.replace('\n', ' '), file=self._command_log_file)
 
+    def add_mock_commit(self, sha: str, message: str):
+        new_commit = CommitMock(self, sha=sha, message=message)
+        self.commits.append(new_commit)
+        self.head.commit = new_commit
+        self.head.ref.commits.append(new_commit)
+
     def clone_from(self, url, path):
         self.mock_add_command_to_log(f"clone {url!r} to {path!r}")
 
-    def create_head(self, branch_name: str, commit_path: str) -> HeadMock:
-        try:
-            # Check if commit_path is sha.
-            commit = next(c for c in self.commits if c.sha == commit_path)
-        except StopIteration:
+    def create_head(self, branch_name: str, commit_path: str = None) -> HeadMock:
+        if commit_path is None:
+            commit = self.commits[-1]
+            self.branches[branch_name] = BranchMock(self, name=branch_name, commits=self.commits)
+        else:
             try:
-                # Check if commit_path points to the existing branch.
-                branch = next(b for n, b in self.branches.items() if n == commit_path)
-                commit = branch.commits[-1]
-            except StopIteration as exc:
-                raise git.BadName(commit_path)
+                # Check if commit_path is sha.
+                commit = next(c for c in self.commits if c.sha == commit_path)
+            except StopIteration:
+                try:
+                    # Check if commit_path points to an existing branch.
+                    branch = next(b for n, b in self.branches.items() if n == commit_path)
+                    commit = branch.commits[-1]
+                except StopIteration:
+                    raise git.BadName(commit_path)
 
         return HeadMock(self, branch_name=branch_name, commit=commit)
 
@@ -67,6 +81,37 @@ class RepoMock:
             if grep in commit.message:
                 result.append(commit)
         return result
+
+    def mock_add_gitlab_project(self, project: ProjectMock):
+        self.mock_gitlab_projects[project.ssh_url_to_repo] = project
+
+    def config_writer(self):
+        return GitConfigParserMock()
+
+
+class GitCommandMock:
+    def __init__(self, repo: RepoMock):
+        self._repo = repo
+
+    def cherry_pick(self, *args):
+        self._repo.mock_add_command_to_log(f"Cherry-pick with arguments: {args!r}")
+        sha = args[-1]
+        if sha == "--continue":
+            return
+        if sha in self._repo.mock_cherry_pick_conflicts:
+            raise git.GitCommandError(command=f"git cherry-pick {args!r}", status="Conflict")
+        if sha in self._repo.mock_changes_already_in_branch:
+            raise git.GitCommandError(
+                command=f"git cherry-pick {args!r}",
+                status="Empty commit",
+                stdout="nothing to commit")
+        commit = next(c for c in self._repo.commits if c.sha == sha)
+        if "-x" in args:
+            message = f"{commit.message}\n\n(cherry picked from commit {sha})"
+        else:
+            message = commit.message
+        new_sha = random_sha()
+        self._repo.add_mock_commit(sha=new_sha, message=message)
 
 
 @dataclasses.dataclass
@@ -98,17 +143,40 @@ class RemoteMock:
     def add(cls, repo: RepoMock, name, url):
         repo.mock_add_command_to_log(f"add remote {name!r} with url {url!r}")
         if name in repo.remotes:
-            repo.mock_add_command_to_log(f"remote {name!r} already exists")
-            raise git.GitCommandError()
+            error_message = f"remote {name!r} already exists"
+            repo.mock_add_command_to_log(error_message)
+            raise git.GitCommandError(status=error_message, command="git add remote")
 
         repo.remotes[name] = cls(repo, name, url)
 
+    def mock_attach_gitlab_project(self, project: ProjectMock):
+        self._url = project.ssh_url_to_repo
+        self._repo.mock_add_gitlab_project(project)
+
     def fetch(self):
         self._repo.mock_add_command_to_log(f"fetch {self._name!r}")
+        if self._url in self._repo.mock_gitlab_projects:
+            project = self._repo.mock_gitlab_projects[self._url]
+            for branch in project.branches.branches:
+                full_branch_name = f"{project.namespace['full_path']}/{branch}"
+                self._repo.branches[full_branch_name] = BranchMock(self, name=branch, commits=[])
 
     def push(self, branch: str, force: bool = False) -> List[RemoteMock.PushInfo]:
         push = ("forced " if force else "") + "push"
         self._repo.mock_add_command_to_log(f"{push} {branch!r} to {self._name!r}")
+        if branch not in self._repo.branches:
+            return [RemoteMock.PushInfo()]
+
+        # TODO: Here should be a deep copy of BranchMock object.
+        self._repo.branches[f"{self._name}/{branch}"] = self._repo.branches[branch]
+
+        if self._url in self._repo.mock_gitlab_projects:
+            project = self._repo.mock_gitlab_projects[self._url]
+            project.add_mock_branch(branch)
+            for commit in self._repo.branches[branch].commits:
+                if commit.sha not in [c.sha for c in project.commits.list()]:
+                    project.add_mock_commit(branch, commit.sha, commit.message)
+
         return [RemoteMock.PushInfo()]
 
 
@@ -116,7 +184,7 @@ class HeadMock:
     def __init__(self, repo: RepoMock, branch_name: str, commit: CommitMock):
         self._repo = repo
         self.commit = commit
-        self.ref = next(b for b in repo.branches.values() if b.name == branch_name)
+        self._branch_name = branch_name
 
     def reset(self, commit, index: bool, working_tree: bool):
         if working_tree:
@@ -140,11 +208,20 @@ class HeadMock:
         self._copy(head_reference)
 
     def _copy(self, obj: HeadMock):
-        self.ref = obj.ref
+        self._repo = obj._repo
         self.commit = obj.commit
+        self._branch_name = obj._branch_name
+
+    @property
+    def ref(self):
+        return next(b for b in self._repo.branches.values() if b.name == self._branch_name)
+
+    @property
+    def name(self):
+        return self.ref.name
 
 
-class IndexMock():
+class IndexMock:
     def __init__(self, repo: RepoMock):
         self._repo = repo
 
@@ -158,6 +235,17 @@ class IndexMock():
             f"commit to branch {current_branch.name!r} "
             f"(sha: {commit.sha!r}, message: {commit.message!r}, "
             f"author: {author!r}, committer: {committer!r}")
+
+
+class GitConfigParserMock:
+    def __init__(self):
+        pass
+
+    def set_value(self, *args):
+        return self
+
+    def release(self):
+        pass
 
 
 def random_sha():

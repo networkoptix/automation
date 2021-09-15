@@ -55,6 +55,10 @@ class JiraIssue:
     def __hash__(self):
         return hash(self._raw_issue.key)
 
+    @staticmethod
+    def alredy_in_version_label(version):
+        return f"already_in_{version}"
+
     def _add_comment(self, message: str):
         bot_name, bot_revision = (
             automation_tools.bot_info.name(), automation_tools.bot_info.revision())
@@ -104,11 +108,14 @@ class JiraIssue:
             return int(link_match["id"])
         return None
 
-    @property
-    def branches(self) -> Set[str]:
+    def branches(self, exclude_already_merged: bool = False) -> Set[str]:
         mapping = self._version_to_branch_mapping
         issue = self._raw_issue
-        return {mapping[automation_tools.utils.Version(v.name)] for v in issue.fields.fixVersions}
+        labels = issue.fields.labels
+        return {
+            mapping[automation_tools.utils.Version(v.name)]
+            for v in issue.fields.fixVersions
+            if not exclude_already_merged or self.alredy_in_version_label(v.name) not in labels}
 
     @property
     def versions_to_branches_map(self) -> Dict[str, str]:
@@ -155,13 +162,13 @@ class JiraIssue:
 
         if self._set_status(JiraIssueStatus.qa, no_throw=True):
             self._add_comment(jira_messages.issue_moved_to_qa.format(
-                branches="\n* ".join(self.branches)))
+                branches="\n* ".join(self.branches())))
             logger.info(f'Status "Waiting for QA" is set for issue {self}.')
             return
 
         self._set_status(JiraIssueStatus.closed)
         self._add_comment(
-            jira_messages.issue_closed.format(branches="\n* ".join(self.branches)))
+            jira_messages.issue_closed.format(branches="\n* ".join(self.branches())))
         logger.info(f'Status "Closed" is set for issue {self}.')
 
     def _set_status(self, target_status: JiraIssueStatus, no_throw=False) -> bool:
@@ -212,6 +219,14 @@ class JiraIssue:
 
     def has_label(self, label: str) -> bool:
         return label in self._raw_issue.fields.labels
+
+    def add_already_in_version_label(self, branch: str):
+        version = next(v for v, b in self.versions_to_branches_map.items() if b == branch)
+        self._add_label(self.alredy_in_version_label(version))
+
+    def _add_label(self, label: str):
+        self._raw_issue.fields.labels.append(label)
+        self._raw_issue.update(fields={"labels": self._raw_issue.fields.labels})
 
 
 class JiraAccessor:

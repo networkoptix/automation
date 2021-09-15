@@ -8,8 +8,6 @@ import helpers.gitlab
 import helpers.repo
 import helpers.tests_config
 
-import automation_tools.bot_info
-
 
 class TestNoOpenSource:
     def test_submodule_update_unsquashed_mr(self, repo, branch, project, bot):
@@ -48,8 +46,8 @@ class TestNoOpenSource:
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
             updated_files=["vms/file_2_1.cpp", "conan_recipes"],
-            message=f"Test commit 1 ({branch})\n\nUpdate submodule conan_recipes.")
-
+            message=f"Test commit 1 ({branch})\n\nUpdate submodule conan_recipes.",
+            wait_after_push=False)
         (Path(repo.working_dir) / "vms/file_2_2.cpp").write_text(branch)
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch, updated_files=["vms/file_2_2.cpp"],
@@ -90,13 +88,13 @@ class TestNoOpenSource:
                 status=helpers.jira.IssueStatus.InProgress),
         ]
     ])
-    def test_jira_workflow(
+    def test_normal_jira_workflow(
             issue_descriptions, jira_handler, jira_issues, repo, branch, project, bot):
         (Path(repo.working_dir) / "vms/file_3_1.cpp").write_text(branch)
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
             updated_files=["vms/file_3_1.cpp"],
-            message=f"Test commit 1 ({branch})")
+            message=f"Test commit 3 ({branch})")
 
         issue_keys = ", ".join([issue.key for issue in jira_issues])
         mr = helpers.gitlab.create_merge_request(project, {
@@ -111,7 +109,7 @@ class TestNoOpenSource:
         follow_up_mr = helpers.gitlab.get_last_opened_mr(project)
         assert follow_up_mr is not None, "Failed to create follow-up Merge Request"
 
-        time.sleep(5)  # Give gitlab some time to do all the post-MR-creation magic.
+        time.sleep(helpers.tests_config.POST_MR_SLIIP_S)
 
         bot.run()
         helpers.gitlab.wait_last_mr_pipeline_status(follow_up_mr, ["success"])
@@ -128,3 +126,126 @@ class TestNoOpenSource:
                 assert False, f"Unexpected issue type: {updated_issue.fields.issuetype.name!r}"
             assert new_status_name == expected_status_name, (
                 f"Wrong issue status: {new_status_name!r}, expected: {expected_status_name!r}")
+
+    @pytest.mark.parametrize("issue_descriptions", [
+        [
+            helpers.jira.IssueDescription(
+                title="Test issue 4", issuetype=helpers.jira.IssueType.Bug,
+                versions=["master", "4.2_patch"],
+                status=helpers.jira.IssueStatus.InReview),
+        ]
+    ])
+    def test_failed_jira_workflow(
+            issue_descriptions, jira_handler, jira_issues, repo, branch, project, bot):
+        (Path(repo.working_dir) / "vms/file_4_1.cpp").write_text(branch)
+        helpers.repo.create_and_push_commit(
+            repo, branch_name=branch,
+            updated_files=["vms/file_4_1.cpp"],
+            message=f"Test commit 4.1 ({branch})",
+            wait_after_push=False)
+        (Path(repo.working_dir) / "vms/file_4_2.cpp").write_text(branch)
+        helpers.repo.create_and_push_commit(
+            repo, branch_name=branch,
+            updated_files=["vms/file_4_2.cpp"],
+            message=f"Test commit 4.2 ({branch})")
+
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
+        mr = helpers.gitlab.create_merge_request(project, {
+            "squash": False,
+            "source_branch": branch,
+            "target_branch": "master",
+            "title": f"{issue_keys}: Test MR 4",
+        })
+
+        helpers.repo.hard_checkout(repo, "vms_4.2_patch")
+        # Add the same file with different content to vms_4.2_patch to create a cherry-pick
+        # conflict.
+        (Path(repo.working_dir) / "vms/file_4_1.cpp").write_text(branch[::-1])
+        helpers.repo.create_and_push_commit(
+            repo, branch_name="vms_4.2_patch",
+            updated_files=["vms/file_4_1.cpp"],
+            message="Test commit 4 (vms_4.2_patch)")
+
+        bot.run()
+        helpers.gitlab.approve_mr_and_wait_pipeline(mr)
+        bot.run()
+
+        follow_up_mr = helpers.gitlab.get_last_opened_mr(project)
+        assert follow_up_mr is not None, "Failed to create follow-up Merge Request"
+
+        time.sleep(helpers.tests_config.POST_MR_SLIIP_S)
+
+        bot.run()
+        updated_follow_up_mr = helpers.gitlab.get_last_opened_mr(project)
+
+        mr_notes = updated_follow_up_mr.notes.list()
+        assert len(mr_notes) == 6, (
+            f"Wrong notes number ({len(mr_notes)}). Notes: {[n.body for n in mr_notes]!r}")
+        assert mr_notes[3].body.startswith("### :cherries: Manual conflict resolution required"), (
+            f"Wrong conflicts note: {mr_notes[3].body!r}")
+
+        for issue in jira_issues:
+            updated_issue = helpers.jira.update_issue_data(jira_handler, issue)
+            new_status_name = updated_issue.fields.status.name
+            expected_status_name = helpers.jira.IssueStatus.InReview.value
+            assert new_status_name == expected_status_name, (
+                f"Wrong issue status: {new_status_name!r}, expected: {expected_status_name!r}")
+
+    @pytest.mark.parametrize("issue_descriptions", [
+        [
+            helpers.jira.IssueDescription(
+                title="Test issue 5", issuetype=helpers.jira.IssueType.Bug,
+                versions=["master", "4.2_patch"],
+                status=helpers.jira.IssueStatus.InReview),
+        ]
+    ])
+    def test_empty_followup_workflow(
+            issue_descriptions, jira_handler, jira_issues, repo, branch, project, bot):
+
+        # Delete everything left from the previous test runs. It is too costly to re-create gitlab
+        # project for every new test.
+        while mr := helpers.gitlab.get_last_opened_mr(project):
+            mr.delete()
+
+        (Path(repo.working_dir) / "vms/file_5_1.cpp").write_text(branch)
+        helpers.repo.create_and_push_commit(
+            repo, branch_name=branch,
+            updated_files=["vms/file_5_1.cpp"],
+            message=f"Test commit 5.1 ({branch})",
+            wait_after_push=False)
+        (Path(repo.working_dir) / "vms/file_5_2.cpp").write_text(branch)
+        helpers.repo.create_and_push_commit(
+            repo, branch_name=branch,
+            updated_files=["vms/file_5_2.cpp"],
+            message=f"Test commit 5.2 ({branch})")
+
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
+        mr = helpers.gitlab.create_merge_request(project, {
+            "squash": False,
+            "source_branch": branch,
+            "target_branch": "master",
+            "title": f"{issue_keys}: Test MR 5",
+        })
+
+        helpers.repo.hard_checkout(repo, "vms_4.2_patch")
+        # Add the same files with the content to vms_4.2_patch to create an empty cherry-pick
+        # result.
+        (Path(repo.working_dir) / "vms/file_5_1.cpp").write_text(branch)
+        (Path(repo.working_dir) / "vms/file_5_2.cpp").write_text(branch)
+        helpers.repo.create_and_push_commit(
+            repo, branch_name="vms_4.2_patch",
+            updated_files=["vms/file_5_1.cpp", "vms/file_5_2.cpp"],
+            message="Test commit 5 (vms_4.2_patch)")
+        bot.run()
+        helpers.gitlab.approve_mr_and_wait_pipeline(mr)
+        bot.run()
+
+        follow_up_mr = helpers.gitlab.get_last_opened_mr(project)
+        assert follow_up_mr is None, "Follow-up MR was created"
+
+        for issue in jira_issues:
+            updated_issue = helpers.jira.update_issue_data(jira_handler, issue)
+            new_status_name = updated_issue.fields.status.name
+            expected_status_name = helpers.jira.IssueStatus.WaitingForQa.value
+            assert new_status_name == expected_status_name, (
+                f"Wrong Issue status: {new_status_name!r}, expected: {expected_status_name!r}")

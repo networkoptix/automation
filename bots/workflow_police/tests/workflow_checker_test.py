@@ -64,6 +64,12 @@ class TestPoliceChecker:
         [{"key": "VMS-2", "branches": ["master", "vms_4.2"], "labels": ["version_specific"]}],
         # Commit is not found in branch "master", but has "version_specific" label.
         [{"key": "VMS-3", "branches": ["vms_4.2_patch"], "labels": ["version_specific"]}],
+        # The commit is not found in the branch "vms_4.2_patch" but has "already_in_4.2_patch" label.
+        [{
+            "key": "VMS-4",
+            "branches": ["master", "vms_4.2_patch"],
+            "labels": ["already_in_4.2_patch"],
+        }],
     ])
     def test_should_not_reopen_issue(self, jira, jira_issues, workflow_checker):
         for issue_data in jira_issues:

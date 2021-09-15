@@ -21,6 +21,7 @@ class Repo:
                 self._committer = git.Actor(name=committer.name, email=committer.email)
             else:
                 self._committer = None
+            self.repo.config_writer().set_value("merge", "renamelimit", 100000).release()
         except git.exc.NoSuchPathError:
             self.repo = git.Repo.clone_from(url, path)
 
@@ -37,9 +38,10 @@ class Repo:
         return list(self.repo.iter_commits(
             f"origin/{branch}", grep=substring, since=RECENT_COMMENTS_DEPTH))
 
-    def check_branch_exists(self, branch: str) -> bool:
+    def check_branch_exists(self, branch: str, remote: str = "origin") -> bool:
         try:
-            self.repo.rev_parse(f"origin/{branch}")
+            full_branch_name = f"{remote}/{branch}" if remote is not None else branch
+            self.repo.rev_parse(full_branch_name)
             return True
         except git.BadName:
             return False
@@ -49,24 +51,31 @@ class Repo:
             author: automation_tools.utils.User):
         self.add_remote(remote, url)
         self.update_repository(remote)
-        self._checkout(remote, branch)
+        self._hard_checkout(remote, branch)
         self._soft_reset(base_sha)
         self._commit(message, git.Actor(name=author.name, email=author.email))
         self._push(remote, branch, force=True)
 
-    def _checkout(self, remote: str, branch: str):
+    def _hard_checkout(self, remote: str, branch: str):
         full_branch_name = f"{remote}/{branch}"
         if branch not in self.repo.heads:
             self.repo.head.reference = self.repo.create_head(branch, full_branch_name)
-        elif self.repo.head.reference.name != branch:
+        elif self._current_branch_name != branch:
             self.repo.head.reference = self.repo.heads[branch]
         self._hard_reset(full_branch_name)
+
+    @property
+    def _current_branch_name(self):
+        return self.repo.head.reference.name
 
     def _soft_reset(self, commit: str):
         self.repo.head.reset(commit=commit, index=False, working_tree=False)
 
     def _hard_reset(self, commit: str):
         self.repo.head.reset(commit=commit, index=True, working_tree=True)
+
+    def _mixed_reset(self, commit: str):
+        self.repo.head.reset(commit=commit, index=True, working_tree=False)
 
     def _commit(self, message: str, author: git.Actor):
         self.repo.index.commit(message, author=author, committer=self._committer)
@@ -77,3 +86,36 @@ class Repo:
             remote_url = ", ".join(self.repo.remotes[remote].urls)
             raise git.GitError(
                 f"Failed to push branch {branch!r} to {remote_url!r}: {push_info.summary!r}")
+
+    def cherry_pick(self, sha: str, remote: str = "origin", branch: str = None) -> bool:
+        if branch is not None:
+            self._hard_checkout(remote, branch)
+
+        try:
+            self.repo.git.cherry_pick("-x", sha)
+            return True
+        except git.GitCommandError as error:
+            if "nothing to commit" in error.stdout:
+                logging.warning(
+                    f"An error occured while cherry-picking: {error!r}. "
+                    f"Stdout is: {error.stdout}, stderr is: {error.stderr}. "
+                    "Probably, just empty cherry-pick. Trying to continue cherry-pick process.")
+                self._mixed_reset("HEAD")
+            else:
+                raise error from None
+
+        return False
+
+    def create_branch(
+            self, new_branch: str, target_remote: str, source_branch: str,
+            source_remote: str = "origin", override_local_branch: bool = True):
+        self.update_repository(source_remote)
+        self._hard_checkout(source_remote, source_branch)
+        if override_local_branch and self.check_branch_exists(new_branch, None):
+            self.repo.head.reference.delete(self.repo, "-D", new_branch)
+        self.repo.head.reference = self.repo.create_head(new_branch)
+        self._push(target_remote, new_branch, force=True)
+
+    def push_current_branch(self, remote: str):
+        logger.debug(f"Pushing {self._current_branch_name} to {remote}")
+        self._push(remote, self._current_branch_name, force=True)

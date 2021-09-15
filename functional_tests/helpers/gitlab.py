@@ -16,7 +16,7 @@ def create_merge_request(project, mr_parameters: Dict[str, str]):
     parameters.setdefault("remove_source_branch", helpers.tests_config.DO_REMOVE_SOURCE_BRANCH)
     parameters.setdefault("approvals_before_merge ", len(helpers.tests_config.APPROVERS))
 
-    time.sleep(5)  # Wait for some time to allow gitlab to do all the post-MR-creation magic.
+    time.sleep(helpers.tests_config.POST_MR_SLIIP_S)
 
     return project.mergerequests.create(parameters)
 
@@ -43,7 +43,7 @@ def approve_mr_and_wait_pipeline(mr, exclude_approvers: Optional[List[str]] = No
     wait_last_mr_pipeline_status(mr, ["success"])
 
 
-def wait_last_mr_pipeline_status(mr, status_list: List[str], max_pipeline_wait_time_s: int = 30):
+def wait_last_mr_pipeline_status(mr, status_list: List[str], max_pipeline_wait_time_s: int = 60):
     pipeline_start_wait_time = time.time()
     current_status = mr.pipelines()[0]["status"]
     while current_status not in status_list:

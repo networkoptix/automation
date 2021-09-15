@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import pytest
 import shutil
-import sys
+import time
 from tempfile import TemporaryDirectory
 from typing import List
 
@@ -29,8 +29,8 @@ def gitlab_instance():
     return gitlab.Gitlab.from_config("nx_gitlab")
 
 
-@pytest.fixture(scope="session")
-def project(request, gitlab_instance):
+@pytest.fixture()
+def project(gitlab_instance):
     groups = list(gitlab_instance.groups.list(search=helpers.tests_config.FUNCTEST_GROUP_NAME))
     assert len(groups) == 1, (
         f"There are more than one groups with the name {helpers.tests_config.FUNCTEST_GROUP_NAME}")
@@ -47,10 +47,13 @@ def project(request, gitlab_instance):
     yield project
     project.delete()
 
+    # Prvent the next project creation before this one is properly deleted.
+    time.sleep(15)
 
-@pytest.fixture(scope="session")
-def initial_repo(request, project):
-    tmp_directory = TemporaryDirectory()
+
+@pytest.fixture()
+def repo(project):
+    tmp_directory = TemporaryDirectory(prefix="robocat-ft-")
     repo_directory = Path(tmp_directory.name) / "repo"
     sample_repo_directory = Path(__file__).parent.resolve() / "test_data/repo"
     shutil.copytree(sample_repo_directory, repo_directory)
@@ -135,15 +138,6 @@ def jira_issues(jira_handler, issue_descriptions: List[helpers.jira.IssueDescrip
     finally:
         for issue in issues:
             issue.delete()
-
-
-@pytest.fixture()
-def repo(initial_repo):
-    repo = initial_repo
-    repo.remotes.origin.fetch()
-    repo.head.reference = repo.heads.master
-    repo.head.reset(commit="origin/master", index=True, working_tree=True)
-    return repo
 
 
 @pytest.fixture()
