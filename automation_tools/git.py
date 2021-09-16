@@ -110,6 +110,7 @@ class Repo:
             self, new_branch: str, target_remote: str, source_branch: str,
             source_remote: str = "origin", override_local_branch: bool = True):
         self.update_repository(source_remote)
+        self.update_repository(target_remote)
         self._hard_checkout(source_remote, source_branch)
         if override_local_branch and self.check_branch_exists(new_branch, None):
             self.repo.head.reference.delete(self.repo, "-D", new_branch)
