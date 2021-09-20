@@ -60,6 +60,8 @@ class TestPoliceChecker:
         [{"key": "VMS-1", "branches": ["master", "vms_4.2_patch"]}],
         # "Good" issue for another project.
         [{"key": "MOBILE-1", "branches": ["master", "mobile_21.1"]}],
+        # And another one.
+        [{"key": "CB-1", "branches": ["master", "cloud_backend_20.1"]}],
         # Bad version set, but has "version_specific" label.
         [{"key": "VMS-2", "branches": ["master", "vms_4.2"], "labels": ["version_specific"]}],
         # Commit is not found in branch "master", but has "version_specific" label.

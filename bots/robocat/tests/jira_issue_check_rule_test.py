@@ -1,4 +1,3 @@
-import sys
 import pytest
 
 from robocat.rule.jira_issue_check_rule import JiraIssueCheckRuleExecutionResult

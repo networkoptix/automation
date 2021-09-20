@@ -85,3 +85,11 @@ MERGED_TO_21_1_MERGE_REQUESTS_MOBILE = {
     "merged": {"iid": 120, "target_branch": "vms_4.1", "state": "merged"},
     "opened": {"iid": 121, "target_branch": "vms_4.1", "state": "opened"},
 }
+MERGED_TO_MASTER_MERGE_REQUESTS_CB = {
+    "merged": {"iid": 210, "target_branch": "master", "state": "merged"},
+    "opened": {"iid": 211, "target_branch": "master", "state": "opened"},
+}
+MERGED_TO_20_1_MERGE_REQUESTS_CB = {
+    "merged": {"iid": 220, "target_branch": "vms_4.1", "state": "merged"},
+    "opened": {"iid": 221, "target_branch": "vms_4.1", "state": "opened"},
+}

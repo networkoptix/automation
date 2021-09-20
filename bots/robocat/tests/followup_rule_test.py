@@ -13,7 +13,9 @@ from tests.robocat_constants import (
     MERGED_TO_4_1_MERGE_REQUESTS,
     MERGED_TO_4_2_MERGE_REQUESTS,
     MERGED_TO_MASTER_MERGE_REQUESTS_MOBILE,
-    MERGED_TO_21_1_MERGE_REQUESTS_MOBILE)
+    MERGED_TO_21_1_MERGE_REQUESTS_MOBILE,
+    MERGED_TO_MASTER_MERGE_REQUESTS_CB,
+    MERGED_TO_20_1_MERGE_REQUESTS_CB)
 from tests.fixtures import *
 
 
@@ -426,6 +428,23 @@ class TestFollowupRule:
             "squash_commit_sha": MERGED_TO_MASTER_MERGE_REQUESTS_MOBILE["merged"]["iid"],
             "target_branch": "mobile_21.1",
         }),
+        # Another Jira project.
+        ([{
+            "key": "CB-666",
+            "branches": ["master", "cloud_backend_20.1"],
+            "merge_requests": [
+                MERGED_TO_MASTER_MERGE_REQUESTS_CB["merged"]["iid"],
+                MERGED_TO_20_1_MERGE_REQUESTS_CB["merged"]["iid"]
+            ],
+            "state": "In Review",
+        }], {
+            "state": "merged",
+            "title": "CB-666: Test mr",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash_commit_sha": MERGED_TO_MASTER_MERGE_REQUESTS_CB["merged"]["iid"],
+            "target_branch": "cloud_backend_20.1",
+        }),
+
         # Has merged merge requests for all issue branches, follow-up merge request just merged,
         # issue is in "good" state, follow-up state detection from description.
         ([{
@@ -517,6 +536,8 @@ class TestFollowupRule:
         MergeRequestMock(project=project, **MERGED_TO_4_2_MERGE_REQUESTS["merged"])
         MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS_MOBILE["merged"])
         MergeRequestMock(project=project, **MERGED_TO_21_1_MERGE_REQUESTS_MOBILE["merged"])
+        MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS_CB["merged"])
+        MergeRequestMock(project=project, **MERGED_TO_20_1_MERGE_REQUESTS_CB["merged"])
 
         mr_count_before = len(project.mergerequests.list())
 

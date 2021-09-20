@@ -13,7 +13,7 @@ ALLOWED_VERSIONS_SETS = {
         set(['Future']),
     ],
 }
-PROJECT_KEYS_TO_CHECK = {"VMS", "MOBILE"}
+PROJECT_KEYS_TO_CHECK = {"VMS", "MOBILE", "CB"}
 
 IGNORE_LABEL = "hide_from_police"
 VERSION_SPECIFIC_LABEL = "version_specific"

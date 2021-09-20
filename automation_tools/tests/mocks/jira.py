@@ -69,7 +69,11 @@ class Jira:
                 Version("20.4", "<mobile_20.4>"),
                 Version("21.1", "<mobile_21.1>"),
                 Version("master", "<master> Ongoing development"),
-            ]
+            ],
+            "CB": [
+                Version("20.1", "<cloud_backend_20.1>"),
+                Version("master", "<master>"),
+            ],
         }.get(project, {})
 
     @staticmethod

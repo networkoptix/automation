@@ -18,6 +18,9 @@ class WrongVersionChecker(WorkflowPolicyChecker):
         if issue.has_label(config.VERSION_SPECIFIC_LABEL):
             return
 
+        if issue.project not in config.ALLOWED_VERSIONS_SETS:
+            return
+
         version_set = set(issue.versions_to_branches_map.keys())
         if version_set in config.ALLOWED_VERSIONS_SETS[issue.project]:
             return
