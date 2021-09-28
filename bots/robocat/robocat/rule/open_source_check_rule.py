@@ -123,13 +123,16 @@ class OpenSourceCheckRule(BaseRule):
 
         error_check_result = self._do_error_check(mr_manager)
 
-        authorized_approvers = self._get_approvers_by_changed_files(mr_manager)
+        authorized_approvers = self._get_open_source_keepers()
         logger.debug(f"{mr_manager}: Authorized approvers are {authorized_approvers!r}")
         approval_requirements = ApprovalRequirements(authorized_approvers=authorized_approvers)
 
         if self._is_manual_check_required(mr_manager):
-            if mr_manager.ensure_authorized_approvers(authorized_approvers):
-                logger.debug(f"{mr_manager}: Authorized approvers assigned to MR.")
+            # MR can be approved by anybody from the authorized_approvers set, but we assign to the
+            # MR only those who are the best choice for approving this particular MR.
+            preferred_approvers = self._get_approvers_by_changed_files(mr_manager)
+            if mr_manager.ensure_authorized_approvers(preferred_approvers):
+                logger.debug(f"{mr_manager}: Preferred approvers assigned to MR.")
 
         if self._are_problems_found(mr_manager, error_check_result):
             self._ensure_problem_comments(mr_manager, error_check_result)
@@ -311,4 +314,7 @@ class OpenSourceCheckRule(BaseRule):
         # Return all approvers if we can't determine who is the best match.
         logger.debug(
             f"{mr_manager}: No preferred approvers found, returning complete approver list.")
+        return self._get_open_source_keepers()
+
+    def _get_open_source_keepers(self) -> Set[str]:
         return set(sum([r.approvers for r in self._approve_rules], []))
