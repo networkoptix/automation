@@ -9,6 +9,6 @@ JIRA_ASSIGNEE_ID = "557058:d03e1d81-655d-4fe8-a74f-3c1dcb6ba0e9"  # Service acco
 
 APPROVERS = ["root", "ptolstov"]
 
-TARGET_BRANCHES = ["master", "vms_4.2", "vms_4.2_patch"]
+TARGET_BRANCHES = ["master", "vms_5.0", "vms_4.2", "vms_4.2_patch"]
 
 POST_MR_SLIIP_S = 15  # Gitlab post-MR-creation magic timeout

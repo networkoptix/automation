@@ -62,6 +62,7 @@ class Jira:
                 Version("4.1_patch", "<vms_4.1> 4.1 Monthly patches"),
                 Version("4.2", "<vms_4.2> Major release with plugins"),
                 Version("4.2_patch", "<vms_4.2_patch> 4.2 Monthly patches"),
+                Version("5.0", "<vms_5.0> 5.0 Release"),
                 Version("master", "<master> Major release with a lot of tech debt")
             ],
             "MOBILE": [

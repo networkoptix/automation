@@ -1,5 +1,5 @@
 # A string with the version name that will be added to the Jira Issues.
-NEW_VERSION_NAME = "4.3"
+NEW_VERSION_NAME = "5.0"
 
 VERSION_SETS_TO_PATCH = [
     {"master"},
@@ -8,4 +8,4 @@ VERSION_SETS_TO_PATCH = [
 PREVIOUS_RELEASE_VERSION_NAMES = {"4.2"}
 
 # A set of Jira Project names which will be scanned.
-JIRA_PROJECTS = {"VMS"}
+JIRA_PROJECTS = {"VMS", "SQ"}

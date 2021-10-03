@@ -17,9 +17,9 @@ RESOLUTION_NAMES_TO_SKIP = {"Rejected", "Duplicate"}
 SCRIPT_DESCRIPTION = """
 This script is to be used for fixing "fixVersions" field of Jira Issues after adding a new gitlab
 branch for the new release version. This is needed when the new repo branch and Jira version are
-introduced for the upcoming release. After the branch and the version are created (e.g. 4.3 version
-and vms_4.3 branch), one can use the script to find (or find and patch) all Issues which are
-present in the vms_4.3 branch and should have the 4.3 version added in Jira. Also the script
+introduced for the upcoming release. After the branch and the version are created (e.g. 5.0 version
+and vms_5.0 branch), one can use the script to find (or find and patch) all Issues which are
+present in the vms_5.0 branch and should have the 5.0 version added in Jira. Also the script
 detects the Issues that have "bad" value in "fixVersions" field. The rules for listing/patching are
 as follows:
 
