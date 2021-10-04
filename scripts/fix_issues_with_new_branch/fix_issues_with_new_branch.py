@@ -12,7 +12,7 @@ import jira
 from config import (
     JIRA_PROJECTS, NEW_VERSION_NAME, PREVIOUS_RELEASE_VERSION_NAMES, VERSION_SETS_TO_PATCH)
 
-RESOLUTION_NAMES_TO_SKIP = {"Rejected", "Duplicate"}
+RESOLUTION_NAMES_TO_SKIP = {"Rejected", "Duplicate", "Won't Do", "Cannot Reproduce", "Declined"}
 
 SCRIPT_DESCRIPTION = """
 This script is to be used for fixing "fixVersions" field of Jira Issues after adding a new gitlab
