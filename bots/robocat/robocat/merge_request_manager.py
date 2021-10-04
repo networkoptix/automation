@@ -197,6 +197,16 @@ class MergeRequestManager:
     def ensure_user_requeseted_pipeline_run(self) -> bool:
         if not self._mr.award_emoji.find(AwardEmojiManager.PIPELINE_EMOJI, own=False):
             return False
+        last_pipeline = self._get_last_pipeline()
+        if last_pipeline.sha == self._mr.sha:
+            logger.info(f"{self._mr}: Refusing to manualy run pipeline with the same sha")
+            message = robocat.comments.refuse_run_pipeline_message.format(
+                pipeline_id=last_pipeline.id, pipeline_url=last_pipeline.web_url, sha=self._mr.sha)
+            self._add_comment(
+                "Pipeline was not started", message, AwardEmojiManager.NOTIFICATION_EMOJI)
+            self._mr.award_emoji.delete(AwardEmojiManager.PIPELINE_EMOJI, own=False)
+            return False
+
         self._run_pipeline(RunPipelineReason.requested_by_user)
         return True
 

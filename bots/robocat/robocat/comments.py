@@ -14,6 +14,10 @@ P.S. You may set :construction_site: emoji on Merge Request and I will run the p
 
 merged_message = "Merge request was successfully merged into `{branch}` branch."
 run_pipeline_message = "Running pipeline {pipeline_id}: {reason}."
+refuse_run_pipeline_message = """
+Refusing to run user-requested pipeline becasue the previous pipeline
+([{pipeline_id}]({pipeline_url})) ran for the same commit (sha: {sha}).
+"""
 
 commits_wait_message = """There are no commits in MR. I won't do anything until commits arrive."""
 pipeline_wait_message = """There is already [pipeline {pipeline_id}]({pipeline_url}) in progress.

@@ -79,6 +79,10 @@ class TestEssentialRule:
         # Pipeline started even if the build failed when requested
         {
             "emojis_list": [AwardEmojiManager.PIPELINE_EMOJI],
+            "commits_list": [
+                DEFAULT_COMMIT,
+                {"sha": "22", "message": DEFAULT_COMMIT["message"]},
+            ],
             "pipelines_list": [(DEFAULT_COMMIT["sha"], "failed")]
         },
         # First pipeline started even if there are non-resolved discusions
@@ -181,7 +185,10 @@ class TestEssentialRule:
         },
     ])
     def test_run_pipeline(self, essential_rule, mr, mr_manager):
-        last_pipeline_status = next(p for p in mr.pipelines() if p["sha"] == mr.sha)["status"]
+        if current_sha_pipelines := [p for p in mr.pipelines() if p["sha"] == mr.sha]:
+            last_pipeline_status = current_sha_pipelines[0]["status"]
+        else:
+            last_pipeline_status = None
         is_pipeline_creation_requested = any(
             e for e in mr.emojis_list if e == AwardEmojiManager.PIPELINE_EMOJI)
         initial_pipelines_number = len(mr.pipelines())
@@ -288,6 +295,11 @@ class TestEssentialRule:
             "pipelines_list": [
                 ("22", "success"),
                 (DEFAULT_COMMIT["sha"], "manual")]
+        },
+        # User-requested pipeline not started if previous pipeline ran for the same sha
+        {
+            "emojis_list": [AwardEmojiManager.PIPELINE_EMOJI],
+            "pipelines_list": [(DEFAULT_COMMIT["sha"], "failed")]
         },
     ])
     def test_norun_pipeline(self, essential_rule, mr, mr_manager):
