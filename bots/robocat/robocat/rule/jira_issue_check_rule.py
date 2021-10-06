@@ -13,13 +13,12 @@ logger = logging.getLogger(__name__)
 class JiraIssueCheckRuleExecutionResult(RuleExecutionResult, Enum):
     merged = "MR is already merged"
     rule_execution_successfull = "Jira Issues are ok"
-    rule_execution_failed = "Jira Issues have problems"
+    rule_execution_failed = "Problems with attached Jira Issues"
     no_commits = "No commits"
     work_in_progress = "Work in progress"
-    not_applicable = "Not attached to any Jira Issue"
 
     def __bool__(self):
-        return self in [self.not_applicable, self.rule_execution_successfull, self.merged]
+        return self in [self.rule_execution_successfull, self.merged]
 
 
 class JiraIssueCheckRule(BaseRule):
@@ -40,12 +39,14 @@ class JiraIssueCheckRule(BaseRule):
         if mr_data.work_in_progress:
             return JiraIssueCheckRuleExecutionResult.work_in_progress
 
+        jira_issue_errors = []
+
         jira_issue_keys = mr_manager.data.issue_keys
         if not jira_issue_keys:
-            logger.debug(f"{mr_manager}: Can't detect attached Jira Issue for the merge request.")
-            return JiraIssueCheckRuleExecutionResult.not_applicable
+            logger.warning(
+                f"{mr_manager}: Can't detect attached Jira Issue for the merge request.")
+            jira_issue_errors = ["Merge Request must be related to at least one Jira Issue"]
 
-        jira_issue_errors = []
         self._jira.get_issue.cache_clear()
         for issue_key in jira_issue_keys:
             issue = self._jira.get_issue(issue_key)
@@ -54,7 +55,9 @@ class JiraIssueCheckRule(BaseRule):
 
             version_error_string = WrongVersionChecker().run(issue)
             if version_error_string:
-                jira_issue_errors.append(f"{issue_key}: {version_error_string}")
+                jira_issue_errors.append(
+                    f"Bad `fixVersions` field in the related Jira Issue {issue_key}: "
+                    f"{version_error_string}")
 
         if jira_issue_errors:
             mr_manager.ensure_jira_issue_errors_info(errors=jira_issue_errors)

@@ -1,14 +1,14 @@
 import pytest
 
+from jira.exceptions import JIRAError
+
 from robocat.rule.jira_issue_check_rule import JiraIssueCheckRuleExecutionResult
 from robocat.award_emoji_manager import AwardEmojiManager
-from tests.robocat_constants import DEFAULT_COMMIT
 from tests.fixtures import *
 
 import automation_tools.checkers.config
 from automation_tools.tests.fixtures import jira, repo_accessor
 from automation_tools.tests.mocks.resources import Version
-from automation_tools.jira import JiraIssue
 
 
 class TestJiraIssueCheckRule:
@@ -53,19 +53,6 @@ class TestJiraIssueCheckRule:
         for _ in range(2):  # State must not change after any number of rule executions.
             execution_result = jira_issue_rule.execute(mr_manager)
             assert execution_result == JiraIssueCheckRuleExecutionResult.work_in_progress
-
-    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
-        # Commit without Jira Issue referencees in its title.
-        ([{
-            "key": "VMS-666", "branches": ["master"],
-        }], {
-            "title": "Merge request without Jira Issue"
-        }),
-    ])
-    def test_not_applicable(self, jira_issue_rule, mr, mr_manager):
-        for _ in range(2):  # State must not change after any number of rule executions.
-            execution_result = jira_issue_rule.execute(mr_manager)
-            assert execution_result == JiraIssueCheckRuleExecutionResult.not_applicable
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Merge request is attached to one good Jira Issue.
@@ -158,6 +145,12 @@ class TestJiraIssueCheckRule:
         assert not any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        # Commit without Jira Issue references in its title.
+        ([{
+            "key": "VMS-666", "branches": ["master"],
+        }], {
+            "title": "Merge request without Jira Issue"
+        }),
         # Merge request is attached to bad Jira Issue.
         ([{
             "key": "VMS-667", "branches": ["vms_4.2"],
@@ -173,7 +166,7 @@ class TestJiraIssueCheckRule:
             "title": "VMS-666, VMS-667, VMS-668: Merge request attached to multiple Jira Issues"
         }),
     ])
-    def test_has_bad_jira_issues(self, jira_issue_rule, mr, mr_manager, jira):
+    def test_has_jira_issue_problems(self, jira_issue_rule, mr, mr_manager, jira):
         for _ in range(2):  # State must not change after any number of rule executions.
             execution_result = jira_issue_rule.execute(mr_manager)
             assert execution_result == JiraIssueCheckRuleExecutionResult.rule_execution_failed
@@ -184,14 +177,19 @@ class TestJiraIssueCheckRule:
             assert len(mr.mock_comments()) == 1
             first_comment = mr.mock_comments()[0]
             has_bad_jira_issue_token = (
-                f':{AwardEmojiManager.BAD_ISSUE_EMOJI}: Bad "fixVersions" field')
+                f':{AwardEmojiManager.BAD_ISSUE_EMOJI}: Jira workflow check failed')
             assert has_bad_jira_issue_token in first_comment
             assert 'VMS-666' not in first_comment
-            assert 'VMS-667' in first_comment
+
+            try:
+                jira._jira.issue("VMS-667")
+                assert 'VMS-667' in first_comment
+            except JIRAError:
+                pass
 
             # Check "VMS-668" error message only if we have VMS-668 issue in the test parameters.
             try:
-                issue = jira._jira.issue("VMS-668")
+                jira._jira.issue("VMS-668")
                 assert 'VMS-668' in first_comment
-            except KeyError:
+            except JIRAError:
                 pass

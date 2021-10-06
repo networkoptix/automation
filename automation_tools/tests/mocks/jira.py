@@ -1,5 +1,7 @@
 from typing import List, Optional
 
+import jira.exceptions
+
 from automation_tools.checkers.config import PROJECT_KEYS_TO_CHECK
 from automation_tools.tests.mocks.issue import JiraIssue
 from automation_tools.tests.mocks.resources import (
@@ -11,7 +13,10 @@ class Jira:
         self._issues = {}
 
     def issue(self, key):
-        return self._issues[key]
+        try:
+            return self._issues[key]
+        except KeyError:
+            raise jira.exceptions.JIRAError
 
     def search_issues(self, *_, **__):
         issues = []

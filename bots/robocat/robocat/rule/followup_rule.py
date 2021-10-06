@@ -128,7 +128,6 @@ class FollowupRule(BaseRule):
                     current_issue_followup_branches.add(target_branch)
                 else:
                     issue.add_already_in_version_label(target_branch)
-
             if current_issue_followup_branches:
                 issue.add_followups_created_comment(current_issue_followup_branches)
 

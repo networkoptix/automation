@@ -56,7 +56,7 @@ class TestBot:
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # One commit.
-        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
+        ([{"key": "VMS-666", "branches": ["master"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [GOOD_README_COMMIT_NEW_FILE],
@@ -64,7 +64,7 @@ class TestBot:
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
         }),
         # Two commits, no squashing.
-        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
+        ([{"key": "VMS-666", "branches": ["master"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [{
@@ -152,7 +152,7 @@ class TestBot:
             'Hasn\'t unfinished processing flag.')
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
-        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
+        ([{"key": "VMS-666", "branches": ["master"]}], {
             "mock_needs_rebase": True,
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,

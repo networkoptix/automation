@@ -4,6 +4,7 @@ import pytest
 from automation_tools.tests.fixtures import jira, repo_accessor
 from automation_tools.tests.mocks.git_mocks import RemoteMock
 from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.rule.followup_rule import FollowupRuleExecutionResult
 from tests.robocat_constants import (
     DEFAULT_COMMIT,
     DEFAULT_PROJECT_ID,
@@ -31,15 +32,24 @@ class TestFollowupRule:
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI]
         }),
-        # Don't create follow-up merge request for unknown issue.
-        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
-            "state": "merged",
-            "squash_commit_sha": DEFAULT_COMMIT["sha"]
-        }),
     ])
-    def test_dont_create_followup(self, project, followup_rule, mr, mr_manager, jira):
+    def test_dont_create_followup(self, project, followup_rule, mr, mr_manager, jira, repo_accessor):
+        # Init git repo state. TODO: Move git repo state to parameters.
+
+        project_remote = project.namespace["full_path"]
+        RemoteMock.add(repo=repo_accessor.repo, name=project_remote, url="")
+        repo_accessor.create_branch(
+            target_remote=project_remote, new_branch="vms_4.1", source_branch="master")
+        for c in mr.commits_list:
+            repo_accessor.repo.add_mock_commit(c["sha"], c["message"])
+        repo_accessor.repo.remotes[project_remote].mock_attach_gitlab_project(project)
+
+        # Start tests.
+
         for _ in range(2):
-            assert not followup_rule.execute(mr_manager)
+            assert followup_rule.execute(mr_manager) in (
+                FollowupRuleExecutionResult.rule_execution_successfull,
+                FollowupRuleExecutionResult.not_eligible)
 
             issue = jira._jira.issue("VMS-666")
             assert len(issue.fields.comment.comments) == 0, (

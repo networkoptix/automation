@@ -175,7 +175,7 @@ class MergeRequestMock:
     project: Any  # ProjectMock
 
     iid: int = field(default_factory=time.time_ns)
-    title: str = "Do Zorz at work"
+    title: str = "VMS-666: Do Zorz at work"
     has_conflicts: bool = False
     work_in_progress: bool = False
     blocking_discussions_resolved: bool = True
