@@ -194,7 +194,7 @@ class MergeRequestManager:
         message_params["revision"] = automation_tools.bot_info.revision()
         self._mr.create_note(body=robocat.comments.template.format(**message_params))
 
-    def ensure_user_requeseted_pipeline_run(self) -> bool:
+    def ensure_user_requested_pipeline_run(self) -> bool:
         if not self._mr.award_emoji.find(AwardEmojiManager.PIPELINE_EMOJI, own=False):
             return False
         last_pipeline = self._get_last_pipeline()

@@ -38,7 +38,7 @@ class EssentialRule(BaseRule):
             return EssentialRuleExecutionResult.no_commits
 
         mr_manager.ensure_watching()
-        mr_manager.ensure_user_requeseted_pipeline_run()
+        mr_manager.ensure_user_requested_pipeline_run()
 
         if mr_data.work_in_progress:
             mr_manager.unset_wait_state()
