@@ -10,6 +10,12 @@ logger = logging.getLogger(__name__)
 
 class MergeRequest:
     DISCUSSIONS_PAGE_SIZE = 100
+    _ISSUE_PATTERN_RE = re.compile(r"\b([A-Z][A-Z0-9_]+-\d+)\b")
+    _ISSUE_CLOSING_PATTERN_RE = re.compile(
+        r"\b(?:[Cc]los(?:e[sd]?|ing)|\b[Ff]ix(?:e[sd]|ing)?|\b[Rr]esolv(?:e[sd]?|ing)|"
+        r"\b[Ii]mplement(?:s|ed|ing)?)(?::?) +(?:issues? )?"
+        r"(?P<issue_refs>(?: *,? +and +| *,? *[A-Z][A-Z0-9_]+-\d+)+)",
+        flags=re.M)
 
     def __init__(self, gitlab_mr, current_user):
         self._gitlab_mr = gitlab_mr
@@ -56,7 +62,7 @@ class MergeRequest:
 
     @property
     def description(self) -> str:
-        return self._gitlab_mr.description
+        return self._gitlab_mr.description if self._gitlab_mr.description is not None else ""
 
     @property
     def target_branch(self) -> str:
@@ -121,12 +127,12 @@ class MergeRequest:
 
     @property
     def issue_keys(self) -> List[str]:
-        """Extract Jira issue names from the merge request title"""
+        """Extract Jira issue names from the Merge Request title and description"""
         title_issues_part, _, _ = self.title.partition(":")
-        keys_from_title = re.findall(r"\b(\w+-\d+)\b", title_issues_part)
-        if keys_from_title:
-            return keys_from_title
-        return []
+        issue_keys = list(self._ISSUE_PATTERN_RE.findall(title_issues_part))
+        for keys_group in self._ISSUE_CLOSING_PATTERN_RE.finditer(self.description):
+            issue_keys += list(self._ISSUE_PATTERN_RE.findall(keys_group["issue_refs"]))
+        return list(set(issue_keys))
 
     def raw_pipelines_list(self) -> List[Dict]:
         return self._gitlab_mr.pipelines()

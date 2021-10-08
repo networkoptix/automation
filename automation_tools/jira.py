@@ -138,6 +138,10 @@ class JiraIssue:
         return str(raw_issue.fields.resolution.name) if raw_issue.fields.resolution else None
 
     @property
+    def fixVersions(self) -> List[str]:
+        return [v.name for v in self._raw_issue.fields.fixVersions]
+
+    @property
     def type_name(self) -> str:
         return self._raw_issue.fields.issuetype.name
 

@@ -1,4 +1,5 @@
 import pytest
+import re
 
 from jira.exceptions import JIRAError
 
@@ -7,7 +8,7 @@ from robocat.award_emoji_manager import AwardEmojiManager
 from tests.fixtures import *
 
 import automation_tools.checkers.config
-from automation_tools.tests.fixtures import jira, repo_accessor
+from automation_tools.tests.fixtures import jira
 from automation_tools.tests.mocks.resources import Version
 
 
@@ -63,7 +64,7 @@ class TestJiraIssueCheckRule:
         }),
         # Merge request is attached to two good Jira Issue.
         ([{
-            "key": "VMS-666", "branches": ["master"]
+            "key": "VMS-666", "branches": ["master", "vms_4.2_patch"]
         }, {
             "key": "VMS-667", "branches": ["master", "vms_4.2_patch"]
         }], {
@@ -102,6 +103,15 @@ class TestJiraIssueCheckRule:
         }], {
             "title": "VMS-666, VMS-667: Merge request attached to multiple Jira Issues"
         }),
+        # Merge Request is attached to good Jira Issues from different projects with different
+        # fixVersions.
+        ([
+            {"key": "VMS-666", "branches": ["master", "vms_5.0"]},
+            {"key": "VMS-667", "branches": ["master", "vms_5.0"]},
+            {"key": "CB-1", "branches": ["master", "cloud_backend_20.1"]},
+        ], {
+            "title": "VMS-666, VMS-667, CB-1: Merge request attached to multiple Jira Issues"
+        }),
     ])
     def test_jira_issues_are_ok(self, jira_issue_rule, mr, mr_manager):
         for _ in range(2):  # State must not change after any number of rule executions.
@@ -122,7 +132,7 @@ class TestJiraIssueCheckRule:
         ([{
             "key": "VMS-666", "branches": ["vms_4.2"],
         }, {
-            "key": "VMS-667", "branches": ["master", "vms_4.2_patch"],
+            "key": "VMS-667", "branches": ["master"],
         }], {
             "title": "VMS-666, VMS-667: Merge request attached to Jira Issue"
         }),
@@ -145,12 +155,6 @@ class TestJiraIssueCheckRule:
         assert not any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
-        # Commit without Jira Issue references in its title.
-        ([{
-            "key": "VMS-666", "branches": ["master"],
-        }], {
-            "title": "Merge request without Jira Issue"
-        }),
         # Merge request is attached to bad Jira Issue.
         ([{
             "key": "VMS-667", "branches": ["vms_4.2"],
@@ -166,7 +170,7 @@ class TestJiraIssueCheckRule:
             "title": "VMS-666, VMS-667, VMS-668: Merge request attached to multiple Jira Issues"
         }),
     ])
-    def test_has_jira_issue_problems(self, jira_issue_rule, mr, mr_manager, jira):
+    def test_has_bad_version_set(self, jira_issue_rule, mr, mr_manager, jira):
         for _ in range(2):  # State must not change after any number of rule executions.
             execution_result = jira_issue_rule.execute(mr_manager)
             assert execution_result == JiraIssueCheckRuleExecutionResult.rule_execution_failed
@@ -179,17 +183,30 @@ class TestJiraIssueCheckRule:
             has_bad_jira_issue_token = (
                 f':{AwardEmojiManager.BAD_ISSUE_EMOJI}: Jira workflow check failed')
             assert has_bad_jira_issue_token in first_comment
-            assert 'VMS-666' not in first_comment
+            assert re.search(r"Bad `fixVersions` .+ VMS-66[7|8]: Version set", first_comment), (
+                f"Error string is not found in {first_comment}")
 
-            try:
-                jira._jira.issue("VMS-667")
-                assert 'VMS-667' in first_comment
-            except JIRAError:
-                pass
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        # Merge Request is attached to good Jira Issues with different fixVersions.
+        ([
+            {"key": "VMS-666", "branches": ["master", "vms_5.0", "vms_4.2_patch"]},
+            {"key": "VMS-667", "branches": ["master", "vms_5.0"]},
+        ], {
+            "title": "VMS-666, VMS-667: Merge request attached to multiple Jira Issues"
+        }),
+    ])
+    def test_has_inconsistent_version_set(self, jira_issue_rule, mr, mr_manager):
+        for _ in range(2):  # State must not change after any number of rule executions.
+            execution_result = jira_issue_rule.execute(mr_manager)
+            assert execution_result == JiraIssueCheckRuleExecutionResult.rule_execution_failed
 
-            # Check "VMS-668" error message only if we have VMS-668 issue in the test parameters.
-            try:
-                jira._jira.issue("VMS-668")
-                assert 'VMS-668' in first_comment
-            except JIRAError:
-                pass
+            emojis = mr.awardemojis.list()
+            assert any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
+
+            assert len(mr.mock_comments()) == 1
+            first_comment = mr.mock_comments()[0]
+            has_bad_jira_issue_token = (
+                f":{AwardEmojiManager.BAD_ISSUE_EMOJI}: Jira workflow check failed")
+            assert has_bad_jira_issue_token in first_comment
+            assert re.search(r"VMS-66[6|7]: `fixVersions` is inconsistent", first_comment), (
+                f"Error string is not found in {first_comment}")

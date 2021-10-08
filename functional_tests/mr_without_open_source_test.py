@@ -10,7 +10,15 @@ import helpers.tests_config
 
 
 class TestNoOpenSource:
-    def test_submodule_update_unsquashed_mr(self, repo, branch, project, bot):
+    @pytest.mark.parametrize("issue_descriptions", [
+        [
+            helpers.jira.IssueDescription(
+                title="Test issue 1", issuetype=helpers.jira.IssueType.Bug,
+                versions=["master"],
+                status=helpers.jira.IssueStatus.InReview),
+        ]
+    ])
+    def test_submodule_update_unsquashed_mr(self, repo, branch, project, bot, jira_issues):
         (Path(repo.working_dir) / "CMakeLists.txt").write_text(branch)
         (Path(repo.working_dir) / "conan_recipes").write_text(branch)
         helpers.repo.create_commit(
@@ -26,10 +34,11 @@ class TestNoOpenSource:
             message=f"Test commit 1 ({branch})\n\nUpdate submodule conan_recipes.")
         helpers.repo.push(repo, branch_name=branch)
 
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
         mr = helpers.gitlab.create_merge_request(project, {
             "source_branch": branch,
             "target_branch": "master",
-            "title": "Test MR 1",
+            "title": f"{issue_keys}: Test MR 1",
             "squash": False,
         })
 
@@ -40,7 +49,15 @@ class TestNoOpenSource:
         updated_mr = helpers.gitlab.update_mr_data(mr)
         assert updated_mr.state == "merged", f"The Merge Request state is {updated_mr.state}"
 
-    def test_squashed_mr(self, repo, branch, project, bot):
+    @pytest.mark.parametrize("issue_descriptions", [
+        [
+            helpers.jira.IssueDescription(
+                title="Test issue 1", issuetype=helpers.jira.IssueType.Bug,
+                versions=["master"],
+                status=helpers.jira.IssueStatus.InReview),
+        ]
+    ])
+    def test_squashed_mr(self, repo, branch, project, bot, jira_issues):
         (Path(repo.working_dir) / "vms/file_2_1.cpp").write_text(branch)
         (Path(repo.working_dir) / "conan_recipes").write_text(branch)
         helpers.repo.create_and_push_commit(
@@ -53,10 +70,11 @@ class TestNoOpenSource:
             repo, branch_name=branch, updated_files=["vms/file_2_2.cpp"],
             message=f"Test commit 2 ({branch})")
 
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
         mr = helpers.gitlab.create_merge_request(project, {
             "source_branch": branch,
             "target_branch": "master",
-            "title": "Test MR 2",
+            "title": f"{issue_keys}: Test MR 2",
             "description": "Update submodule conan_recipes.",
         })
 

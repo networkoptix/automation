@@ -2,6 +2,8 @@ from pathlib import Path
 import re
 from typing import List
 
+import pytest
+
 import helpers.jira
 import helpers.gitlab
 import helpers.repo
@@ -11,7 +13,15 @@ from robocat.app import Bot
 
 
 class TestOpenSource:
-    def test_one_bad_file(self, repo, branch, project, bot_config):
+    @pytest.mark.parametrize("issue_descriptions", [
+        [
+            helpers.jira.IssueDescription(
+                title="Test issue 1", issuetype=helpers.jira.IssueType.Bug,
+                versions=["master"],
+                status=helpers.jira.IssueStatus.InReview),
+        ]
+    ])
+    def test_one_bad_file(self, repo, branch, project, bot_config, jira_issues):
         def check_open_source_check_result(approved_mr) -> List:
             approvals = approved_mr.approvals.get()
             assert approvals.approvals_left == 0, (
@@ -55,10 +65,11 @@ class TestOpenSource:
             updated_files=updated_files,
             message=f"Test commit 1 ({branch})")
 
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
         mr = helpers.gitlab.create_merge_request(project, {
             "source_branch": branch,
             "target_branch": "master",
-            "title": "Test MR 1",
+            "title": f"{issue_keys}: Test MR 1",
             "approvals_before_merge": 1,
         })
 
@@ -96,7 +107,15 @@ class TestOpenSource:
         merged_mr = helpers.gitlab.update_mr_data(approved_mr_2)
         assert merged_mr.state == "merged", f"The Merge Request state is {merged_mr.state}"
 
-    def test_two_bad_files(self, repo, branch, project, bot):
+    @pytest.mark.parametrize("issue_descriptions", [
+        [
+            helpers.jira.IssueDescription(
+                title="Test issue 1", issuetype=helpers.jira.IssueType.Bug,
+                versions=["master"],
+                status=helpers.jira.IssueStatus.InReview),
+        ]
+    ])
+    def test_two_bad_files(self, repo, branch, project, bot, jira_issues):
         updated_files = ["open/bad_file_2.cpp", "open/bad_file.cpp"]
         open_source_approvers = get_approvers_by_file_paths(
             bot._rule_open_source_check, updated_files)
@@ -116,10 +135,11 @@ class TestOpenSource:
             updated_files=updated_files,
             message=f"Test commit 1 ({branch})")
 
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
         mr = helpers.gitlab.create_merge_request(project, {
             "source_branch": branch,
             "target_branch": "master",
-            "title": "Test MR 2",
+            "title": f"{issue_keys}: Test MR 2",
             "assignee_ids": [open_source_approver.id],
         })
 
@@ -145,9 +165,10 @@ class TestOpenSource:
         assert not updated_mr.work_in_progress
 
         # "notes" and "discussions" are ordered in reverse order to each other.
-        for open_source_discussion in updated_mr.discussions.list()[3:6]:
+        open_source_discussions = updated_mr.discussions.list()[3:6]
+        for i, open_source_discussion in enumerate(open_source_discussions):
             discussion_note = open_source_discussion.attributes["notes"][0]
-            assert discussion_note["id"] == notes[autochek_comment_number].id
+            assert discussion_note["id"] == notes[-4-i].id
             helpers.gitlab.resolve_discussion(mr, open_source_discussion.id)
 
         helpers.gitlab.approve_mr(mr)
@@ -157,7 +178,15 @@ class TestOpenSource:
         merged_mr = helpers.gitlab.update_mr_data(updated_mr)
         assert merged_mr.state == "merged", f"The Merge Request state is {merged_mr.state}"
 
-    def test_existing_file_good_changes(self, repo, branch, project, bot):
+    @pytest.mark.parametrize("issue_descriptions", [
+        [
+            helpers.jira.IssueDescription(
+                title="Test issue 1", issuetype=helpers.jira.IssueType.Bug,
+                versions=["master"],
+                status=helpers.jira.IssueStatus.InReview),
+        ]
+    ])
+    def test_existing_file_good_changes(self, repo, branch, project, bot, jira_issues):
         with open(Path(repo.working_dir) / "open/good_file.cpp", "a") as f:
             f.write("// Some good changes")
 
@@ -166,10 +195,11 @@ class TestOpenSource:
             updated_files=["open/good_file.cpp"],
             message=f"Test commit 1 ({branch})")
 
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
         mr = helpers.gitlab.create_merge_request(project, {
             "source_branch": branch,
             "target_branch": "master",
-            "title": "Test MR 3",
+            "title": f"{issue_keys}: Test MR 3",
         })
 
         bot.run()
@@ -183,10 +213,18 @@ class TestOpenSource:
         assert len(notes) == 8, "Unexpected notes count: \n{}".format(
             "\n======\n".join([n.body for n in notes]))
         assert notes[-4].body.startswith(
-            "### :white_check_mark: Auto-check for open source changes passed"), (
+            "### :white_check_mark: Auto-check for open-source changes passed"), (
             f"Unexpected auto-check pass note: {notes[-4].body}")
 
-    def test_new_file_good_changes(self, repo, branch, project, bot):
+    @pytest.mark.parametrize("issue_descriptions", [
+        [
+            helpers.jira.IssueDescription(
+                title="Test issue 1", issuetype=helpers.jira.IssueType.Bug,
+                versions=["master"],
+                status=helpers.jira.IssueStatus.InReview),
+        ]
+    ])
+    def test_new_file_good_changes(self, repo, branch, project, bot, jira_issues):
         updated_files = ["open/good_file_1.cpp"]
         open_source_approvers = get_approvers_by_file_paths(
             bot._rule_open_source_check, updated_files)
@@ -206,10 +244,11 @@ class TestOpenSource:
             updated_files=updated_files,
             message=f"Test commit 1 ({branch})")
 
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
         mr = helpers.gitlab.create_merge_request(project, {
             "source_branch": branch,
             "target_branch": "master",
-            "title": "Test MR 4",
+            "title": f"{issue_keys}: Test MR 4",
             "assignee_ids": [open_source_approver.id]
         })
 

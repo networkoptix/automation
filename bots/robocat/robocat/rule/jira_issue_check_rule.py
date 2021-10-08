@@ -47,6 +47,7 @@ class JiraIssueCheckRule(BaseRule):
                 f"{mr_manager}: Can't detect attached Jira Issue for the merge request.")
             jira_issue_errors = ["Merge Request must be related to at least one Jira Issue"]
 
+        jira_issue_branches = {}
         self._jira.get_issue.cache_clear()
         for issue_key in jira_issue_keys:
             issue = self._jira.get_issue(issue_key)
@@ -58,6 +59,15 @@ class JiraIssueCheckRule(BaseRule):
                 jira_issue_errors.append(
                     f"Bad `fixVersions` field in the related Jira Issue {issue_key}: "
                     f"{version_error_string}")
+
+            first_found_issue_data = jira_issue_branches.setdefault(
+                issue.project,
+                {"key": issue_key, "branches": issue.branches(), "fixVersions": issue.fixVersions})
+            if first_found_issue_data["branches"] != issue.branches():
+                jira_issue_errors.append(
+                    f"{issue_key}: `fixVersions` is inconsistent with `fixVersions` of "
+                    f"{first_found_issue_data['key']}: {issue.fixVersions!r} != "
+                    f"{first_found_issue_data['fixVersions']!r}.")
 
         if jira_issue_errors:
             mr_manager.ensure_jira_issue_errors_info(errors=jira_issue_errors)
