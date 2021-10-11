@@ -30,6 +30,7 @@ class Repo:
             self.repo = git.Repo.clone_from(url, path)
 
     def update_repository(self, remote: str = "origin"):
+        logger.debug(f"Fetching {remote}...")
         self.repo.remotes[remote].fetch()
 
     def add_remote(self, remote: str, url: str):
@@ -63,6 +64,7 @@ class Repo:
     def _hard_checkout(self, remote: str, branch: str):
         full_branch_name = f"{remote}/{branch}"
         if branch not in self.repo.heads:
+            logger.debug(f"Creating branch {branch} at {full_branch_name}...")
             self.repo.head.reference = self.repo.create_head(branch, full_branch_name)
         elif self._current_branch_name != branch:
             self.repo.head.reference = self.repo.heads[branch]
@@ -73,12 +75,15 @@ class Repo:
         return self.repo.head.reference.name
 
     def _soft_reset(self, commit: str):
+        logger.debug(f"Resetig HEAD to {commit} (soft)...")
         self.repo.head.reset(commit=commit, index=False, working_tree=False)
 
     def _hard_reset(self, commit: str):
+        logger.debug(f"Resetig HEAD to {commit} (harf)...")
         self.repo.head.reset(commit=commit, index=True, working_tree=True)
 
     def _mixed_reset(self, commit: str):
+        logger.debug(f"Resetig HEAD to {commit} (hard)...")
         self.repo.head.reset(commit=commit, index=True, working_tree=False)
 
     def _commit(self, message: str, author: git.Actor):
@@ -96,6 +101,7 @@ class Repo:
             self._hard_checkout(remote, branch)
 
         try:
+            logger.debug(f"Cherry-picking {sha} to {branch}...")
             self.repo.git.cherry_pick("-x", sha)
             return True
         except git.GitCommandError as error:
