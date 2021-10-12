@@ -31,7 +31,13 @@ class Repo:
 
     def update_repository(self, remote: str = "origin"):
         logger.debug(f"Fetching {remote}...")
-        self.repo.remotes[remote].fetch()
+        try:
+            self.repo.remotes[remote].fetch()
+        except git.exc.BadName as e:
+            # Workaround for https://github.com/gitpython-developers/GitPython/issues/768.
+            logger.debug(f"'BadName' exception while fetching remote: {e}. Retrying...")
+            self.repo.git.gc("--auto")
+            self.repo.remotes[remote].fetch()
 
     def add_remote(self, remote: str, url: str):
         try:
@@ -79,7 +85,7 @@ class Repo:
         self.repo.head.reset(commit=commit, index=False, working_tree=False)
 
     def _hard_reset(self, commit: str):
-        logger.debug(f"Resetig HEAD to {commit} (harf)...")
+        logger.debug(f"Resetig HEAD to {commit} (hard)...")
         self.repo.head.reset(commit=commit, index=True, working_tree=True)
 
     def _mixed_reset(self, commit: str):
