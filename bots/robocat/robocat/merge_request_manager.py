@@ -1,7 +1,6 @@
 import logging
 import dataclasses
 from functools import lru_cache
-import json
 from typing import Any, Dict, Set, List, Optional
 import re
 import time
@@ -198,7 +197,7 @@ class MergeRequestManager:
         if not self._mr.award_emoji.find(AwardEmojiManager.PIPELINE_EMOJI, own=False):
             return False
         last_pipeline = self._get_last_pipeline()
-        if last_pipeline.sha == self._mr.sha:
+        if last_pipeline and last_pipeline.sha == self._mr.sha:
             logger.info(f"{self._mr}: Refusing to manualy run pipeline with the same sha")
             message = robocat.comments.refuse_run_pipeline_message.format(
                 pipeline_id=last_pipeline.id, pipeline_url=last_pipeline.web_url, sha=self._mr.sha)
@@ -218,7 +217,7 @@ class MergeRequestManager:
         return True
 
     @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
-    def _get_last_pipeline(self, include_skipped=False) -> Pipeline:
+    def _get_last_pipeline(self, include_skipped=False) -> Optional[Pipeline]:
         pipeline_ids = [
             p['id'] for p in self._mr.raw_pipelines_list()
             if include_skipped or Pipeline.translate_status(p["status"]) != PipelineStatus.skipped]
