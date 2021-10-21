@@ -109,6 +109,9 @@ class JiraIssue:
         return None
 
     def branches(self, exclude_already_merged: bool = False) -> Set[str]:
+        if not self._raw_issue.fields.fixVersions:
+            return []
+
         mapping = self._version_to_branch_mapping
         issue = self._raw_issue
         labels = issue.fields.labels
@@ -119,6 +122,9 @@ class JiraIssue:
 
     @property
     def versions_to_branches_map(self) -> Dict[str, str]:
+        if not self._raw_issue.fields.fixVersions:
+            return []
+
         mapping = self._version_to_branch_mapping
         issue = self._raw_issue
         return {
@@ -139,6 +145,8 @@ class JiraIssue:
 
     @property
     def fixVersions(self) -> List[str]:
+        if not self._raw_issue.fields.fixVersions:
+            return []
         return [v.name for v in self._raw_issue.fields.fixVersions]
 
     @property
