@@ -19,7 +19,7 @@ def create_and_push_commit(
     push(repo, branch_name, force=forced_push)
 
     if wait_after_push:
-        time.sleep(helpers.tests_config.POST_MR_SLIIP_S)
+        time.sleep(helpers.tests_config.POST_MR_SLEEP_S)
 
 
 def create_commit(

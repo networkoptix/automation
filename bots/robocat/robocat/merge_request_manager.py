@@ -108,6 +108,9 @@ class MergeRequestData:
     source_branch_project_id: int
     target_branch_project_id: int
     issue_keys: list
+    commit_issue_keys: list
+    merged_commit_message: str
+    squash: bool
 
 
 # NOTE: Hash and eq methods for this object should return different values for different object
@@ -448,7 +451,7 @@ class MergeRequestManager:
 
         return [c.id[0:12] for c in self._mr.commits()]
 
-    def ensure_jira_issue_errors_info(self, errors: List[str]) -> bool:
+    def ensure_workflow_errors_info(self, errors: List[str], title: str = "") -> bool:
         if not errors:
             return self._mr.award_emoji.delete(AwardEmojiManager.BAD_ISSUE_EMOJI, own=True)
 
@@ -456,7 +459,7 @@ class MergeRequestManager:
             return False
 
         self._add_comment(
-            "Jira workflow check failed",
+            title,
             robocat.comments.bad_fix_versions_message.format(errors="  \n".join(errors)),
             AwardEmojiManager.BAD_ISSUE_EMOJI)
         self._mr.award_emoji.create(AwardEmojiManager.BAD_ISSUE_EMOJI)

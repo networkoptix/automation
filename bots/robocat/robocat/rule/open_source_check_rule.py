@@ -297,7 +297,7 @@ class OpenSourceCheckRule(BaseRule):
             message_id = MessageId.OpenSourceNoProblemAutoApproved
 
         mr_manager.create_thread(
-            title="Auto-check for open source changes passed",
+            title="Auto-check for open-source changes passed",
             message=message,
             message_id=message_id,
             emoji=AwardEmojiManager.AUTOCHECK_OK_EMOJI,

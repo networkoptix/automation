@@ -4,7 +4,13 @@ from automation_tools.tests.mocks.git_mocks import BOT_EMAIL, BOT_NAME, BOT_USER
 
 
 BOT_USERID = 100
-DEFAULT_COMMIT = {"sha": "11", "message": "msg1", "diffs": [], "files": {}}
+DEFAULT_JIRA_ISSUE_KEY = "VMS-666"
+DEFAULT_COMMIT = {
+    "sha": "11",
+    "message":  f"{DEFAULT_JIRA_ISSUE_KEY}: msg1",
+    "diffs": [],
+    "files": {},
+}
 DEFAULT_MR_ID = 7
 DEFAULT_REQUIRED_APPROVALS_COUNT = 2
 DEFAULT_PROJECT_ID = 1
@@ -22,26 +28,26 @@ FILE_COMMITS_SHA = {
 CONFLICTING_COMMIT_SHA = "1001"
 BAD_OPENSOURCE_COMMIT = {
     "sha": FILE_COMMITS_SHA["bad_dontreadme"],
-    "message": "msg1",
+    "message": f"{DEFAULT_JIRA_ISSUE_KEY}: some title\nsome msg1",
     "diffs": [],
     "files": {"open/dontreadme.md": {"is_new": False, "raw_data": BAD_README_RAW_DATA}},
 }
 BAD_OPENCANDIDATE_COMMIT = {
     "sha": FILE_COMMITS_SHA["bad_opencadidate_source_files"],
-    "message": "msg1",
+    "message": f"{DEFAULT_JIRA_ISSUE_KEY}: some title\nsome msg1",
     "diffs": [],
     "files": {
         "open_candidate/CMakeLists.txt": {"is_new": True, "raw_data": BAD_CMAKELISTS_RAW_DATA}},
 }
 GOOD_README_COMMIT_CHANGED_FILE = {
     "sha": FILE_COMMITS_SHA["good_dontreadme"],
-    "message": "msg",
+    "message": f"{DEFAULT_JIRA_ISSUE_KEY}: some title\nsome msg",
     "diffs": [],
     "files": {"open/dontreadme.md": {"is_new": False, "raw_data": GOOD_README_RAW_DATA}},
 }
 GOOD_README_COMMIT_NEW_FILE = {
     "sha": FILE_COMMITS_SHA["good_dontreadme"],
-    "message": "msg",
+    "message": f"{DEFAULT_JIRA_ISSUE_KEY}: some title\nsome msg",
     "diffs": [],
     "files": {"open/dontreadme.md": {"is_new": True, "raw_data": GOOD_README_RAW_DATA}},
 }

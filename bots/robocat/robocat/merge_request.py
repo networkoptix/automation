@@ -128,11 +128,23 @@ class MergeRequest:
     @property
     def issue_keys(self) -> List[str]:
         """Extract Jira issue names from the Merge Request title and description"""
-        title_issues_part, _, _ = self.title.partition(":")
+        issue_keys = self._extract_issue_keys(self.title, self.description)
+        return list(issue_keys)
+
+    def _extract_issue_keys(self, header: str, description: str) -> Set[str]:
+        title_issues_part, _, _ = header.partition(":")
         issue_keys = list(self._ISSUE_PATTERN_RE.findall(title_issues_part))
-        for keys_group in self._ISSUE_CLOSING_PATTERN_RE.finditer(self.description):
+        for keys_group in self._ISSUE_CLOSING_PATTERN_RE.finditer(description):
             issue_keys += list(self._ISSUE_PATTERN_RE.findall(keys_group["issue_refs"]))
-        return list(set(issue_keys))
+        return set(issue_keys)
+
+    @property
+    def commit_issue_keys(self) -> List[str]:
+        """Extract Jira Issue names from the commit messages"""
+        issue_keys = []
+        for commit in self.commits():
+            issue_keys += self._extract_issue_keys(commit.title, commit.message)
+        return list(issue_keys)
 
     def raw_pipelines_list(self) -> List[Dict]:
         return self._gitlab_mr.pipelines()
@@ -242,3 +254,13 @@ class MergeRequest:
 
     def get_approvers_count(self):
         return self._gitlab_mr.approvals.get().approvals_required
+
+    @property
+    def merged_commit_message(self):
+        commits = list(self.commits())
+        if not commits:
+            return ""
+
+        if self.squash or len(commits) > 1:
+            return f"{self.title}\n\n{self.description}"
+        return commits[0].message

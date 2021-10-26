@@ -8,6 +8,7 @@ from tests.robocat_constants import (
     GOOD_README_COMMIT_NEW_FILE,
     FILE_COMMITS_SHA,
     OPEN_SOURCE_APPROVER_COMMON,
+    DEFAULT_JIRA_ISSUE_KEY,
     USERS)
 from tests.fixtures import *
 
@@ -16,13 +17,13 @@ class TestBot:
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Return to development on the second handle iteration if essential rule is ok but
         # open source rule check is failed and merge request is not approved by an eligible user.
-        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.1"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [BAD_OPENSOURCE_COMMIT],
             "pipelines_list": [(BAD_OPENSOURCE_COMMIT["sha"], "success")]
         }),
-        ([{"key": "VMS-666", "branches": ["master", "vms_4.1"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.1"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [GOOD_README_COMMIT_NEW_FILE],
@@ -56,7 +57,7 @@ class TestBot:
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # One commit.
-        ([{"key": "VMS-666", "branches": ["master"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [GOOD_README_COMMIT_NEW_FILE],
@@ -64,7 +65,7 @@ class TestBot:
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
         }),
         # Two commits, no squashing.
-        ([{"key": "VMS-666", "branches": ["master"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [{
@@ -92,7 +93,7 @@ class TestBot:
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Two commits, squashing is required.
-        ([{"key": "VMS-666", "branches": ["master"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [{
@@ -152,7 +153,7 @@ class TestBot:
             'Hasn\'t unfinished processing flag.')
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
-        ([{"key": "VMS-666", "branches": ["master"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"]}], {
             "mock_needs_rebase": True,
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,

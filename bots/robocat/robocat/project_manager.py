@@ -124,7 +124,7 @@ class ProjectManager:
             f"Creating MR '{title}' from '{source_branch}' to '{target_branch}'"
             f"(project {source_project.id} => {self._project.id})")
 
-        if original_mr_data.description is not None:
+        if original_mr_data.description:
             description = f"{original_mr_data.description}\n\n"
         else:
             description = ""
@@ -139,7 +139,7 @@ class ProjectManager:
             target_project_id=self._project.id,
             title=title,
             description=description,
-            squash=False,
+            squash=original_mr_data.squash,
             assignee_ids=[self._gitlab.user_id, user_gitlab.user_id])
         raw_mr = self._project.get_raw_mr_by_id(mr_id)
 

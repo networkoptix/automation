@@ -15,6 +15,10 @@ class CommitMock:
     def id(self):
         return self.sha
 
+    @property
+    def title(self):
+        return self.message.partition("\n\n")[0]
+
     def diff(self):
         return self.diffs
 

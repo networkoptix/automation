@@ -12,7 +12,11 @@ from tests.mocks.gitlab import GitlabManagerMock
 from tests.mocks.pipeline import PipelineMock
 from tests.mocks.commit import CommitMock
 from tests.robocat_constants import (
-    DEFAULT_COMMIT, DEFAULT_PROJECT_ID, USERS, DEFAULT_REQUIRED_APPROVALS_COUNT)
+    DEFAULT_COMMIT,
+    DEFAULT_PROJECT_ID,
+    USERS,
+    DEFAULT_REQUIRED_APPROVALS_COUNT,
+    DEFAULT_JIRA_ISSUE_KEY)
 
 DEFAULT_APPROVERS_NUMBER = 2
 
@@ -175,7 +179,7 @@ class MergeRequestMock:
     project: Any  # ProjectMock
 
     iid: int = field(default_factory=time.time_ns)
-    title: str = "VMS-666: Do Zorz at work"
+    title: str = f"{DEFAULT_JIRA_ISSUE_KEY}: Do Zorz at work"
     has_conflicts: bool = False
     work_in_progress: bool = False
     blocking_discussions_resolved: bool = True

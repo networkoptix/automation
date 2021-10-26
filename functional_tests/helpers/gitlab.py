@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 import gitlab
 
 import helpers.tests_config
+from robocat.pipeline import PlayPipelineError
 
 
 def create_merge_request(project, mr_parameters: Dict[str, str]):
@@ -16,7 +17,7 @@ def create_merge_request(project, mr_parameters: Dict[str, str]):
     parameters.setdefault("remove_source_branch", helpers.tests_config.DO_REMOVE_SOURCE_BRANCH)
     parameters.setdefault("approvals_before_merge ", len(helpers.tests_config.APPROVERS))
 
-    time.sleep(helpers.tests_config.POST_MR_SLIIP_S)
+    time.sleep(helpers.tests_config.POST_MR_SLEEP_S)
 
     return project.mergerequests.create(parameters)
 
@@ -37,13 +38,16 @@ def update_mr_data(mr):
     return gitlab_instance.projects.get(mr.project_id).mergerequests.get(mr.iid)
 
 
-def approve_mr_and_wait_pipeline(mr, exclude_approvers: Optional[List[str]] = None):
+def emulate_mr_approval(bot, mr, exclude_approvers: Optional[List[str]] = None):
+    wait_last_mr_pipeline_status(mr, ["manual"])
+    bot.run()
     wait_last_mr_pipeline_status(mr, ["running"])
     approve_mr(mr, exclude_approvers)
     wait_last_mr_pipeline_status(mr, ["success"])
+    bot.run()
 
 
-def wait_last_mr_pipeline_status(mr, status_list: List[str], max_pipeline_wait_time_s: int = 60):
+def wait_last_mr_pipeline_status(mr, status_list: List[str], max_pipeline_wait_time_s: int = 15):
     pipeline_start_wait_time = time.time()
     current_status = mr.pipelines()[0]["status"]
     while current_status not in status_list:

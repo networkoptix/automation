@@ -12,7 +12,7 @@ from robocat.app import Bot
 from robocat.rule.essential_rule import EssentialRule
 from robocat.rule.open_source_check_rule import OpenSourceCheckRule
 from robocat.rule.followup_rule import FollowupRule
-from robocat.rule.jira_issue_check_rule import JiraIssueCheckRule
+from robocat.rule.workflow_check_rule import WorkflowCheckRule
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.project_manager import ProjectManager
 from automation_tools.tests.fixtures import jira, repo_accessor
@@ -64,8 +64,8 @@ def open_source_rule(project, repo_accessor):
 
 
 @pytest.fixture
-def jira_issue_rule(project, jira):
-    return JiraIssueCheckRule(jira=jira)
+def workflow_rule(project, jira):
+    return WorkflowCheckRule(jira=jira)
 
 
 @pytest.fixture
@@ -85,13 +85,13 @@ def followup_rule(project, jira, monkeypatch, repo_accessor):
 
 
 @pytest.fixture
-def bot(essential_rule, open_source_rule, followup_rule, jira_issue_rule, repo_accessor,
+def bot(essential_rule, open_source_rule, followup_rule, workflow_rule, repo_accessor,
         monkeypatch):
     def bot_init(bot):
         bot._rule_essential = essential_rule
         bot._rule_open_source_check = open_source_rule
         bot._rule_followup = followup_rule
-        bot._rule_jira_issue_check = jira_issue_rule
+        bot._rule_workflow_check = workflow_rule
         bot._repo = repo_accessor
 
     monkeypatch.setattr(Bot, "__init__", bot_init)

@@ -60,23 +60,21 @@ class TestOpenSource:
         file_data = helpers.constants.OPENSOURCE_FILES["test_one_bad_file"][0]
         (Path(repo.working_dir) / file_data["path"]).write_text(file_data["content"])
 
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
+
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
             updated_files=updated_files,
-            message=f"Test commit 1 ({branch})")
-
-        issue_keys = ", ".join([issue.key for issue in jira_issues])
+            message=f"{issue_keys}: Test case 1 ({branch})\n")
         mr = helpers.gitlab.create_merge_request(project, {
             "source_branch": branch,
             "target_branch": "master",
-            "title": f"{issue_keys}: Test MR 1",
+            "title": f"{issue_keys}: Test case 1 ({branch})",
             "approvals_before_merge": 1,
         })
 
-        bot_1.run()
-        helpers.gitlab.approve_mr_and_wait_pipeline(
-            mr, exclude_approvers=[open_source_approver_username])
-        bot_1.run()
+        helpers.gitlab.emulate_mr_approval(
+            bot=bot_1, mr=mr, exclude_approvers=[open_source_approver_username])
 
         updated_mr = helpers.gitlab.update_mr_data(mr)
         assert updated_mr.state == "opened", f"The Merge Request state is {updated_mr.state}"
@@ -130,19 +128,20 @@ class TestOpenSource:
         with open(Path(repo.working_dir) / "open/bad_file.cpp", "a") as f:
             f.write("// Some good changes")
 
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
+
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
             updated_files=updated_files,
-            message=f"Test commit 1 ({branch})")
-
-        issue_keys = ", ".join([issue.key for issue in jira_issues])
+            message=f"{issue_keys}: Test case 2 ({branch})")
         mr = helpers.gitlab.create_merge_request(project, {
             "source_branch": branch,
             "target_branch": "master",
-            "title": f"{issue_keys}: Test MR 2",
+            "title": f"{issue_keys}: Test case 2 ({branch})",
             "assignee_ids": [open_source_approver.id],
         })
 
+        helpers.gitlab.wait_last_mr_pipeline_status(mr, ["manual"])
         bot.run()
         helpers.gitlab.wait_last_mr_pipeline_status(mr, ["success"])
 
@@ -190,21 +189,19 @@ class TestOpenSource:
         with open(Path(repo.working_dir) / "open/good_file.cpp", "a") as f:
             f.write("// Some good changes")
 
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
+
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
             updated_files=["open/good_file.cpp"],
-            message=f"Test commit 1 ({branch})")
-
-        issue_keys = ", ".join([issue.key for issue in jira_issues])
+            message=f"{issue_keys}: Test case 3 ({branch})")
         mr = helpers.gitlab.create_merge_request(project, {
             "source_branch": branch,
             "target_branch": "master",
-            "title": f"{issue_keys}: Test MR 3",
+            "title": f"{issue_keys}: Test case 3 ({branch})",
         })
 
-        bot.run()
-        helpers.gitlab.approve_mr_and_wait_pipeline(mr)
-        bot.run()
+        helpers.gitlab.emulate_mr_approval(bot=bot, mr=mr)
 
         updated_mr = helpers.gitlab.update_mr_data(mr)
         assert updated_mr.state == "merged", f"The Merge Request state is {updated_mr.state}"
@@ -239,22 +236,20 @@ class TestOpenSource:
         file_data = helpers.constants.OPENSOURCE_FILES["test_new_file_good_changes"][0]
         (Path(repo.working_dir) / file_data["path"]).write_text(file_data["content"])
 
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
+
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
             updated_files=updated_files,
-            message=f"Test commit 1 ({branch})")
-
-        issue_keys = ", ".join([issue.key for issue in jira_issues])
+            message=f"{issue_keys}: Test case 4 ({branch})")
         mr = helpers.gitlab.create_merge_request(project, {
             "source_branch": branch,
             "target_branch": "master",
-            "title": f"{issue_keys}: Test MR 4",
+            "title": f"{issue_keys}: Test case 4 ({branch})",
             "assignee_ids": [open_source_approver.id]
         })
 
-        bot.run()
-        helpers.gitlab.approve_mr_and_wait_pipeline(mr)
-        bot.run()
+        helpers.gitlab.emulate_mr_approval(bot=bot, mr=mr)
 
         updated_mr = helpers.gitlab.update_mr_data(mr)
         assert updated_mr.state == "opened", f"The Merge Request state is {updated_mr.state}"
@@ -267,7 +262,7 @@ class TestOpenSource:
         assert len(notes) == 8, "Unexpected notes count: \n{}".format(
             "\n======\n".join([n.body for n in notes]))
         assert notes[-4].body.startswith(
-            "### :white_check_mark: Auto-check for open source changes passed"), (
+            "### :white_check_mark: Auto-check for open-source changes passed"), (
             f"Unexpected auto-check pass note: {notes[-4].body}")
         assert not updated_mr.blocking_discussions_resolved
         assert updated_mr.work_in_progress

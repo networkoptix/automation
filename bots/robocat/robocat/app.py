@@ -21,7 +21,7 @@ from robocat.pipeline import PlayPipelineError
 from robocat.rule.essential_rule import EssentialRule
 from robocat.rule.open_source_check_rule import OpenSourceCheckRule
 from robocat.rule.followup_rule import FollowupRule
-from robocat.rule.jira_issue_check_rule import JiraIssueCheckRule
+from robocat.rule.workflow_check_rule import WorkflowCheckRule
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class Bot:
         self._rule_essential = EssentialRule()
         self._rule_open_source_check = OpenSourceCheckRule(
             project_manager=self._project_manager, **config["open_source_check_rule"])
-        self._rule_jira_issue_check = JiraIssueCheckRule(jira=JiraAccessor(**config["jira"]))
+        self._rule_workflow_check = WorkflowCheckRule(jira=JiraAccessor(**config["jira"]))
         self._rule_followup = FollowupRule(
             project_manager=self._project_manager,
             jira=JiraAccessor(**config["jira"]))
@@ -67,10 +67,10 @@ class Bot:
         if not essential_rule_check_result or not opens_source_check_result:
             return
 
-        jira_issue_check_result = self._rule_jira_issue_check.execute(mr_manager)
-        logger.debug(f"{mr_manager}: JIRA Issue check: {jira_issue_check_result}")
+        workflow_check_result = self._rule_workflow_check.execute(mr_manager)
+        logger.debug(f"{mr_manager}: {workflow_check_result}")
 
-        if not jira_issue_check_result:
+        if not workflow_check_result:
             return
 
         mr_manager.squash_locally_if_needed(self._repo)

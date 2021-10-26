@@ -21,30 +21,31 @@ class TestNoOpenSource:
     def test_submodule_update_unsquashed_mr(self, repo, branch, project, bot, jira_issues):
         (Path(repo.working_dir) / "CMakeLists.txt").write_text(branch)
         (Path(repo.working_dir) / "conan_recipes").write_text(branch)
+
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
+
         helpers.repo.create_commit(
             repo, branch_name=branch,
             updated_files=["CMakeLists.txt", "conan_recipes"],
-            message=f"Test commit 1 ({branch})")
+            message=f"{issue_keys}: Test case 1 ({branch})")
 
         with pytest.raises(git.exc.GitError):
             helpers.repo.push(repo, branch_name=branch)
 
         helpers.repo.amend_last_commit(
             repo, branch_name=branch,
-            message=f"Test commit 1 ({branch})\n\nUpdate submodule conan_recipes.")
+            message=f"{issue_keys}: Test case 1 ({branch})\n\nUpdate submodule conan_recipes.")
         helpers.repo.push(repo, branch_name=branch)
 
-        issue_keys = ", ".join([issue.key for issue in jira_issues])
         mr = helpers.gitlab.create_merge_request(project, {
             "source_branch": branch,
             "target_branch": "master",
-            "title": f"{issue_keys}: Test MR 1",
+            "title": f"{issue_keys}: Test case 1 ({branch})",
+            "description": "Update submodule conan_recipes.",
             "squash": False,
         })
 
-        bot.run()
-        helpers.gitlab.approve_mr_and_wait_pipeline(mr)
-        bot.run()
+        helpers.gitlab.emulate_mr_approval(bot=bot, mr=mr)
 
         updated_mr = helpers.gitlab.update_mr_data(mr)
         assert updated_mr.state == "merged", f"The Merge Request state is {updated_mr.state}"
@@ -66,15 +67,16 @@ class TestNoOpenSource:
             message=f"Test commit 1 ({branch})\n\nUpdate submodule conan_recipes.",
             wait_after_push=False)
         (Path(repo.working_dir) / "vms/file_2_2.cpp").write_text(branch)
-        helpers.repo.create_and_push_commit(
-            repo, branch_name=branch, updated_files=["vms/file_2_2.cpp"],
-            message=f"Test commit 2 ({branch})")
 
         issue_keys = ", ".join([issue.key for issue in jira_issues])
+
+        helpers.repo.create_and_push_commit(
+            repo, branch_name=branch, updated_files=["vms/file_2_2.cpp"],
+            message=f"{issue_keys}: Test case 2 ({branch})")
         mr = helpers.gitlab.create_merge_request(project, {
             "source_branch": branch,
             "target_branch": "master",
-            "title": f"{issue_keys}: Test MR 2",
+            "title": f"{issue_keys}: Test case 2 ({branch})",
             "description": "Update submodule conan_recipes.",
         })
 
@@ -82,9 +84,7 @@ class TestNoOpenSource:
         assert len(list(updated_mr.commits())) == 2, ("Expecting two commits; got\n{}".format(
             "\n".join([str(c) for c in updated_mr.commits()])))
 
-        bot.run()
-        helpers.gitlab.approve_mr_and_wait_pipeline(mr)
-        bot.run()
+        helpers.gitlab.emulate_mr_approval(bot=bot, mr=mr)
 
         updated_mr = helpers.gitlab.update_mr_data(mr)
         mr_commits = list(updated_mr.commits())
@@ -109,29 +109,27 @@ class TestNoOpenSource:
     def test_normal_jira_workflow(
             issue_descriptions, jira_handler, jira_issues, repo, branch, project, bot):
         (Path(repo.working_dir) / "vms/file_3_1.cpp").write_text(branch)
+
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
+
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
             updated_files=["vms/file_3_1.cpp"],
-            message=f"Test commit 3 ({branch})")
-
-        issue_keys = ", ".join([issue.key for issue in jira_issues])
+            message=f"{issue_keys}: Test case 3 ({branch})")
         mr = helpers.gitlab.create_merge_request(project, {
             "source_branch": branch,
             "target_branch": "master",
-            "title": f"{issue_keys}: Test MR 3",
+            "title": f"{issue_keys}: Test case 3 ({branch})",
         })
 
-        bot.run()
-        helpers.gitlab.approve_mr_and_wait_pipeline(mr)
-        bot.run()
+        helpers.gitlab.emulate_mr_approval(bot=bot, mr=mr)
+
         follow_up_mr = helpers.gitlab.get_last_opened_mr(project)
         assert follow_up_mr is not None, "Failed to create follow-up Merge Request"
 
-        time.sleep(helpers.tests_config.POST_MR_SLIIP_S)
+        time.sleep(helpers.tests_config.POST_MR_SLEEP_S)
 
-        bot.run()
-        helpers.gitlab.wait_last_mr_pipeline_status(follow_up_mr, ["success"])
-        bot.run()
+        helpers.gitlab.emulate_mr_approval(bot=bot, mr=follow_up_mr)
 
         for issue in jira_issues:
             updated_issue = helpers.jira.update_issue_data(jira_handler, issue)
@@ -156,6 +154,9 @@ class TestNoOpenSource:
     def test_failed_jira_workflow(
             issue_descriptions, jira_handler, jira_issues, repo, branch, project, bot):
         (Path(repo.working_dir) / "vms/file_4_1.cpp").write_text(branch)
+
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
+
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
             updated_files=["vms/file_4_1.cpp"],
@@ -165,14 +166,12 @@ class TestNoOpenSource:
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
             updated_files=["vms/file_4_2.cpp"],
-            message=f"Test commit 4.2 ({branch})")
-
-        issue_keys = ", ".join([issue.key for issue in jira_issues])
+            message=f"{issue_keys}: Test commit 4.2 ({branch})")
         mr = helpers.gitlab.create_merge_request(project, {
             "squash": False,
             "source_branch": branch,
             "target_branch": "master",
-            "title": f"{issue_keys}: Test MR 4",
+            "title": f"{issue_keys}: Test case 4",
         })
 
         helpers.repo.hard_checkout(repo, "vms_4.2_patch")
@@ -184,14 +183,12 @@ class TestNoOpenSource:
             updated_files=["vms/file_4_1.cpp"],
             message="Test commit 4 (vms_4.2_patch)")
 
-        bot.run()
-        helpers.gitlab.approve_mr_and_wait_pipeline(mr)
-        bot.run()
+        helpers.gitlab.emulate_mr_approval(bot=bot, mr=mr)
 
         follow_up_mr = helpers.gitlab.get_last_opened_mr(project)
         assert follow_up_mr is not None, "Failed to create follow-up Merge Request"
 
-        time.sleep(helpers.tests_config.POST_MR_SLIIP_S)
+        time.sleep(helpers.tests_config.POST_MR_SLEEP_S)
 
         bot.run()
         updated_follow_up_mr = helpers.gitlab.get_last_opened_mr(project)
@@ -225,24 +222,24 @@ class TestNoOpenSource:
         while mr := helpers.gitlab.get_last_opened_mr(project):
             mr.delete()
 
+        issue_keys = ", ".join([issue.key for issue in jira_issues])
+
         (Path(repo.working_dir) / "vms/file_5_1.cpp").write_text(branch)
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
             updated_files=["vms/file_5_1.cpp"],
-            message=f"Test commit 5.1 ({branch})",
+            message=f"{issue_keys}: Test commit 5.1 ({branch})",
             wait_after_push=False)
         (Path(repo.working_dir) / "vms/file_5_2.cpp").write_text(branch)
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
             updated_files=["vms/file_5_2.cpp"],
             message=f"Test commit 5.2 ({branch})")
-
-        issue_keys = ", ".join([issue.key for issue in jira_issues])
         mr = helpers.gitlab.create_merge_request(project, {
             "squash": False,
             "source_branch": branch,
             "target_branch": "master",
-            "title": f"{issue_keys}: Test MR 5",
+            "title": f"{issue_keys}: Test case 5",
         })
 
         helpers.repo.hard_checkout(repo, "vms_4.2_patch")
@@ -254,9 +251,8 @@ class TestNoOpenSource:
             repo, branch_name="vms_4.2_patch",
             updated_files=["vms/file_5_1.cpp", "vms/file_5_2.cpp"],
             message="Test commit 5 (vms_4.2_patch)")
-        bot.run()
-        helpers.gitlab.approve_mr_and_wait_pipeline(mr)
-        bot.run()
+
+        helpers.gitlab.emulate_mr_approval(bot=bot, mr=mr)
 
         follow_up_mr = helpers.gitlab.get_last_opened_mr(project)
         assert follow_up_mr is None, "Follow-up MR was created"

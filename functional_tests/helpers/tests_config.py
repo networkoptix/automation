@@ -11,4 +11,4 @@ APPROVERS = ["root", "ptolstov"]
 
 TARGET_BRANCHES = ["master", "vms_5.0", "vms_4.2", "vms_4.2_patch"]
 
-POST_MR_SLIIP_S = 15  # Gitlab post-MR-creation magic timeout
+POST_MR_SLEEP_S = 10  # Gitlab post-MR-creation magic timeout
