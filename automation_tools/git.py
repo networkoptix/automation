@@ -8,7 +8,7 @@ import automation_tools.utils
 
 logger = logging.getLogger(__name__)
 
-RECENT_COMMENTS_DEPTH = '18 month ago'
+RECENT_COMMENTS_DEPTH = '36 month ago'
 
 
 class Repo:
