@@ -10,7 +10,9 @@ ALLOWED_VERSIONS_SETS = {
     ],
     "MOBILE": [
         set(['21.1', 'master']),
+        set(['20.5, 21.1', 'master']),
         set(['21.1']),
+        set(['20.5, 21.1']),
         set(['master']),
         set(['Future']),
     ],
