@@ -143,7 +143,8 @@ class MergeRequest:
         """Extract Jira Issue names from the commit messages"""
         issue_keys = []
         for commit in self.commits():
-            issue_keys += self._extract_issue_keys(commit.title, commit.message)
+            (title, _, message) = commit.message.partition("\n\n")
+            issue_keys += self._extract_issue_keys(title, message)
         return list(issue_keys)
 
     def raw_pipelines_list(self) -> List[Dict]:
@@ -183,7 +184,7 @@ class MergeRequest:
             if is_new_position_in_params and e.response_code == 500:
                 # Most likely the discussion is created, so log the error and return True.
                 logger.info(
-                    f"{self}: Internal gitlab errror while creating a discussion at line number "
+                    f"{self}: Internal gitlab error while creating a discussion at line number "
                     f"{position['new_line']} for file {position['new_path']}: {e}.")
                 return True
 

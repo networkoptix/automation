@@ -11,7 +11,7 @@ class TestPoliceChecker:
             {"key": "VMS-1", "branches": ["master"], "state": "In Review"},
             {"key": "VMS-2", "branches": ["master"], "state": "In progress"},
         ],
-        # "Hdden" issue.
+        # "Hidden" issue.
         [{"key": "VMS-1", "branches": ["master"], "labels": ["hide_from_police"]}],
         # Issues of non-checked type.
         [
@@ -66,7 +66,8 @@ class TestPoliceChecker:
         [{"key": "VMS-2", "branches": ["master", "vms_4.2"], "labels": ["version_specific"]}],
         # Commit is not found in branch "master", but has "version_specific" label.
         [{"key": "VMS-3", "branches": ["vms_4.2_patch"], "labels": ["version_specific"]}],
-        # The commit is not found in the branch "vms_4.2_patch" but has "already_in_4.2_patch" label.
+        # The commit is not found in the branch "vms_4.2_patch" but has "already_in_4.2_patch"
+        # label.
         [{
             "key": "VMS-4",
             "branches": ["master", "vms_4.2_patch"],

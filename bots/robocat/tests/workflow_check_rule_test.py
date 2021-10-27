@@ -63,6 +63,19 @@ class TestWorkflowCheckRule:
         }], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Merge request attached to Jira Issue"
         }),
+        # Merge request is attached to one good Jira Issue (2)
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
+        }, {
+            "key": "VMS-667", "branches": ["master", "vms_4.2_patch"]
+        }], {
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Also fix VMS-667",
+            "commits_list": [{
+                "sha": DEFAULT_COMMIT["sha"],
+                "message": f"{DEFAULT_JIRA_ISSUE_KEY}: Also fix VMS-667",
+                "files": {},
+            }],
+        }),
         # Merge request is attached to two good Jira Issue.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]

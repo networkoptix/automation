@@ -201,7 +201,7 @@ class MergeRequestManager:
             return False
         last_pipeline = self._get_last_pipeline()
         if last_pipeline and last_pipeline.sha == self._mr.sha:
-            logger.info(f"{self._mr}: Refusing to manualy run pipeline with the same sha")
+            logger.info(f"{self._mr}: Refusing to manually run pipeline with the same sha")
             message = robocat.comments.refuse_run_pipeline_message.format(
                 pipeline_id=last_pipeline.id, pipeline_url=last_pipeline.web_url, sha=self._mr.sha)
             self._add_comment(
