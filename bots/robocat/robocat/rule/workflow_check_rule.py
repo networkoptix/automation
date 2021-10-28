@@ -49,7 +49,7 @@ class WorkflowCheckRule(BaseRule):
                 errors=jira_issue_errors, title="Jira workflow check failed")
             return WorkflowCheckRuleExecutionResult.jira_issue_problems
 
-        if not mr_data.squash:
+        if not mr_data.squash and not mr_manager.is_followup():
             # If the Merge Request is squashed there is no reason to check commit message - it will
             # be substituted by the Merge Request title/description.
             if error := self._get_mr_description_error(mr_manager):
