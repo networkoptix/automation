@@ -141,10 +141,10 @@ class MergeRequest:
     @property
     def commit_issue_keys(self) -> List[str]:
         """Extract Jira Issue names from the commit messages"""
-        issue_keys = []
+        issue_keys = set()
         for commit in self.commits():
             (title, _, message) = commit.message.partition("\n\n")
-            issue_keys += self._extract_issue_keys(title, message)
+            issue_keys |= self._extract_issue_keys(title, message)
         return list(issue_keys)
 
     def raw_pipelines_list(self) -> List[Dict]:
