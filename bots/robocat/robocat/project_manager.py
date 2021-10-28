@@ -139,7 +139,7 @@ class ProjectManager:
             target_project_id=self._project.id,
             title=title,
             description=description,
-            squash=original_mr_data.squash,
+            squash=False,
             assignee_ids=[self._gitlab.user_id, user_gitlab.user_id])
         raw_mr = self._project.get_raw_mr_by_id(mr_id)
 

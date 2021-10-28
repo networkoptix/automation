@@ -173,6 +173,20 @@ class TestWorkflowCheckRule:
                 "files": {},
             }],
         }),
+        # Jira Issue in Merge Request title differs from Jira Issue from commit message for
+        # squashed Merge Request.
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"],
+        }, {
+            "key": f"{DEFAULT_JIRA_ISSUE_KEY}1", "branches": ["master"],
+        }], {
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Merge request attached to Jira Issue",
+            "commits_list": [{
+                "sha": DEFAULT_COMMIT["sha"],
+                "message": f"{DEFAULT_JIRA_ISSUE_KEY}1: commit 1 title\n",
+                "files": {},
+            }],
+        }),
     ])
     def test_jira_issues_are_ok(self, workflow_rule, mr, mr_manager):
         for _ in range(2):  # State must not change after any number of rule executions.
@@ -279,7 +293,8 @@ class TestWorkflowCheckRule:
                 f"Error string is not found in {first_comment}")
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
-        # Jira Issue in Merge Request title differs from Jira Issue from commit message.
+        # Jira Issue in Merge Request title differs from Jira Issue from commit message for
+        # non-squashed Merge Request.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"],
         }, {
@@ -291,14 +306,17 @@ class TestWorkflowCheckRule:
                 "message": f"{DEFAULT_JIRA_ISSUE_KEY}1: commit 1 title\n",
                 "files": {},
             }],
+            "squash": False,
         }),
-        # No commit for one of the Jira Issues in the Merge Request title.
+        # No commit for one of the Jira Issues in the Merge Request title for non-squashed Merge
+        # Request.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
         }, {
             "key": "VMS-667", "branches": ["master", "vms_4.2_patch"]
         }], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}, VMS-667: Multiple Jira Issues",
+            "squash": False,
         }),
         # Different commit message and title for non-squashed Merge Request with one commit.
         ([{
@@ -322,9 +340,6 @@ class TestWorkflowCheckRule:
 
             comments = mr.mock_comments()
             assert len(comments) == 1
-            messages = [
-                f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: Commit message check failed",
-                f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: Bad commit title",
-            ]
-            assert comments[0].startswith(messages[0]) or comments[0].startswith(messages[1]), (
-                f"Unexpected comment: {comments[0]!r}")
+
+            expected_title = f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: Different information"
+            assert comments[0].startswith(expected_title), f"Unexpected comment: {comments[0]!r}"
