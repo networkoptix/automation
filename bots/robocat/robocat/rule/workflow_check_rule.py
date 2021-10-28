@@ -97,7 +97,7 @@ class WorkflowCheckRule(BaseRule):
 
         actual_commit_issue_keys = self._exclude_ignored_issues(mr_data.commit_issue_keys)
         actual_issue_keys = self._exclude_ignored_issues(mr_data.issue_keys)
-        if set(actual_commit_issue_keys) != set(actual_issue_keys):
+        if not set(actual_issue_keys).issubset(set(actual_commit_issue_keys)):
             return (
                 "Different Jira Issue sets in Merge Request title and commit messages. "
                 f"{actual_issue_keys} are mentioned in the Merge Request title while "

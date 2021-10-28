@@ -173,8 +173,8 @@ class TestWorkflowCheckRule:
                 "files": {},
             }],
         }),
-        # Jira Issue in Merge Request title differs from Jira Issue from commit message for
-        # squashed Merge Request.
+        # Jira Issues in Merge Request title/description differs from Jira Issues from the commit
+        # message for squashed Merge Request.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"],
         }, {
@@ -186,6 +186,25 @@ class TestWorkflowCheckRule:
                 "message": f"{DEFAULT_JIRA_ISSUE_KEY}1: commit 1 title\n",
                 "files": {},
             }],
+        }),
+        # Jira Issues in Merge Request title/description is subset of Jira Issues from the commit
+        # messages for non-squashed Merge Request.
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"],
+        }, {
+            "key": f"{DEFAULT_JIRA_ISSUE_KEY}1", "branches": ["master"],
+        }], {
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Merge request attached to Jira Issues",
+            "commits_list": [{
+                "sha": DEFAULT_COMMIT["sha"],
+                "message": f"{DEFAULT_JIRA_ISSUE_KEY}: commit 1 title\n",
+                "files": {},
+            }, {
+                "sha": f"{DEFAULT_COMMIT['sha']}abc",
+                "message": f"{DEFAULT_JIRA_ISSUE_KEY}1: commit 2 title\n",
+                "files": {},
+            }],
+            "squash": False,
         }),
     ])
     def test_jira_issues_are_ok(self, workflow_rule, mr, mr_manager):
