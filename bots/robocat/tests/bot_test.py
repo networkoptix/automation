@@ -58,11 +58,14 @@ class TestBot:
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # One commit.
         ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"]}], {
+            "title": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[0],
+            "description": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[1],
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [GOOD_README_COMMIT_NEW_FILE],
             "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
-            "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
+            "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
+            "squash": False
         }),
         # Two commits, no squashing.
         ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"]}], {

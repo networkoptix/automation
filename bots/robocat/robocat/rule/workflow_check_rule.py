@@ -5,7 +5,8 @@ from typing import List, Optional
 from automation_tools.checkers.checkers import (
     WrongVersionChecker, IssueIgnoreLabelChecker, IssueIgnoreProjectChecker)
 from robocat.rule.base_rule import BaseRule, RuleExecutionResult
-from robocat.merge_request_manager import MergeRequestManager, MergeRequestData
+from robocat.merge_request_manager import (
+    MergeRequestManager, MergeRequestData, MergeRequestCommitsData)
 from automation_tools.jira import JiraAccessor, JiraIssue
 
 logger = logging.getLogger(__name__)
@@ -49,14 +50,11 @@ class WorkflowCheckRule(BaseRule):
                 errors=jira_issue_errors, title="Jira workflow check failed")
             return WorkflowCheckRuleExecutionResult.jira_issue_problems
 
-        if not mr_data.squash and not mr_manager.is_followup():
-            # If the Merge Request is squashed there is no reason to check commit message - it will
-            # be substituted by the Merge Request title/description.
-            if error := self._get_mr_description_error(mr_manager):
-                mr_manager.ensure_workflow_errors_info(
-                    errors=[error],
-                    title="Different information in Merge Request description and commit messages")
-                return WorkflowCheckRuleExecutionResult.inconsistent_descriptions
+        if error := self._get_mr_description_error(mr_manager):
+            mr_manager.ensure_workflow_errors_info(
+                errors=[error],
+                title="Different information in Merge Request description and commit messages")
+            return WorkflowCheckRuleExecutionResult.inconsistent_descriptions
 
         mr_manager.ensure_workflow_errors_info(errors=[])
         return WorkflowCheckRuleExecutionResult.rule_execution_successfull
@@ -94,21 +92,26 @@ class WorkflowCheckRule(BaseRule):
 
     def _get_mr_description_error(self, mr_manager: MergeRequestManager) -> Optional[str]:
         mr_data = mr_manager.data
+        commits_data = mr_manager.get_commits_data()
 
-        actual_commit_issue_keys = self._exclude_ignored_issues(mr_data.commit_issue_keys)
-        actual_issue_keys = self._exclude_ignored_issues(mr_data.issue_keys)
-        if not set(actual_issue_keys).issubset(set(actual_commit_issue_keys)):
-            return (
-                "Different Jira Issue sets in Merge Request title and commit messages. "
-                f"{actual_issue_keys} are mentioned in the Merge Request title while "
-                f"{actual_commit_issue_keys} are mentioned in the commit messages.")
+        if not mr_data.squash:
+            actual_commit_issue_keys = self._exclude_ignored_issues(commits_data.issue_keys)
+            actual_issue_keys = self._exclude_ignored_issues(mr_data.issue_keys)
+            if not set(actual_issue_keys).issubset(set(actual_commit_issue_keys)):
+                return (
+                    "Different Jira Issue sets in Merge Request title/description and commit "
+                    "messages are not allowed for non-squashed Merge Requests. "
+                    f"{actual_issue_keys} are mentioned in the Merge Request title/description "
+                    f"while {actual_commit_issue_keys} are mentioned in the commit messages.")
 
-        expected_commit_message = f"{mr_data.title}\n\n{mr_data.description}".strip()
-        if mr_data.merged_commit_message.strip() != expected_commit_message:
-            return (
-                "For non-squashed Merge Requests with one commit the Merge Request title must "
-                "be the same that commit message which is not true "
-                f"({expected_commit_message!r} != {mr_data.merged_commit_message.strip()!r})")
+        if not (mr_manager.is_followup() or mr_data.squash or len(commits_data.messages) > 1):
+            expected_commit_message = f"{mr_data.title}\n\n{mr_data.description}".strip()
+            if commits_data.messages[0].strip() != expected_commit_message:
+                return (
+                    "For non-squashed Merge Requests with one commit title/description of the "
+                    "Merge Request must be the same that the commit message. Merge Request "
+                    f"title/description is {expected_commit_message!r}, commit message is "
+                    f"{commits_data.messages[0].strip()!r}")
 
         return None
 

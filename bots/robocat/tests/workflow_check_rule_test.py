@@ -206,17 +206,15 @@ class TestWorkflowCheckRule:
             }],
             "squash": False,
         }),
-        # Jira Issues in Merge Request title/description differs from Jira Issues from the commit
-        # message for non-squashed Merge Request, but Merge Request is follow-up.
+        # Merge Request title/description differs from the commit message for non-squashed Merge
+        # Request, but Merge Request is follow-up.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"],
-        }, {
-            "key": f"{DEFAULT_JIRA_ISSUE_KEY}1", "branches": ["master"],
         }], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Merge request attached to Jira Issue",
             "commits_list": [{
                 "sha": DEFAULT_COMMIT["sha"],
-                "message": f"{DEFAULT_JIRA_ISSUE_KEY}1: commit 1 title\n",
+                "message": f"{DEFAULT_JIRA_ISSUE_KEY}: commit 1 title\n",
                 "files": {},
             }],
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],

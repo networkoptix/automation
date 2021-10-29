@@ -108,9 +108,13 @@ class MergeRequestData:
     source_branch_project_id: int
     target_branch_project_id: int
     issue_keys: list
-    commit_issue_keys: list
-    merged_commit_message: str
     squash: bool
+
+
+@dataclasses.dataclass
+class MergeRequestCommitsData:
+    issue_keys: list
+    messages: List[str]
 
 
 # NOTE: Hash and eq methods for this object should return different values for different object
@@ -131,6 +135,19 @@ class MergeRequestManager:
     def data(self) -> MergeRequestData:
         return MergeRequestData(
             **{f.name: getattr(self._mr, f.name) for f in dataclasses.fields(MergeRequestData)})
+
+    def get_commits_data(self) -> MergeRequestCommitsData:
+        messages = [c.message for c in self._mr.commits()]
+
+        issue_keys = set()
+        for message in messages:
+            (title, _, body) = message.partition("\n\n")
+            issue_keys |= self._mr.extract_issue_keys(title, body)
+
+        return MergeRequestCommitsData(
+            messages=messages,
+            issue_keys=list(issue_keys)
+        )
 
     def get_last_pipeline_status(self) -> PipelineStatus:
         pipeline = self._get_last_pipeline()
