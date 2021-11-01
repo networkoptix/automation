@@ -127,15 +127,18 @@ def main():
     parser.add_argument('--graylog', help="Hostname of Graylog service")
     arguments = parser.parse_args()
 
-    logging.basicConfig(
-        level=arguments.log_level,
-        format='%(asctime)s %(levelname)s %(name)s\t%(message)s')
+    log_handler = None
     if arguments.graylog:
         host, port = arguments.graylog.split(":")
-        graylog_handler = graypy.GELFTCPHandler(host, port, level_names=True)
-        graylog_handler.addFilter(ServiceNameFilter())
-        logging.getLogger().addHandler(graylog_handler)
-        logger.debug(f"Logging to Graylog at {arguments.graylog}")
+        log_handler = graypy.GELFTCPHandler(host, port, level_names=True)
+        log_handler.addFilter(ServiceNameFilter())
+    else:
+        log_handler = logging.StreamHandler()
+
+    logging.basicConfig(
+        level=arguments.log_level,
+        handlers=[log_handler],
+        format='%(asctime)s %(levelname)s %(name)s\t%(message)s')
 
     try:
         config = automation_tools.utils.parse_config_file(Path(arguments.config_file))
