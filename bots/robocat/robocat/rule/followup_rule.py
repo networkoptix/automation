@@ -55,10 +55,12 @@ class FollowupRule(BaseRule):
             # requests.
             if mr_manager.is_followup():
                 logger.info(
-                    "Merge request is a follow-up merge request. Trying to move to QA/close Jira "
-                    "issues.")
+                    f"{mr_manager}: Merge request is a follow-up merge request. Trying to move to "
+                    "QA/close Jira issues.")
                 self._try_close_jira_issues(
-                    target_branch=mr_data.target_branch, issue_keys=jira_issue_keys)
+                    mr_manager=mr_manager,
+                    target_branch=mr_data.target_branch,
+                    issue_keys=jira_issue_keys)
                 return FollowupRuleExecutionResult.rule_execution_successfull
 
             # Primary merge request.
@@ -68,22 +70,23 @@ class FollowupRule(BaseRule):
             # 2. Close Jira issues which have only one branch, if this branch is the target branch
             # of the current merge request.
             logger.info(
-                "Merge request is a primary merge request. Trying to move to QA/close "
-                "single-branch Jira issues and create follow-up merge requests.")
+                f"{mr_manager}: Merge request is a primary merge request. Trying to move to "
+                "QA/close single-branch Jira issues and create follow-up merge requests.")
             self._create_followup_merge_requests(original_mr_manager=mr_manager)
             self._try_close_single_branch_jira_issues(
                 target_branch=mr_data.target_branch, issue_keys=jira_issue_keys)
             return FollowupRuleExecutionResult.rule_execution_successfull
 
         except Exception as error:
-            logger.error(f"Follow-up processing was crashed for {mr_manager}: {error}")
+            logger.error(
+                f"{mr_manager}: Follow-up processing was crashed for {mr_manager}: {error}")
             for issue in self._jira.get_issues(jira_issue_keys):
                 issue.add_followup_error_comment(error=error, mr_url=mr_data.url)
             return FollowupRuleExecutionResult.rule_execution_failed
 
-    def _try_close_jira_issues(self, target_branch: str, issue_keys: List[str]):
+    def _try_close_jira_issues(self, mr_manager, target_branch: str, issue_keys: List[str]):
         for issue in self._jira.get_issues(issue_keys):
-            logger.debug(f"Trying to move to QA/close issue {issue}.")
+            logger.debug(f"{mr_manager} Trying to move to QA/close issue {issue}.")
             issue_branches = issue.branches(exclude_already_merged=True)
             mr_ids = issue.get_related_merge_request_ids()
             merged_branches = {target_branch}.union(
@@ -91,8 +94,8 @@ class FollowupRule(BaseRule):
 
             if not issue_branches.issubset(merged_branches):
                 logger.info(
-                    f"Cannot move to QA/close issue {issue} because the changes are not "
-                    'merged to some of the branches determined by "fixVersions" field. Issue '
+                    f"{mr_manager}: Cannot move to QA/close issue {issue} because the changes are "
+                    'not merged to some of the branches determined by "fixVersions" field. Issue '
                     f'branches (from "fixVersions"): {issue_branches!r}, merged branches: '
                     f"{merged_branches!r}.")
                 continue
@@ -118,7 +121,9 @@ class FollowupRule(BaseRule):
                 if target_branch in issue_branches_with_merged_mr:
                     continue
 
-                logger.debug(f"Trying to create follow-up merge requests for issue {issue}.")
+                logger.debug(
+                    f"{original_mr_manager}: Trying to create follow-up merge requests for issue "
+                    f"{issue}.")
                 is_followup_created = self._create_followup_merge_request(
                     original_mr_manager=original_mr_manager,
                     target_branch=target_branch)
