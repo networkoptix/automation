@@ -1,13 +1,12 @@
 import logging
 import re
 from typing import Dict, List, Optional, Set, NamedTuple
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 from enum import Enum
 
 from robocat.merge_request_manager import MergeRequestManager, ApprovalRequirements
 from robocat.note import MessageId, Note
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
-from robocat.rule.helpers.open_source_file_checker import OpenSourceFileChecker, FileError
 from robocat.rule.helpers.statefull_checker_helpers import ErrorCheckResult, PreviousCheckResults
 from robocat.award_emoji_manager import AwardEmojiManager
 import robocat.comments
@@ -15,81 +14,46 @@ import robocat.comments
 logger = logging.getLogger(__name__)
 
 
-class OpenSourceCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
+class CheckValidityRuleExecutionResultClass(RuleExecutionResultClass, Enum):
     def __bool__(self):
         return self in [
             self.not_applicable, self.merge_authorized, self.merged, self.no_manual_check_required]
 
 
-class PreviousOpenSourceCheckResults(PreviousCheckResults):
-    CHECK_ERROR_CLASS = FileError
-
+class PreviousChangesValidityCheckResults(PreviousCheckResults):
     ERROR_MESSAGE_IDS = {
-        MessageId.OpenSourceHasBadChangesFromKeeper,
-        MessageId.OpenSourceHasBadChangesCallKeeperMandatory,
-        MessageId.OpenSourceHasBadChangesCallKeeperOptional,
+        MessageId.ValidityCheckInconsistentNxSubmoduleChange,
+        MessageId.ValidityCheckNxSubmoduleConfigDeleted,
     }
     OK_MESSAGE_IDS = {
-        MessageId.OpenSourceNoProblemNeedApproval,
-        MessageId.OpenSourceNoProblemAutoApproved,
+        MessageId.ValidityCheckPassed,
     }
     UNCHECKABLE_MESSAGE_IDS = {
-        MessageId.OpenSourceHugeDiffNeedsManualCheck,
-        MessageId.OpenSourceHugeDiffCallKeeper,
+        MessageId.ValidityCheckHugeDiffUncheckable,
     }
-    NEEDS_MANUAL_CHECK_MESSAGE_IDS = {
-        MessageId.OpenSourceHugeDiffNeedsManualCheck,
-        MessageId.OpenSourceHugeDiffCallKeeper,
-        MessageId.OpenSourceHasBadChangesCallKeeperMandatory,
-        MessageId.OpenSourceNoProblemNeedApproval,
-    }
+    NEEDS_MANUAL_CHECK_MESSAGE_IDS = {}
 
 
-@dataclass
-class ApproveRule:
-    approvers: List[str]
-    patterns: List[str]
-
-
-class OpenSourceCheckRule(BaseRule):
-    EXECUTION_RESULT = OpenSourceCheckRuleExecutionResultClass.create(
-        "OpenSourceCheckRuleExecutionResult", {
-            "merge_authorized": "MR is approved by the authorized approver",
-            "not_applicable": "No changes in open source files",
-            "files_not_ok": (
-                "Open source files do not comply to the requirements or changes list is too "
-                "large"),
-            "manual_check_required": (
-                "Open source rule check didn't find any problems; manual check is required"),
-            "no_manual_check_required": (
-                "Open source rule check didn't find any problems; no manual check is required"),
+class ChangesValidityRule(BaseRule):
+    EXECUTION_RESULT = CheckValidityRuleExecutionResultClass.create(
+        "CheckValidityRuleExecutionResult", {
+            "changes_validity_rule_ok": "Validity check hasn't find any problems",
+            "invalid_nx_submodule_changes": "Invalid changes in Nx submodule(s) found",
         })
 
-    def __init__(self, project_manager, approve_rules: List[Dict[str, List[str]]]):
-        self._approve_rules = []
-        for rule_dict in approve_rules:
-            self._approve_rules.append(ApproveRule(
-                approvers=rule_dict["approvers"], patterns=rule_dict["patterns"]))
-        logger.info(f"Open source rule created. Approvers list is {self._approve_rules!r}")
+    def __init__(self, project_manager):
         self._project_manager = project_manager
         super().__init__()
 
     def execute(self, mr_manager: MergeRequestManager) -> EXECUTION_RESULT:
-        logger.debug(f"Executing check open sources rule on {mr_manager}...")
+        logger.debug(f"Executing validity changes check on {mr_manager}...")
 
         mr_data = mr_manager.data
         preliminary_check_result = self.preliminary_check_result(mr_data)
         if preliminary_check_result != self.EXECUTION_RESULT.preliminary_check_passed:
             return preliminary_check_result
 
-        if self._is_diff_complete(mr_manager) and not self._changed_open_source_files(mr_manager):
-            return self.EXECUTION_RESULT.not_applicable
-
         error_check_result = self._do_error_check(mr_manager)
-
-        authorized_approvers = self._get_open_source_keepers()
-        logger.debug(f"{mr_manager}: Authorized approvers are {authorized_approvers!r}")
-        approval_requirements = ApprovalRequirements(authorized_approvers=authorized_approvers)
 
         if self._is_manual_check_required(mr_manager):
             # MR can be approved by anybody from the authorized_approvers set, but we assign to the
@@ -101,16 +65,16 @@ class OpenSourceCheckRule(BaseRule):
         if self._are_problems_found(mr_manager, error_check_result):
             self._ensure_problem_comments(mr_manager, error_check_result)
             if mr_manager.satisfies_approval_requirements(approval_requirements):
-                return self.EXECUTION_RESULT.merge_authorized
-            return self.EXECUTION_RESULT.files_not_ok
+                return OpenSourceCheckRuleExecutionResult.merge_authorized
+            return OpenSourceCheckRuleExecutionResult.files_not_ok
 
         self._ensure_problems_not_found_comment(mr_manager, error_check_result)
         if self._is_manual_check_required(mr_manager):
             if mr_manager.satisfies_approval_requirements(approval_requirements):
-                return self.EXECUTION_RESULT.merge_authorized
-            return self.EXECUTION_RESULT.manual_check_required
+                return OpenSourceCheckRuleExecutionResult.merge_authorized
+            return OpenSourceCheckRuleExecutionResult.manual_check_required
 
-        return self.EXECUTION_RESULT.no_manual_check_required
+        return OpenSourceCheckRuleExecutionResult.no_manual_check_required
 
     @staticmethod
     def _is_diff_complete(mr_manager) -> bool:
@@ -125,7 +89,7 @@ class OpenSourceCheckRule(BaseRule):
         return open_source_files
 
     def _do_error_check(self, mr_manager: MergeRequestManager) -> ErrorCheckResult:
-        old_errors_info = PreviousOpenSourceCheckResults(mr_manager)
+        old_errors_info = PreviousChangesValidityCheckResults(mr_manager)
         if old_errors_info.is_current_revision_checked():
             return ErrorCheckResult(
                 must_add_comment=False,

@@ -4,22 +4,26 @@ from typing import List
 
 from robocat.merge_request_manager import MergeRequestManager, FollowupCreationResult
 from robocat.project_manager import ProjectManager
-from robocat.rule.base_rule import BaseRule, RuleExecutionResult
+from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from automation_tools.jira import JiraAccessor
 
 logger = logging.getLogger(__name__)
 
 
-class FollowupRuleExecutionResult(RuleExecutionResult, Enum):
-    rule_execution_successfull = "All operations completed successfylly"
-    not_eligible = "Merge request is not eligible for cherry-pick"
-    rule_execution_failed = "Some of operations failed"
-
+class FollowupRuleExecutionResultClass(RuleExecutionResultClass, Enum):
     def __bool__(self):
         return self == self.rule_execution_successfull
 
     def __str__(self):
         return str(self.value)
+
+
+FollowupRuleExecutionResult = FollowupRuleExecutionResultClass.create(
+    "FollowupRuleExecutionResult", {
+        "rule_execution_successfull": "All operations completed successfully",
+        "not_eligible": "Merge request is not eligible for cherry-pick",
+        "rule_execution_failed": "Some of operations failed",
+    })
 
 
 class FollowupRule(BaseRule):
@@ -48,7 +52,7 @@ class FollowupRule(BaseRule):
             return FollowupRuleExecutionResult.not_eligible
 
         # Intercept all the exceptions and leave a comment in Jira issues about failing of merge
-        # request follow-up processing. TODO: Add more sofisticated error processing.
+        # request follow-up processing. TODO: Add more sophisticated error processing.
         try:
             # Follow-up merge request. Close Jira issues which are mentioned by the current merge
             # request, if all their branches (defined by "fixVersions" field) have merged merge

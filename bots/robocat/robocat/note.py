@@ -20,6 +20,11 @@ class MessageId(Enum):
     OpenSourceNoProblemNeedApproval = auto()
     OpenSourceNoProblemAutoApproved = auto()
 
+    ValidityCheckInconsistentNxSubmoduleChange = auto()
+    ValidityCheckNxSubmoduleConfigDeleted = auto()
+    ValidityCheckHugeDiffUncheckable = auto()
+    ValidityCheckPassed = auto()
+
 
 class NoteDetails(NamedTuple):
     message_id: MessageId = None

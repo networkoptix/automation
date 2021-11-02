@@ -1,9 +1,10 @@
-import re
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import List, Optional
 
 import source_file_compliance
+
+from robocat.rule.helpers.statefull_checker_helpers import CheckError
 
 # Paths configuration.
 OPENSOURCE_ROOTS = ("open", "open_candidate")
@@ -26,11 +27,8 @@ EXCLUDED_FILE_NAME_PATTERNS = {
 
 
 @dataclass(frozen=True)
-class FileError:
-    type: str
-    raw_text: str
+class FileError(CheckError):
     file: str
-    params: Dict[str, str] = field(compare=False)
     line: Optional[int] = None
 
 

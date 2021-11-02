@@ -1,9 +1,7 @@
 import pytest
 import re
 
-from jira.exceptions import JIRAError
-
-from robocat.rule.workflow_check_rule import WorkflowCheckRuleExecutionResult
+from robocat.rule.workflow_check_rule import WorkflowCheckRule
 from robocat.award_emoji_manager import AwardEmojiManager
 from tests.fixtures import *
 from tests.robocat_constants import DEFAULT_JIRA_ISSUE_KEY, DEFAULT_COMMIT
@@ -26,7 +24,7 @@ class TestWorkflowCheckRule:
     def test_no_commits(self, workflow_rule, mr, mr_manager):
         for _ in range(2):  # State must not change after any number of rule executions.
             execution_result = workflow_rule.execute(mr_manager)
-            assert execution_result == WorkflowCheckRuleExecutionResult.no_commits
+            assert execution_result == WorkflowCheckRule.EXECUTION_RESULT.no_commits
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Commit without Jira Issue referencees in its title.
@@ -40,7 +38,7 @@ class TestWorkflowCheckRule:
     def test_merged(self, workflow_rule, mr, mr_manager):
         for _ in range(2):  # State must not change after any number of rule executions.
             execution_result = workflow_rule.execute(mr_manager)
-            assert execution_result == WorkflowCheckRuleExecutionResult.merged
+            assert execution_result == WorkflowCheckRule.EXECUTION_RESULT.merged
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Commit without Jira Issue referencees in its title.
@@ -54,7 +52,7 @@ class TestWorkflowCheckRule:
     def test_wip(self, workflow_rule, mr, mr_manager):
         for _ in range(2):  # State must not change after any number of rule executions.
             execution_result = workflow_rule.execute(mr_manager)
-            assert execution_result == WorkflowCheckRuleExecutionResult.work_in_progress
+            assert execution_result == WorkflowCheckRule.EXECUTION_RESULT.work_in_progress
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Merge request is attached to one good Jira Issue.
@@ -223,8 +221,8 @@ class TestWorkflowCheckRule:
     ])
     def test_jira_issues_are_ok(self, workflow_rule, mr, mr_manager):
         for _ in range(2):  # State must not change after any number of rule executions.
-            execution_result = workflow_rule.execute(mr_manager)
-            assert execution_result == WorkflowCheckRuleExecutionResult.rule_execution_successfull
+            result = workflow_rule.execute(mr_manager)
+            assert result == WorkflowCheckRule.EXECUTION_RESULT.rule_execution_successfull
 
             emojis = mr.awardemojis.list()
             assert not any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
@@ -265,7 +263,7 @@ class TestWorkflowCheckRule:
             Version("master", "<master> Major release with a lot of tech debt")]
 
         execution_result = workflow_rule.execute(mr_manager)
-        assert execution_result == WorkflowCheckRuleExecutionResult.rule_execution_successfull
+        assert execution_result == WorkflowCheckRule.EXECUTION_RESULT.rule_execution_successfull
 
         emojis = mr.awardemojis.list()
         assert not any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
