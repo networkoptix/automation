@@ -6,10 +6,11 @@ import robocat.gitlab
 from tests.mocks.project import ProjectMock
 from tests.mocks.merge_request import MergeRequestMock
 from tests.mocks.pipeline import PipelineMock
-from tests.robocat_constants import DEFAILT_APPROVE_RULES_LIST
+from tests.robocat_constants import DEFAULT_APPROVE_RULES_LIST, DEFAULT_SUBMODULE_DIRS
 
 from robocat.app import Bot
 from robocat.rule.essential_rule import EssentialRule
+from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
 from robocat.rule.open_source_check_rule import OpenSourceCheckRule
 from robocat.rule.followup_rule import FollowupRule
 from robocat.rule.workflow_check_rule import WorkflowCheckRule
@@ -58,9 +59,15 @@ def essential_rule(monkeypatch):
 
 
 @pytest.fixture
+def nx_submodule_check_rule(project, repo_accessor):
+    project_manager = ProjectManager(project, BOT_USERNAME, repo=repo_accessor)
+    return NxSubmoduleCheckRule(project_manager, nx_submodule_dirs=DEFAULT_SUBMODULE_DIRS)
+
+
+@pytest.fixture
 def open_source_rule(project, repo_accessor):
     project_manager = ProjectManager(project, BOT_USERNAME, repo=repo_accessor)
-    return OpenSourceCheckRule(project_manager, approve_rules=DEFAILT_APPROVE_RULES_LIST)
+    return OpenSourceCheckRule(project_manager, approve_rules=DEFAULT_APPROVE_RULES_LIST)
 
 
 @pytest.fixture
@@ -85,10 +92,12 @@ def followup_rule(project, jira, monkeypatch, repo_accessor):
 
 
 @pytest.fixture
-def bot(essential_rule, open_source_rule, followup_rule, workflow_rule, repo_accessor,
-        monkeypatch):
+def bot(
+        essential_rule, nx_submodule_check_rule, open_source_rule, followup_rule, workflow_rule,
+        repo_accessor, monkeypatch):
     def bot_init(bot):
         bot._rule_essential = essential_rule
+        bot._rule_nx_submodules_check = nx_submodule_check_rule
         bot._rule_open_source_check = open_source_rule
         bot._rule_followup = followup_rule
         bot._rule_workflow_check = workflow_rule

@@ -19,3 +19,5 @@ sign_over_http/*.egg-info/**
 sign_over_http/build/**
 
 .editorconfig
+
+.pytest_cache

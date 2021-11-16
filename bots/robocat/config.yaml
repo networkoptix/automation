@@ -9,7 +9,7 @@ repo:
     path: /var/workflow_robocat/nx
     url: "git@gitlab.lan.hdw.mx:dev/nx.git"
 
-# Configuration for "open source check" rule.
+# Configuration for checking open-source part of the project.
 open_source_check_rule:
     approve_rules:
         -
@@ -30,3 +30,11 @@ open_source_check_rule:
             approvers:
                 - ptolstov
                 - mshevchenko
+
+# Configuration for checking changes in Nx Submodules.
+nx_submodule_check_rule:
+    nx_submodule_dirs:
+        - conan_profiles
+        - build_utils/nx_submodule
+        - open_candidate/artifacts/analytics_icons
+        - open_candidate/conan_profiles

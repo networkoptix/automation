@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Dict, List, Optional, Set, NamedTuple
+from typing import Dict, List, Set, Tuple
 from dataclasses import dataclass, asdict
 from enum import Enum
 
@@ -8,7 +8,10 @@ from robocat.merge_request_manager import MergeRequestManager, ApprovalRequireme
 from robocat.note import MessageId, Note
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.rule.helpers.open_source_file_checker import OpenSourceFileChecker, FileError
-from robocat.rule.helpers.statefull_checker_helpers import ErrorCheckResult, PreviousCheckResults
+from robocat.rule.helpers.statefull_checker_helpers import (
+    CheckChangesMixin,
+    ErrorCheckResult,
+    StoredCheckResults)
 from robocat.award_emoji_manager import AwardEmojiManager
 import robocat.comments
 
@@ -21,8 +24,8 @@ class OpenSourceCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
             self.not_applicable, self.merge_authorized, self.merged, self.no_manual_check_required]
 
 
-class PreviousOpenSourceCheckResults(PreviousCheckResults):
-    CHECK_ERROR_CLASS = FileError
+class OpenSourceStoredCheckResults(StoredCheckResults):
+    CheckErrorClass = FileError
 
     ERROR_MESSAGE_IDS = {
         MessageId.OpenSourceHasBadChangesFromKeeper,
@@ -51,13 +54,13 @@ class ApproveRule:
     patterns: List[str]
 
 
-class OpenSourceCheckRule(BaseRule):
-    EXECUTION_RESULT = OpenSourceCheckRuleExecutionResultClass.create(
+class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
+    ExecutionResult = OpenSourceCheckRuleExecutionResultClass.create(
         "OpenSourceCheckRuleExecutionResult", {
             "merge_authorized": "MR is approved by the authorized approver",
             "not_applicable": "No changes in open source files",
             "files_not_ok": (
-                "Open source files do not comply to the requirements or changes list is too "
+                "Open source files do not comply with the requirements, or the change list is too "
                 "large"),
             "manual_check_required": (
                 "Open source rule check didn't find any problems; manual check is required"),
@@ -74,18 +77,19 @@ class OpenSourceCheckRule(BaseRule):
         self._project_manager = project_manager
         super().__init__()
 
-    def execute(self, mr_manager: MergeRequestManager) -> EXECUTION_RESULT:
+    def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing check open sources rule on {mr_manager}...")
 
         mr_data = mr_manager.data
         preliminary_check_result = self.preliminary_check_result(mr_data)
-        if preliminary_check_result != self.EXECUTION_RESULT.preliminary_check_passed:
+        if preliminary_check_result != self.ExecutionResult.preliminary_check_passed:
             return preliminary_check_result
 
         if self._is_diff_complete(mr_manager) and not self._changed_open_source_files(mr_manager):
-            return self.EXECUTION_RESULT.not_applicable
+            return self.ExecutionResult.not_applicable
 
-        error_check_result = self._do_error_check(mr_manager)
+        error_check_result = self._do_error_check(
+            mr_manager=mr_manager, check_results_class=OpenSourceStoredCheckResults)
 
         authorized_approvers = self._get_open_source_keepers()
         logger.debug(f"{mr_manager}: Authorized approvers are {authorized_approvers!r}")
@@ -101,20 +105,16 @@ class OpenSourceCheckRule(BaseRule):
         if self._are_problems_found(mr_manager, error_check_result):
             self._ensure_problem_comments(mr_manager, error_check_result)
             if mr_manager.satisfies_approval_requirements(approval_requirements):
-                return self.EXECUTION_RESULT.merge_authorized
-            return self.EXECUTION_RESULT.files_not_ok
+                return self.ExecutionResult.merge_authorized
+            return self.ExecutionResult.files_not_ok
 
         self._ensure_problems_not_found_comment(mr_manager, error_check_result)
         if self._is_manual_check_required(mr_manager):
             if mr_manager.satisfies_approval_requirements(approval_requirements):
-                return self.EXECUTION_RESULT.merge_authorized
-            return self.EXECUTION_RESULT.manual_check_required
+                return self.ExecutionResult.merge_authorized
+            return self.ExecutionResult.manual_check_required
 
-        return self.EXECUTION_RESULT.no_manual_check_required
-
-    @staticmethod
-    def _is_diff_complete(mr_manager) -> bool:
-        return not mr_manager.get_changes().overflow
+        return self.ExecutionResult.no_manual_check_required
 
     @staticmethod
     def _changed_open_source_files(mr_manager) -> List[str]:
@@ -124,17 +124,13 @@ class OpenSourceCheckRule(BaseRule):
             if not c["deleted_file"] and OpenSourceFileChecker.is_check_needed(c["new_path"])]
         return open_source_files
 
-    def _do_error_check(self, mr_manager: MergeRequestManager) -> ErrorCheckResult:
-        old_errors_info = PreviousOpenSourceCheckResults(mr_manager)
-        if old_errors_info.is_current_revision_checked():
-            return ErrorCheckResult(
-                must_add_comment=False,
-                has_errors=old_errors_info.does_latest_revision_have_errors(),
-                new_errors=set())
-
-        must_add_comment = False
+    def _find_errors(
+            self,
+            old_errors_info: OpenSourceStoredCheckResults,
+            mr_manager: MergeRequestManager) -> Tuple[bool, Set[FileError]]:
         has_errors = False
         new_errors = set()
+
         for file_name in self._changed_open_source_files(mr_manager):
             file_content = self._project_manager.file_get_content(
                 sha=mr_manager.data.sha, file=file_name)
@@ -144,17 +140,7 @@ class OpenSourceCheckRule(BaseRule):
                 if not old_errors_info.have_error(error=error):
                     new_errors.add(error)
 
-        had_errors = old_errors_info.does_latest_revision_have_errors()
-        if had_errors is None or had_errors != has_errors:
-            must_add_comment = True
-        else:
-            needed_manual_check = old_errors_info.does_latest_revision_need_manual_check()
-            needs_manual_check = self._is_manual_check_required(mr_manager)
-            if needs_manual_check is None or needs_manual_check != needed_manual_check:
-                must_add_comment = True
-
-        return ErrorCheckResult(
-            must_add_comment=must_add_comment, has_errors=has_errors, new_errors=new_errors)
+        return (has_errors, new_errors)
 
     @staticmethod
     def _has_new_open_source_files(mr_manager) -> bool:

@@ -4,7 +4,6 @@ import pytest
 from automation_tools.tests.fixtures import jira, repo_accessor
 from automation_tools.tests.mocks.git_mocks import RemoteMock
 from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.rule.followup_rule import FollowupRuleExecutionResult
 from tests.robocat_constants import (
     DEFAULT_COMMIT,
     DEFAULT_PROJECT_ID,
@@ -50,8 +49,8 @@ class TestFollowupRule:
 
         for _ in range(2):
             assert followup_rule.execute(mr_manager) in (
-                FollowupRuleExecutionResult.rule_execution_successfull,
-                FollowupRuleExecutionResult.not_eligible)
+                followup_rule.ExecutionResult.rule_execution_successfull,
+                followup_rule.ExecutionResult.not_eligible)
 
             issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
             assert len(issue.fields.comment.comments) == 0, (

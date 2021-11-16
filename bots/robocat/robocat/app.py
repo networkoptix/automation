@@ -18,6 +18,7 @@ import automation_tools.git
 from robocat.project_manager import ProjectManager
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.pipeline import PlayPipelineError
+from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
 from robocat.rule.essential_rule import EssentialRule
 from robocat.rule.open_source_check_rule import OpenSourceCheckRule
 from robocat.rule.followup_rule import FollowupRule
@@ -49,6 +50,9 @@ class Bot:
             current_user=self._username,
             repo=self._repo)
 
+        self._rule_nx_submodules_check = NxSubmoduleCheckRule(
+            self._project_manager,
+            **config["nx_submodule_check_rule"])
         self._rule_essential = EssentialRule()
         self._rule_open_source_check = OpenSourceCheckRule(
             project_manager=self._project_manager, **config["open_source_check_rule"])
@@ -61,10 +65,15 @@ class Bot:
         essential_rule_check_result = self._rule_essential.execute(mr_manager)
         logger.debug(f"{mr_manager}: {essential_rule_check_result}")
 
-        opens_source_check_result = self._rule_open_source_check.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {opens_source_check_result}")
+        nx_submodule_check_result = self._rule_nx_submodules_check.execute(mr_manager)
+        logger.debug(f"{mr_manager}: {nx_submodule_check_result}")
 
-        if not essential_rule_check_result or not opens_source_check_result:
+        open_source_check_result = self._rule_open_source_check.execute(mr_manager)
+        logger.debug(f"{mr_manager}: {open_source_check_result}")
+
+        if (not nx_submodule_check_result or
+                not essential_rule_check_result or
+                not open_source_check_result):
             return
 
         workflow_check_result = self._rule_workflow_check.execute(mr_manager)
@@ -117,9 +126,21 @@ class Bot:
 def main():
     parser = argparse.ArgumentParser(sys.argv[0])
     parser.add_argument('-c', '--config', help="Config file with all options", default={})
-    parser.add_argument('-p', '--project-id', help="ID of project in gitlab (2 for dev/nx)", type=int, required=True)
-    parser.add_argument('--log-level', help="Logs level", choices=logging._nameToLevel.keys(), default=logging.INFO)
-    parser.add_argument('--mr-poll-rate', help="Merge Requests poll rate, seconds (default: 30)", type=int, default=30)
+    parser.add_argument(
+        '-p', '--project-id',
+        help="Id of a project in gitlab (2 for dev/nx)",
+        type=int,
+        required=True)
+    parser.add_argument(
+        '--log-level',
+        help="Logs level",
+        choices=logging._nameToLevel.keys(),
+        default=logging.INFO)
+    parser.add_argument(
+        '--mr-poll-rate',
+        help="Merge Requests poll rate, seconds (default: 30)",
+        type=int,
+        default=30)
     parser.add_argument('--graylog', help="Hostname of Graylog service")
     arguments = parser.parse_args()
 

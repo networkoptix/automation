@@ -20,10 +20,13 @@ class MessageId(Enum):
     OpenSourceNoProblemNeedApproval = auto()
     OpenSourceNoProblemAutoApproved = auto()
 
-    ValidityCheckInconsistentNxSubmoduleChange = auto()
-    ValidityCheckNxSubmoduleConfigDeleted = auto()
-    ValidityCheckHugeDiffUncheckable = auto()
-    ValidityCheckPassed = auto()
+    InconsistentNxSubmoduleChange = auto()
+    NxSubmoduleConfigDeleted = auto()
+    NxSubmoduleConfigMalformed = auto()
+    NxSubmoduleConfigBadGitData = auto()
+    NxSubmoduleCheckUnknownError = auto()
+    NxSubmoduleCheckHugeDiffUncheckable = auto()
+    NxSubmoduleCheckPassed = auto()
 
 
 class NoteDetails(NamedTuple):

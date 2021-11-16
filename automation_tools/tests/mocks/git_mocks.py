@@ -5,6 +5,8 @@ import tempfile
 import string
 import random
 import dataclasses
+from pathlib import Path
+import shutil
 
 import git
 
@@ -28,6 +30,7 @@ class RepoMock:
         self.mock_gitlab_projects = {}
         self.mock_cherry_pick_conflicts = []
         self.mock_changes_already_in_branch = []
+        self.mock_unknown_commits = set()
 
     def __del__(self):
         self._command_log_file.close()
@@ -48,8 +51,22 @@ class RepoMock:
         self.head.commit = new_commit
         self.head.ref.commits.append(new_commit)
 
-    def clone_from(self, url, path):
-        self.mock_add_command_to_log(f"clone {url!r} to {path!r}")
+    @classmethod
+    def clone_from(cls, url, to_path):
+        soruce_path = Path(__file__).parent / "data" / url
+        try:
+            shutil.copytree(soruce_path, to_path, dirs_exist_ok=True)
+        except FileNotFoundError:
+            raise git.exc.GitCommandError(status=f"Bad repo url", command=f"git clone {url}")
+
+        result = cls()
+        if (soruce_path / ".gitmock" / "unknown_commits").is_file():
+            with open(soruce_path / ".gitmock" / "unknown_commits") as f:
+                commit = f.readline().strip()
+                if commit:
+                    result.mock_unknown_commits.add(commit)
+
+        return result
 
     def create_head(self, branch_name: str, commit_path: str = None) -> HeadMock:
         if commit_path is None:
@@ -112,6 +129,9 @@ class GitCommandMock:
             message = commit.message
         new_sha = random_sha()
         self._repo.add_mock_commit(sha=new_sha, message=message)
+
+    def clean(self, *_):
+        pass
 
 
 @dataclasses.dataclass
@@ -197,6 +217,8 @@ class HeadMock:
                 reset_type = "medium"
             else:
                 reset_type = "soft"
+        if commit in self._repo.mock_unknown_commits:
+            raise git.exc.GitCommandError(status="Unknown commit", command=f"git reset {commit}")
         self._repo.mock_add_command_to_log(f"{reset_type} reset {self.ref.name!r} to {commit!r}")
 
     @property

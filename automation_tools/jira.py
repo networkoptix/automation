@@ -56,7 +56,7 @@ class JiraIssue:
         return hash(self._raw_issue.key)
 
     @staticmethod
-    def alredy_in_version_label(version):
+    def already_in_version_label(version):
         return f"already_in_{version}"
 
     def _add_comment(self, message: str):
@@ -118,7 +118,7 @@ class JiraIssue:
         return {
             mapping[automation_tools.utils.Version(v.name)]
             for v in issue.fields.fixVersions
-            if not exclude_already_merged or self.alredy_in_version_label(v.name) not in labels}
+            if not exclude_already_merged or self.already_in_version_label(v.name) not in labels}
 
     @property
     def versions_to_branches_map(self) -> Dict[str, str]:
@@ -234,7 +234,7 @@ class JiraIssue:
 
     def add_already_in_version_label(self, branch: str):
         version = next(v for v, b in self.versions_to_branches_map.items() if b == branch)
-        self._add_label(self.alredy_in_version_label(version))
+        self._add_label(self.already_in_version_label(version))
 
     def _add_label(self, label: str):
         self._raw_issue.fields.labels.append(label)

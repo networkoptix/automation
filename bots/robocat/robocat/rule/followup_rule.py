@@ -18,21 +18,20 @@ class FollowupRuleExecutionResultClass(RuleExecutionResultClass, Enum):
         return str(self.value)
 
 
-FollowupRuleExecutionResult = FollowupRuleExecutionResultClass.create(
-    "FollowupRuleExecutionResult", {
-        "rule_execution_successfull": "All operations completed successfully",
-        "not_eligible": "Merge request is not eligible for cherry-pick",
-        "rule_execution_failed": "Some of operations failed",
-    })
-
-
 class FollowupRule(BaseRule):
+    ExecutionResult = FollowupRuleExecutionResultClass.create(
+        "FollowupRuleExecutionResult", {
+            "rule_execution_successfull": "All operations completed successfully",
+            "not_eligible": "Merge request is not eligible for cherry-pick",
+            "rule_execution_failed": "Some of operations failed",
+        })
+
     def __init__(self, project_manager: ProjectManager, jira: JiraAccessor):
         self._project_manager = project_manager
         self._jira = jira
         super().__init__()
 
-    def execute(self, mr_manager: MergeRequestManager) -> FollowupRuleExecutionResult:
+    def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing follow-up rule with {mr_manager}...")
 
         self._jira.get_issue.cache_clear()
@@ -40,7 +39,7 @@ class FollowupRule(BaseRule):
         mr_data = mr_manager.data
         if not mr_data.is_merged:
             logger.info(f"{mr_manager}: Merge request isn't merged. Cannot cherry-pick.")
-            return FollowupRuleExecutionResult.not_eligible
+            return self.ExecutionResult.not_eligible
 
         jira_issue_keys = mr_manager.data.issue_keys
         if not jira_issue_keys:
@@ -49,7 +48,7 @@ class FollowupRule(BaseRule):
             logger.info(
                 f"{mr_manager}: Can't detect attached issue for the merge request. "
                 "Skipping cherry-pick.")
-            return FollowupRuleExecutionResult.not_eligible
+            return self.ExecutionResult.not_eligible
 
         # Intercept all the exceptions and leave a comment in Jira issues about failing of merge
         # request follow-up processing. TODO: Add more sophisticated error processing.
@@ -65,7 +64,7 @@ class FollowupRule(BaseRule):
                     mr_manager=mr_manager,
                     target_branch=mr_data.target_branch,
                     issue_keys=jira_issue_keys)
-                return FollowupRuleExecutionResult.rule_execution_successfull
+                return self.ExecutionResult.rule_execution_successfull
 
             # Primary merge request.
             # 1. Check all Jira issues which are mentioned by the current merge request and create
@@ -79,14 +78,14 @@ class FollowupRule(BaseRule):
             self._create_followup_merge_requests(original_mr_manager=mr_manager)
             self._try_close_single_branch_jira_issues(
                 target_branch=mr_data.target_branch, issue_keys=jira_issue_keys)
-            return FollowupRuleExecutionResult.rule_execution_successfull
+            return self.ExecutionResult.rule_execution_successfull
 
         except Exception as error:
             logger.error(
                 f"{mr_manager}: Follow-up processing was crashed for {mr_manager}: {error}")
             for issue in self._jira.get_issues(jira_issue_keys):
                 issue.add_followup_error_comment(error=error, mr_url=mr_data.url)
-            return FollowupRuleExecutionResult.rule_execution_failed
+            return self.ExecutionResult.rule_execution_failed
 
     def _try_close_jira_issues(self, mr_manager, target_branch: str, issue_keys: List[str]):
         for issue in self._jira.get_issues(issue_keys):

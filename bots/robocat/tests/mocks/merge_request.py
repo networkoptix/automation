@@ -325,9 +325,10 @@ class MergeRequestMock:
             "changes": [
                 {
                     "new_path": name,
-                    "deleted_file": False,
-                    "new_file": descr.get("is_new"),
-                    "renamed_file": False,
+                    "deleted_file": descr.get("is_deleted", False),
+                    "new_file": descr.get("is_new", False),
+                    "renamed_file": descr.get("is_renamed", False),
+                    "b_mode": descr.get("mode", "100644"),
                 } for name, descr in files.items()],
             "changes_count": str(len(files)) + ("+" if self.mock_huge_mr else ""),
         }

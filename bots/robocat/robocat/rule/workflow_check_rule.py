@@ -17,23 +17,23 @@ class WorkflowCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
 
 
 class WorkflowCheckRule(BaseRule):
-    EXECUTION_RESULT = WorkflowCheckRuleExecutionResultClass.create(
+    ExecutionResult = WorkflowCheckRuleExecutionResultClass.create(
         "WorkflowCheckRuleExecutionResult", {
             "rule_execution_successfull": "Workflow requirements are ok",
-            "jira_issue_problems": "Problems with attached Jira Issues",
-            "inconsistent_descriptions": "MR description is inconsistent with commit messages",
+            "jira_issue_problems": "Problems with the attached Jira Issues",
+            "inconsistent_descriptions": "MR description is inconsistent with the commit messages",
         })
 
     def __init__(self, jira: JiraAccessor):
         self._jira = jira
         super().__init__()
 
-    def execute(self, mr_manager: MergeRequestManager) -> EXECUTION_RESULT:
+    def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing Jira Issue check rule with {mr_manager}...")
 
         mr_data = mr_manager.data
         preliminary_check_result = self.preliminary_check_result(mr_data)
-        if preliminary_check_result != self.EXECUTION_RESULT.preliminary_check_passed:
+        if preliminary_check_result != self.ExecutionResult.preliminary_check_passed:
             return preliminary_check_result
 
         self._jira.get_issue.cache_clear()
@@ -42,16 +42,16 @@ class WorkflowCheckRule(BaseRule):
         if jira_issue_errors:
             mr_manager.ensure_workflow_errors_info(
                 errors=jira_issue_errors, title="Jira workflow check failed")
-            return self.EXECUTION_RESULT.jira_issue_problems
+            return self.ExecutionResult.jira_issue_problems
 
         if error := self._get_mr_description_error(mr_manager):
             mr_manager.ensure_workflow_errors_info(
                 errors=[error],
                 title="Different information in Merge Request description and commit messages")
-            return self.EXECUTION_RESULT.inconsistent_descriptions
+            return self.ExecutionResult.inconsistent_descriptions
 
         mr_manager.ensure_workflow_errors_info(errors=[])
-        return self.EXECUTION_RESULT.rule_execution_successfull
+        return self.ExecutionResult.rule_execution_successfull
 
     def _get_jira_issue_errors(self, mr_manager: MergeRequestManager) -> List[str]:
         jira_issue_errors = []

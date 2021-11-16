@@ -8,7 +8,7 @@ from robocat.merge_request_manager import MergeRequestManager, MergeRequestData
 logger = logging.getLogger(__name__)
 
 
-# Emulate subclassing of non-empty Enum class
+# Emulate subclassing of non-empty Enum class.
 class RuleExecutionResultClass(Enum):
     @staticmethod
     def _common_values():
@@ -33,28 +33,28 @@ class RuleExecutionResultClass(Enum):
 
 
 class BaseRule(metaclass=ABCMeta):
-    EXECUTION_RESULT = RuleExecutionResultClass.create("RuleExecutionResult", {})
+    ExecutionResult = RuleExecutionResultClass.create("RuleExecutionResult", {})
 
     def __init__(self):
         pass
 
     @abstractmethod
-    def execute(self, mr_manager: MergeRequestManager) -> EXECUTION_RESULT:
+    def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         """Checks merge request state and executes necessary actions.
 
         :param mr: MergeRequest object
         :returns: True if merge request satisfies the rule described by this class; False otherwise
         """
-        return self.EXECUTION_RESULT.rule_not_implemented
+        return self.ExecutionResult.rule_not_implemented
 
-    def preliminary_check_result(self, mr_data: MergeRequestData) -> EXECUTION_RESULT:
+    def preliminary_check_result(self, mr_data: MergeRequestData) -> ExecutionResult:
         if mr_data.is_merged:
-            return self.EXECUTION_RESULT.merged
+            return self.ExecutionResult.merged
 
         if not mr_data.has_commits:
-            return self.EXECUTION_RESULT.no_commits
+            return self.ExecutionResult.no_commits
 
         if mr_data.work_in_progress:
-            return self.EXECUTION_RESULT.work_in_progress
+            return self.ExecutionResult.work_in_progress
 
-        return self.EXECUTION_RESULT.preliminary_check_passed
+        return self.ExecutionResult.preliminary_check_passed

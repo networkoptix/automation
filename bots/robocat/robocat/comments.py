@@ -126,5 +126,44 @@ cannot_squash_locally = "Failed to squash commits locally by git. See bot logs f
 cannot_restore_approvals = """Failed to restore approvals of some of the following users:
 {approvers}. Please, re-approve manually."""
 
-authorized_approvers_assigned = """@{approvers} were assinged to this merge request because it
+authorized_approvers_assigned = """@{approvers} were assigned to this merge request because it
 contains new or renamed files in the open-source part of the project."""
+
+has_invalid_changes = """{error_message}
+
+Auto-check of this merge request has failed. Fix all the issues, otherwise this merge request
+**will not be merged**.
+"""
+
+nx_submodule_autocheck_passed = """Auto-check for Nx Submodule(s) changed by this
+Merge Request passed successfully. The Merge Request can be merged once all other criteria are met.
+"""
+
+nx_submodule_autocheck_impossible = """Unable to check Nx Submodule(s) changed
+by this Merge Request due to the huge amount of changes (gitlab limitation). Please, double-check
+it manually.
+"""
+
+inconsistent_nx_submodule_change = """The content of the directory `{nx_submodule_dir}` differs
+from the content of the directory `{subrepo_dir}` in repository `{subrepo_url}` checked out at
+commit `{subrepo_commit_sha}`: *{explanation}*. Fix this using `nx_submodule.py` utility or
+manually.
+"""
+
+nx_submodule_config_deleted = """Nx Submodule config file was deleted from the directory
+`{nx_submodule_dir}`. This file must be restored to merge this Merge Request.
+"""
+
+nx_submodule_config_malformed = """Nx Submodule config file in the directory `{nx_submodule_dir}`
+has wrong format. Fix this using `nx_submodule.py` utility or manually.
+"""
+
+unknown_nx_submodule_error = """An unknown error was found while auto-checking Nx Submodule(s)
+changed by this Merge Request. **This must be an internal error of the Robocat - report
+it to the support**.
+"""
+
+nx_submodule_bad_git_data = """Git error occurred while fetching subrepo `{subrepo_url}` at commit
+`{subrepo_commit_sha}` for Nx submodule `{nx_submodule_dir}` (probably, because of an incorrect
+value in `subrepo-url` or `commit-sha`): *{explanation}*.
+"""

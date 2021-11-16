@@ -24,6 +24,7 @@ FILE_COMMITS_SHA = {
     "bad_opencadidate_source_files": "106",
     "opensource_unknown_file": "107",
     "good_opensource_file": "108",
+    "nx_submodule_changes_base": "109",
 }
 CONFLICTING_COMMIT_SHA = "1001"
 BAD_OPENSOURCE_COMMIT = {
@@ -54,7 +55,7 @@ GOOD_README_COMMIT_NEW_FILE = {
 OPEN_SOURCE_APPROVER_COMMON = "approver1"
 OPEN_SOURCE_APPROVER_CLIENT = "approver2"
 OPEN_SOURCE_APPROVER_COMMON_2 = "approver3"
-DEFAILT_APPROVE_RULES_LIST = [
+DEFAULT_APPROVE_RULES_LIST = [
     {
         "patterns": ["open_candidate/vms/client/.+", "open_candidate/cloud/.+"],
         "approvers": [OPEN_SOURCE_APPROVER_CLIENT],
@@ -63,6 +64,7 @@ DEFAILT_APPROVE_RULES_LIST = [
         "approvers": [OPEN_SOURCE_APPROVER_COMMON, OPEN_SOURCE_APPROVER_COMMON_2],
     },
 ]
+DEFAULT_SUBMODULE_DIRS = ["conan_profiles"]
 USERS = [
     {"username": "user1", "name": "User 1", "id": 1, "email": "user1@foo.bar"},
     {"username": "user2", "name": "User 2", "id": 2, "email": "user2@foo.bar"},

@@ -1,5 +1,5 @@
 from pathlib import Path
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional
 
 import source_file_compliance
@@ -29,6 +29,7 @@ EXCLUDED_FILE_NAME_PATTERNS = {
 @dataclass(frozen=True)
 class FileError(CheckError):
     file: str
+    raw_text: str
     line: Optional[int] = None
 
 
