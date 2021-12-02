@@ -12,17 +12,21 @@ EXCLUDED_DIRS = {
     "open/artifacts/nx_kit/src/json11",
     "open/licenses",
     "open_candidate/artifacts",
+    "open_candidate/artifacts",
 }
 EXCLUDED_FILE_PATHS = {
     "open/readme.md",
     "open_candidate/build_info.txt",
     "open_candidate/vms/distribution/unit_tests/build_distribution_conf.py.in",
+    "open_candidate/libs/nx_utils/static-resources/common_passwords.txt",
 }
 # go.mod and go.sum are auto-generated, so they do not need to be checked.
 EXCLUDED_FILE_NAME_PATTERNS = {
     "go.mod", "go.sum", "*.json", "*.json.in", "*.pyc", "*.bmp", "*.gif", "*.mkv", "*.avi",
     "*.png", "*.jpg", "*.jpeg", "*.svg", "*.ui", "*.ts", "*.rc", "qmldir", "control.template",
     "*.wxs", "*.wxl", "*.wxi", "*.xml", "*.conf", "*.conf.in", "*.desktop", "*.plist", "*.def",
+    "*.profile", "*.vcproj", "*.vcxproj.user", "_nx_submodule", "*.natvis", "*.cfg", "*.frag",
+    "*.vert", "*.pyproj", "*.pem",
 }
 
 
