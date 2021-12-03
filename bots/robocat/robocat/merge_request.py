@@ -230,6 +230,10 @@ class MergeRequest:
         return self._gitlab_mr.state == "merged"
 
     @property
+    def is_closed(self):
+        return self._gitlab_mr.state == "closed"
+
+    @property
     def author_name(self) -> str:
         return self._gitlab_mr.author["username"]
 

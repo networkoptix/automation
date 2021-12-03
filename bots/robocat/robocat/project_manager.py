@@ -187,7 +187,7 @@ class ProjectManager:
                 mr = MergeRequest(self._project.get_raw_mr_by_id(mr_id), self._current_user)
                 if mr.is_merged:
                     branches_with_merged_mrs.add(mr.target_branch)
-                else:
+                elif not mr.is_closed:
                     branches_with_open_mrs.add(mr.target_branch)
             except GitlabGetError as error:
                 logger.error(f"Can't obtain merge request with id {mr_id}: {error}")
