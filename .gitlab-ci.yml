@@ -66,6 +66,23 @@ workflow_police:test:
     - bots/workflow_police/**/*
     - automation_tools/**/*
 
+source_files_compliance:test:
+  image: python:3.8
+  stage: test
+  variables:
+    PYTHONPATH: .
+  script:
+  - pip3 install pytest==3.5.0
+  - pytest ./nx_source_file_compliance/ --junitxml=./source_files_compliance_ut_result.xml
+  artifacts:
+    when: always
+    reports:
+      junit: source_files_compliance_ut_result.xml
+  rules:
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    changes:
+    - nx_source_file_compliance/**/*
+
 # validate helm charts
 helm:robocat:validate:
   extends: .validate.helm.chart.template

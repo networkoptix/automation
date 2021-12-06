@@ -8,11 +8,9 @@
 To run this script you need a path to the robocat directory to be in the PYTHONPATH environment
 variable, e.g
 
-`PYTHONPATH=./bots/robocat ./scripts/check_open_sources/check_open_sources.py --repo-directory
+`PYTHONPATH=.:./bots/robocat ./scripts/check_open_sources/check_open_sources.py --repo-directory
 <vms_directory> <open_source_directory>`
 to run it from the repository root).
 
-Also there is a non-standard library `source_file_compliance` that is needed by this script. To
-install it, run
-
-`pip install git+http://gerrit.lan.hdw.mx/qa/func_tests@a1a1a349#subdirectory=source_file_compliance`
+Also to run this script it is necessary to install dependencies from the file
+`bots/robocat/requirements.txt`: `pip install -r bots/robocat/requirements.txt`.

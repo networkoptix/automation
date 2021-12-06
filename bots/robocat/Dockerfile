@@ -12,6 +12,7 @@ RUN curl --fail --silent --show-error --location --output /sbin/tini \
   && chmod +x /sbin/tini
 
 COPY ./bots/robocat/requirements.txt .
+COPY ./nx_source_file_compliance/. ./nx_source_file_compliance
 RUN pip3 install -r requirements.txt
 
 ARG APP_UID=1000
