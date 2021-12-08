@@ -16,7 +16,7 @@ _case_re = re.compile(
     r'[A-Z]+')
 _offensive_re = re.compile(
     r'crazy|awful|stolen|shit|stupid|silly|ugly|hack|blya|fuck|porn|huy|huj|hui|zheppa|wtf|'
-    r'(?<!s)hell(?!o)|mess(?!age)',
+    r'(?<!s)hell(?!o)|mess(?!age|aging)',
     flags=re.IGNORECASE)
 _trademarks_re = make_trademarks_re(Path(__file__).parent / 'organizations_domains.txt')
 _license_words_re = re.compile(
