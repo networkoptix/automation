@@ -25,7 +25,7 @@ _license_words_re = re.compile(
 _mpl = (
     'Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/')
 _trademark_exceptions_re = re.compile(
-    r'com/networkoptix/nxwitness|spaceX|NVidia Tegra|Google Test')
+    r'com/networkoptix/nxwitness|spaceX|NVidia Tegra|Google Test|application/x-noptix-[\w-]+')
 _license_words_exceptions_re = re.compile(
     r'\"copyright\"|\bcopyright_identification_|\b1 - Copyrighted\.(?:\s|$)')
 

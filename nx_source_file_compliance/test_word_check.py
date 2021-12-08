@@ -74,6 +74,8 @@ _trademarks_criteria_reference = [
     ('Google Test', 'negative'),
     ('NVidia', 'positive'),
     ('Google Inc.', 'positive'),
+    ('application/x-noptix-videowall-items', 'negative'),
+    ('application/x-noptix-resources', 'negative'),
     ]
 
 _license_words_criteria_reference = [
