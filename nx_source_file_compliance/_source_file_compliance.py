@@ -26,6 +26,8 @@ _mpl = (
     'Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/')
 _trademark_exceptions_re = re.compile(
     r'com/networkoptix/nxwitness|spaceX|NVidia Tegra|Google Test')
+_license_words_exceptions_re = re.compile(
+    r'\"copyright\"|\bcopyright_identification_|\b1 - Copyrighted\.(?:\s|$)')
 
 
 class WordError:
@@ -99,6 +101,19 @@ def _is_a_trademark_exception(line, match):
     return False
 
 
+def _find_license_words(line):
+    for m in _license_words_re.finditer(line):
+        if not _is_a_license_word_exception(line, m):
+            yield m
+
+
+def _is_a_license_word_exception(line, match):
+    for exception in _license_words_exceptions_re.finditer(line):
+        if exception.start() <= match.start() and match.end() <= exception.end():
+            return True
+    return False
+
+
 def check_file_content(path, content) -> Collection[Union[WordError, LineError, FileError]]:
 
     def _check_mpl(line_idx, prefix, postfix=''):
@@ -117,7 +132,7 @@ def check_file_content(path, content) -> Collection[Union[WordError, LineError, 
             end_line_idx = len(lines)
         for line_idx in range(start_line_idx, end_line_idx):
             if license_words:
-                for m in _license_words_re.finditer(lines[line_idx]):
+                for m in _find_license_words(lines[line_idx]):
                     errors.append(WordError(path, line_idx, m, 'license'))
             for m in _find_trademarks(lines[line_idx], consider_trademark_exceptions):
                 errors.append(WordError(path, line_idx, m, 'trademark'))

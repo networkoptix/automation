@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 
 from ._make_trademarks_re import get_trademarks_from_file
-from ._source_file_compliance import _find_offensive_words, _find_trademarks
+from ._source_file_compliance import _find_offensive_words, _find_trademarks, _find_license_words
 
 _offensive_words_criteria_reference = [
     ("Megafuck", 'positive'),
@@ -76,6 +76,22 @@ _trademarks_criteria_reference = [
     ('Google Inc.', 'positive'),
     ]
 
+_license_words_criteria_reference = [
+    ('gpl', 'positive'),
+    ('gPl', 'positive'),
+    ('copyright', 'positive'),
+    ('CopyRighT', 'positive'),
+    ('copyrighted', 'positive'),
+    ('fcopyright', 'negative'),
+    ('"copyright"', 'negative'),
+    ('"Copyright"', 'positive'),
+    ('copyright_identification_something', 'negative'),
+    ('Copyright_identification_something', 'positive'),
+    ('copyright_identification', 'positive'),
+    ('//1 - Copyrighted.', 'negative'),
+    ('1 - Copyrighted to somebody', 'positive'),
+]
+
 
 class TestFindWords(unittest.TestCase):
 
@@ -93,3 +109,6 @@ class TestFindWords(unittest.TestCase):
 
     def test_trademark_search(self):
         self._check_correctness(_find_trademarks, _trademarks_criteria_reference)
+
+    def test_license_words_search(self):
+        self._check_correctness(_find_license_words, _license_words_criteria_reference)
