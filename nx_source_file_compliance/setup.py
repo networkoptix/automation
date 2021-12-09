@@ -7,6 +7,6 @@ setuptools.setup(
     packages=["source_file_compliance"],
     include_package_data=True,
     package_data={
-        "": ["organizations_domains.txt"],
+        "": ["organization_domains.txt"],
     },
-    version='2.0.4')
+    version='2.0.5')

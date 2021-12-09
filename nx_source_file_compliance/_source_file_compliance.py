@@ -18,14 +18,17 @@ _offensive_re = re.compile(
     r'crazy|awful|stolen|shit|stupid|silly|ugly|hack|blya|fuck|porn|huy|huj|hui|zheppa|wtf|'
     r'(?<!s)hell(?!o)|mess(?!age|aging)',
     flags=re.IGNORECASE)
-_trademarks_re = make_trademarks_re(Path(__file__).parent / 'organizations_domains.txt')
+_trademarks_re = make_trademarks_re(Path(__file__).parent / 'organization_domains.txt')
 _license_words_re = re.compile(
     r'\b(copyright|gpl\b)',
     flags=re.IGNORECASE)
 _mpl = (
     'Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/')
 _trademark_exceptions_re = re.compile(
-    r'com/networkoptix/nxwitness|spaceX|NVidia Tegra|Google Test|application/x-noptix-[\w-]+')
+    r'com/networkoptix/nxwitness|spaceX|Nvidia (Tegra|GPU|GeForce)|Google {0,1}Test|'
+    r'application/x-noptix-[\w-]+|google-services\.json|GoogleService-Info\.plist|InitGoogleMock|'
+    r'\"mts\"|SEI UNIT|Bad SEI detected. SEI too short|skip this sei message|'
+    r'github.com/google/googletest|googletest|groups.google.com|developer.download.nvidia.com')
 _license_words_exceptions_re = re.compile(
     r'\"copyright\"|\bcopyright_identification_|\b1 - Copyrighted\.(?:\s|$)')
 
@@ -126,7 +129,7 @@ def check_file_content(path, content) -> Collection[Union[WordError, LineError, 
             start_line_idx,
             end_line_idx=None,
             license_words=True,
-            consider_trademark_exceptions=False,
+            consider_trademark_exceptions=True,
             ):
         if end_line_idx is None:
             end_line_idx = len(lines)
@@ -172,7 +175,7 @@ def check_file_content(path, content) -> Collection[Union[WordError, LineError, 
         _check_mpl(line_idx=0, prefix='// ')
         _check_empty(line_idx=1)
         if ext in {'.h', '.cpp', '.inc'}:
-            _check_words(start_line_idx=2, consider_trademark_exceptions=True)
+            _check_words(start_line_idx=2)
         else:
             _check_words(start_line_idx=2)
     elif ext in {'.sh', '.py'} or name in {'applauncher', 'prerm', 'postinst', 'client'}:

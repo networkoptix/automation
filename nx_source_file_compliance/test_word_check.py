@@ -68,11 +68,11 @@ _trademarks_criteria_reference = [
     ('axis: Drag.YAxis', 'negative'),
     *[
         (trademark, 'positive') for trademark in
-        get_trademarks_from_file(Path(__file__).parent / 'organizations_domains.txt')
+        get_trademarks_from_file(Path(__file__).parent / 'organization_domains.txt')
         ],
-    ('NVidia Tegra', 'negative'),
+    ('Nvidia Tegra', 'negative'),
     ('Google Test', 'negative'),
-    ('NVidia', 'positive'),
+    ('Nvidia', 'positive'),
     ('Google Inc.', 'positive'),
     ('application/x-noptix-videowall-items', 'negative'),
     ('application/x-noptix-resources', 'negative'),
