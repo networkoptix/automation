@@ -24,7 +24,7 @@ pep8:
   - service
   stage: validate
   script:
-  - pycodestyle --max-line-length=120 .
+  - pycodestyle --max-line-length=99 .
   rules:
   - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 

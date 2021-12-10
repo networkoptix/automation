@@ -10,7 +10,8 @@ Please note, I consider Merge Request ready when:
 2. It's not in Draft status
 3. It's assigned to me
 
-P.S. You may set :construction_site: emoji on Merge Request and I will run the pipeline even if MR isn't ready."""
+P.S. You may set :construction_site: emoji on Merge Request and I will run the pipeline even if MR
+isn't ready."""
 
 merged_message = "Merge request was successfully merged into `{branch}` branch."
 run_pipeline_message = "Running pipeline {pipeline_id}: {reason}."
@@ -26,7 +27,8 @@ approval_wait_message = """Not enough approvals, **{approvals_left} more** requi
 I will start merging process once all approvals are collected."""
 
 unresolved_threads_message = f"""Merge request returned to development.
-Please, resolve all discussions and [mark as Ready]({_mark_as_ready_url}) to continue merging process."""
+Please, resolve all discussions and [mark as Ready]({_mark_as_ready_url}) to continue merging
+process."""
 
 conflicts_message = f"""Merge request returned to development.
 Please, do manual rebase and [mark as Ready]({_mark_as_ready_url}) to continue merging process."""

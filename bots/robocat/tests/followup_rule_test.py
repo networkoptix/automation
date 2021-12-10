@@ -100,7 +100,7 @@ class TestFollowupRule:
         assert len(issue.fields.comment.comments) == 1, (
             f"Got Jira issue comments: {issue.fields.comment.comments}")
         assert issue.fields.comment.comments[0].body.startswith(
-            "An error occured while trying to execute follow-up actions for merge request ")
+            "An error occured while trying to execute follow-up actions for merge request")
 
         assert len(mr.mock_comments()) == 0
         emojis = mr.awardemojis.list()

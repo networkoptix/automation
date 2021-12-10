@@ -166,8 +166,8 @@ class JiraIssue:
 
         if self.status not in [JiraIssueStatus.progress, JiraIssueStatus.review]:
             raise JiraError(
-                f"Cannot automatically move to QA or close Issue {self} because of the wrong status "
-                f'"{self._raw_issue.fields.status.name}".')
+                f"Cannot automatically move to QA or close Issue {self} because of the wrong "
+                f'status "{self._raw_issue.fields.status.name}".')
 
         if self.status == JiraIssueStatus.progress:
             self._set_status(JiraIssueStatus.review)

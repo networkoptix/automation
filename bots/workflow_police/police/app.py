@@ -85,7 +85,8 @@ class WorkflowEnforcer:
                 now = int(datetime.datetime.now().timestamp())
                 return (now - last_check_timestamp) // 60 + self._polling_period_min
         except FileNotFoundError:
-            logger.info(f"No previous runs detected, using {self._polling_period_min * 2} min period")
+            logger.info(
+                f"No previous runs detected, using {self._polling_period_min * 2} min period")
             return self._polling_period_min * 2
 
     def update_last_check_timestamp(self):
@@ -131,7 +132,11 @@ class WorkflowEnforcer:
 def main():
     parser = argparse.ArgumentParser(sys.argv[0])
     parser.add_argument('config_file', help="Config file with all options")
-    parser.add_argument('--log-level', help="Logs level", choices=logging._nameToLevel.keys(), default=logging.INFO)
+    parser.add_argument(
+        '--log-level',
+        help="Logs level",
+        choices=logging._nameToLevel.keys(),
+        default=logging.INFO)
     parser.add_argument('--graylog', help="Hostname of Graylog service")
     arguments = parser.parse_args()
 

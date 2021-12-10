@@ -38,7 +38,7 @@ class Project:
     @lru_cache(maxsize=64)
     def get_mr_commit_changes(
             self, mr_id: int,
-            mr_target_branch: str, sha: str) -> MergeRequestDiffData:  # pylint: disable=unused-argument
+            mr_target_branch: str, sha: str) -> MergeRequestDiffData:
         # "sha" and "mr_target_branch" arguments are used by the lru_cache magic.
         changes = self._gitlab_project.mergerequests.get(mr_id).changes()
         overflow = str(changes["changes_count"]).endswith("+")

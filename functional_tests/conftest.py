@@ -128,7 +128,8 @@ def jira_issues(jira_handler, issue_descriptions: List[helpers.jira.IssueDescrip
             issue = jira_handler.create_issue(fields=issue_create_parameters)
 
             if descr.status is not None:
-                transition_name = helpers.jira.get_transition_name(jira_handler, issue, descr.status)
+                transition_name = helpers.jira.get_transition_name(
+                    jira_handler, issue, descr.status)
                 jira_handler.transition_issue(issue, transition_name)
 
             issues.append(issue)
