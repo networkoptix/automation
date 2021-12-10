@@ -12,10 +12,11 @@ class Error(Exception):
 
 class Version:
     def __init__(self, jira_version: str):
-        version_splitted = jira_version.split('_')
-        assert len(version_splitted) == 2 and version_splitted[1] == "patch" or len(version_splitted) == 1
-        self.number = version_splitted[0]
-        self.is_patch = len(version_splitted) == 2
+        version_parts = jira_version.split('_')
+        if not(len(version_parts) == 2 and version_parts[1] == "patch" or len(version_parts) == 1):
+            raise Error("Wrong version name format: {jira_version}")
+        self.number = version_parts[0]
+        self.is_patch = len(version_parts) == 2
 
     def __gt__(self, other):
         if "Future" == self.number:

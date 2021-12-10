@@ -100,16 +100,7 @@ class WorkflowEnforcer:
             self._repo.update_repository()
 
             for issue in issues:
-                reason = self._workflow_checker.should_ignore_issue(issue)
-                if reason:
-                    logger.debug(f"Ignoring {issue}: {reason}")
-                    continue
-                logger.info(f"Checking issue: {issue} ({issue.status}) "
-                            f"with versions {issue.versions_to_branches_map.keys()}")
-                reason = self._workflow_checker.should_reopen_issue(issue)
-                if not reason:
-                    continue
-                issue.return_issue(reason)
+                self.handle(issue)
 
             logger.debug(f"All {len(issues)} issues handled")
             self.update_last_check_timestamp()
@@ -118,6 +109,23 @@ class WorkflowEnforcer:
                 break
 
             time.sleep(self._polling_period_min * 60)
+
+    def handle(self, issue: jira.Issue):
+        try:
+            reason = self._workflow_checker.should_ignore_issue(issue)
+            if reason:
+                logger.debug(f"Ignoring {issue}: {reason}")
+                return
+            logger.info(
+                f"Checking issue: {issue} ({issue.status}) "
+                f"with versions {issue.versions_to_branches_map.keys()}")
+            reason = self._workflow_checker.should_reopen_issue(issue)
+            if not reason:
+                return
+            issue.return_issue(reason)
+
+        except automation_tools.utils.Error as e:
+            logger.warning(f"Error while processing issue {issue}: {e}")
 
 
 def main():
