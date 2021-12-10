@@ -1,4 +1,6 @@
 import logging
+import re
+
 from enum import Enum
 from typing import List, Optional
 
@@ -47,7 +49,7 @@ class WorkflowCheckRule(BaseRule):
         if error := self._get_mr_description_error(mr_manager):
             mr_manager.ensure_workflow_errors_info(
                 errors=[error],
-                title="Different information in Merge Request description and commit messages")
+                title="Merge request title/description is not compliant with the rules")
             return self.ExecutionResult.inconsistent_descriptions
 
         mr_manager.ensure_workflow_errors_info(errors=[])
@@ -89,7 +91,8 @@ class WorkflowCheckRule(BaseRule):
         commits_data = mr_manager.get_commits_data()
 
         if not mr_data.squash:
-            actual_commit_issue_keys = self._exclude_ignored_issues(commits_data.issue_keys)
+            actual_commit_issue_keys = self._exclude_ignored_issues(
+                list({k for keys in commits_data.issue_keys for k in keys}))
             actual_issue_keys = self._exclude_ignored_issues(mr_data.issue_keys)
             if not set(actual_issue_keys).issubset(set(actual_commit_issue_keys)):
                 return (
@@ -106,6 +109,19 @@ class WorkflowCheckRule(BaseRule):
                     "Merge Request must be the same that the commit message. Merge Request "
                     f"title/description is {expected_commit_message!r}, commit message is "
                     f"{commits_data.messages[0].strip()!r}")
+
+        if mr_manager.is_followup() and mr_data.squash:
+            if re.match(r'^(?:.+?\:)?\s*\(.+\)', mr_data.title):
+                return (
+                    "Parentheses right after the Jira Issue ref (or at the beginning, if no Jira "
+                    "Issue is mentioned) in the title of the squashed follow-up Merge Request "
+                    "are not allowed.")
+
+        if not mr_data.squash:
+            if any([True for keys in commits_data.issue_keys if not keys]):
+                return (
+                    "In non-squashed Merge Request all commit messages must contain a reference "
+                    "to at least one Jira Issue.")
 
         return None
 

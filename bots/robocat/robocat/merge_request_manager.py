@@ -113,7 +113,7 @@ class MergeRequestData:
 
 @dataclasses.dataclass
 class MergeRequestCommitsData:
-    issue_keys: list
+    issue_keys: List[Set[str]]
     messages: List[str]
 
 
@@ -139,14 +139,14 @@ class MergeRequestManager:
     def get_commits_data(self) -> MergeRequestCommitsData:
         messages = [c.message for c in self._mr.commits()]
 
-        issue_keys = set()
+        issue_keys = []
         for message in messages:
             (title, _, body) = message.partition("\n\n")
-            issue_keys |= self._mr.extract_issue_keys(title, body)
+            issue_keys.append(self._mr.extract_issue_keys(title, body))
 
         return MergeRequestCommitsData(
             messages=messages,
-            issue_keys=list(issue_keys)
+            issue_keys=issue_keys
         )
 
     def get_last_pipeline_status(self) -> PipelineStatus:

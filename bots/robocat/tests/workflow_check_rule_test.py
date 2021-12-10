@@ -218,6 +218,22 @@ class TestWorkflowCheckRule:
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash": False,
         }),
+        # One of the commit messages doesn't commit Jira Issue reference in squashed MR.
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
+        }], {
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Merge request title",
+            "commits_list": [{
+                "sha": DEFAULT_COMMIT["sha"],
+                "message": f"{DEFAULT_JIRA_ISSUE_KEY}: commit 1 title\n",
+                "files": {},
+            }, {
+                "sha": f"{DEFAULT_COMMIT['sha']}abc",
+                "message": "commit 2 title",
+                "files": {},
+            }],
+            "squash": True,
+        }),
     ])
     def test_jira_issues_are_ok(self, workflow_rule, mr, mr_manager):
         for _ in range(2):  # State must not change after any number of rule executions.
@@ -361,6 +377,48 @@ class TestWorkflowCheckRule:
             }],
             "squash": False,
         }),
+        # Squashed follow-up with parethesis in the begining of the title.
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
+        }], {
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: (master->vms_5.0) Merge request title",
+            "commits_list": [{
+                "sha": DEFAULT_COMMIT["sha"],
+                "message": f"{DEFAULT_JIRA_ISSUE_KEY}: commit title\n",
+                "files": {},
+            }],
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash": True,
+        }),
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
+        }], {
+            "title": f"(master->vms_5.0) Merge request title",
+            "commits_list": [{
+                "sha": DEFAULT_COMMIT["sha"],
+                "message": f"{DEFAULT_JIRA_ISSUE_KEY}: commit title\n",
+                "files": {},
+            }],
+            "description": f"Closes {DEFAULT_JIRA_ISSUE_KEY}",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash": True,
+        }),
+        # One of the commit messages doesn't commit Jira Issue reference in non-squashed MR.
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
+        }], {
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Merge request title",
+            "commits_list": [{
+                "sha": DEFAULT_COMMIT["sha"],
+                "message": f"{DEFAULT_JIRA_ISSUE_KEY}: commit 1 title\n",
+                "files": {},
+            }, {
+                "sha": f"{DEFAULT_COMMIT['sha']}abc",
+                "message": "commit 2 title",
+                "files": {},
+            }],
+            "squash": False,
+        }),
     ])
     def test_commit_messages_are_not_ok(self, workflow_rule, mr, mr_manager):
         for _ in range(2):  # State must not change after any number of rule executions.
@@ -372,5 +430,7 @@ class TestWorkflowCheckRule:
             comments = mr.mock_comments()
             assert len(comments) == 1
 
-            expected_title = f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: Different information"
+            expected_title = (
+                f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: "
+                "Merge request title/description is not compliant with the rules")
             assert comments[0].startswith(expected_title), f"Unexpected comment: {comments[0]!r}"

@@ -73,7 +73,7 @@ class TestBot:
             "needed_approvers_number": 0,
             "commits_list": [{
                 "sha": DEFAULT_COMMIT["sha"],
-                "message": "msg",
+                "message": f"{DEFAULT_JIRA_ISSUE_KEY}: msg",
                 "files": {},
             }, GOOD_README_COMMIT_NEW_FILE],
             "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
