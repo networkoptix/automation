@@ -34,6 +34,7 @@ class ProjectManager:
         self._project = Project(gitlab_project)
         self._gitlab = robocat.gitlab.Gitlab(gitlab_project.manager.gitlab)
         self._repo = repo
+        self._repo.add_remote(self._project.namespace, self._project.ssh_url)
 
     @property
     def data(self) -> ProjectData:

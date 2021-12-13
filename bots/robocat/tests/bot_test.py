@@ -82,6 +82,8 @@ class TestBot:
         }),
     ])
     def test_merge_no_local_squash(self, bot, mr, mr_manager, repo_accessor):
+        repo_accessor.repo.mock_reset_commands_log()
+
         bot.handle(mr_manager)
         assert mr.state == "merged"
         assert not mr.mock_rebased
@@ -110,6 +112,7 @@ class TestBot:
         }),
     ])
     def test_merge_with_local_squash(self, bot, mr, mr_manager, project, repo_accessor):
+        repo_accessor.repo.mock_reset_commands_log()
         base_commit_mock = CommitMock(
             repo_accessor.repo, sha="0123457789AB", message="base commit")
         remote_branch_name = f"{project.namespace['full_path']}/{mr.source_branch}"
@@ -121,34 +124,34 @@ class TestBot:
         assert not mr.mock_rebased
 
         local_git_actions = repo_accessor.repo.mock_read_commands_log()
-        assert len(local_git_actions) == 6, f"Local git actions: {local_git_actions}"
+        assert len(local_git_actions) == 7, f"Local git actions: {local_git_actions}"
         assert local_git_actions[0].startswith(f"add remote '{project.namespace['full_path']}'"), (
             f"Local git action 1: {local_git_actions[0]}")
-        assert local_git_actions[1].startswith(f"fetch '{project.namespace['full_path']}'"), (
-            f"Local git actions: {local_git_actions[1]}")
+        assert local_git_actions[2].startswith(f"fetch '{project.namespace['full_path']}'"), (
+            f"Local git actions: {local_git_actions[2]}")
         hard_reset_test_string = (
             f"hard reset '{mr.source_branch}' to "
             f"'{project.namespace['full_path']}/{mr.source_branch}'")
-        assert local_git_actions[2].startswith(hard_reset_test_string), (
-            f"Local git actions: {local_git_actions[2]}")
+        assert local_git_actions[3].startswith(hard_reset_test_string), (
+            f"Local git actions: {local_git_actions[3]}")
         soft_reset_test_string = (
             f"soft reset '{mr.source_branch}' to '{mr.mock_base_commit_sha}'")
-        assert local_git_actions[3].startswith(soft_reset_test_string), (
-            f"Local git actions: {local_git_actions[3]}")
+        assert local_git_actions[4].startswith(soft_reset_test_string), (
+            f"Local git actions: {local_git_actions[4]}")
         commit_author_test_string = (
             f"author: '{USERS[0]['name']} <{USERS[0]['email']}>'")
         commit_committer_test_string = (
             f"committer: '{BOT_NAME} <{BOT_EMAIL}>'")
-        assert commit_author_test_string in local_git_actions[4], (
-            f"Wrong commit author: {local_git_actions[4]}")
-        assert commit_committer_test_string in local_git_actions[4], (
-            f"Wrong commit committer: {local_git_actions[4]}")
-        assert local_git_actions[4].startswith(f"commit to branch '{mr.source_branch}'"), (
-            f"Local git actions: {local_git_actions[4]}")
+        assert commit_author_test_string in local_git_actions[5], (
+            f"Wrong commit author: {local_git_actions[5]}")
+        assert commit_committer_test_string in local_git_actions[5], (
+            f"Wrong commit committer: {local_git_actions[5]}")
+        assert local_git_actions[5].startswith(f"commit to branch '{mr.source_branch}'"), (
+            f"Local git actions: {local_git_actions[5]}")
         push_test_string = (
             f"forced push '{mr.source_branch}' to '{project.namespace['full_path']}'")
-        assert local_git_actions[5].startswith(push_test_string), (
-            f"Local git actions: {local_git_actions[5]}")
+        assert local_git_actions[6].startswith(push_test_string), (
+            f"Local git actions: {local_git_actions[6]}")
 
         emojis = mr.awardemojis.list()
         assert not any(

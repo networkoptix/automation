@@ -82,10 +82,6 @@ class Project:
     def ssh_url(self):
         return self._gitlab_project.ssh_url_to_repo
 
-    def cherry_pick_to_branch(self, branch, commit_sha):
-        commit = self._get_raw_commit_by_sha(commit_sha)
-        commit.cherry_pick(branch=branch)
-
     def _get_raw_commit_by_sha(self, sha):
         return self._gitlab_project.commits.get(sha)
 

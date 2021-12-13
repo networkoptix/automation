@@ -45,6 +45,9 @@ class RepoMock:
     def mock_add_command_to_log(self, command: str):
         print(command.replace('\n', ' '), file=self._command_log_file)
 
+    def mock_reset_commands_log(self):
+        self._command_log_file = tempfile.TemporaryFile(mode="w+")
+
     def add_mock_commit(self, sha: str, message: str):
         new_commit = CommitMock(self, sha=sha, message=message)
         self.commits.append(new_commit)

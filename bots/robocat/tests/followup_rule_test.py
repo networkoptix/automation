@@ -38,7 +38,6 @@ class TestFollowupRule:
         # Init git repo state. TODO: Move git repo state to parameters.
 
         project_remote = project.namespace["full_path"]
-        RemoteMock.add(repo=repo_accessor.repo, name=project_remote, url="")
         repo_accessor.create_branch(
             target_remote=project_remote, new_branch="vms_4.1", source_branch="master")
         for c in mr.commits_list:
@@ -205,7 +204,6 @@ class TestFollowupRule:
         # Init git repo state. TODO: Move git repo state to parameters.
 
         project_remote = project.namespace["full_path"]
-        RemoteMock.add(repo=repo_accessor.repo, name=project_remote, url="")
         repo_accessor.create_branch(
             target_remote=project_remote, new_branch="vms_4.1", source_branch="master")
         repo_accessor.create_branch(
@@ -285,7 +283,6 @@ class TestFollowupRule:
         # Init git repo state. TODO: Move git repo state to parameters.
 
         project_remote = project.namespace["full_path"]
-        RemoteMock.add(repo=repo_accessor.repo, name=project_remote, url="")
         repo_accessor.create_branch(
             target_remote=project_remote, new_branch="vms_4.1", source_branch="master")
         for c in mr.commits_list:
