@@ -1,6 +1,9 @@
 import logging
 from enum import Enum
+from typing import Set
 
+from automation_tools.checkers.checkers import IssueIgnoreProjectChecker
+from automation_tools.checkers.config import DEFAULT_PROJECT_KEYS_TO_CHECK
 from robocat.merge_request_manager import MergeRequestManager, ApprovalRequirements
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.action_reasons import WaitReason, ReturnToDevelopmentReason
@@ -24,7 +27,12 @@ class EssentialRule(BaseRule):
             "pipeline_running": "Pipeline is running",
             "pipeline_failed": "Pipeline failed",
             "unresolved_threads": "Unresolved threads found",
+            "bad_project_list": "Merge Request does not belong to any supported Jira Project",
         })
+
+    def __init__(self, project_keys: Set[str] = None):
+        self._project_keys = project_keys if project_keys else DEFAULT_PROJECT_KEYS_TO_CHECK
+        super().__init__()
 
     def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing essential rule with {mr_manager}...")
@@ -38,6 +46,14 @@ class EssentialRule(BaseRule):
         if preliminary_check_result == self.ExecutionResult.no_commits:
             mr_manager.ensure_wait_state(WaitReason.no_commits)
             return preliminary_check_result
+
+        belongs_to_supported_projects = any([
+            True for k in mr_manager.data.issue_keys
+            if not IssueIgnoreProjectChecker(self._project_keys).check_by_key(k)])
+        if not belongs_to_supported_projects:
+            mr_manager.return_to_development(
+                ReturnToDevelopmentReason.bad_project_list, self._project_keys)
+            return self.ExecutionResult.bad_project_list
 
         mr_manager.ensure_watching()
         mr_manager.ensure_user_requested_pipeline_run()

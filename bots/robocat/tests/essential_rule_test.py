@@ -1,7 +1,8 @@
 import pytest
 
 from robocat.award_emoji_manager import AwardEmojiManager
-from tests.robocat_constants import DEFAULT_COMMIT
+from robocat.rule.essential_rule import EssentialRule
+from tests.robocat_constants import DEFAULT_COMMIT, DEFAULT_JIRA_ISSUE_KEY
 from tests.fixtures import *
 
 
@@ -320,46 +321,70 @@ class TestEssentialRule:
                 c for c in comments if f"# :{AwardEmojiManager.PIPELINE_EMOJI}:" in c), (
                 f"Got comments: {comments}")
 
-    @pytest.mark.parametrize("mr_state", [
-        # Has conflicts
-        {
+    @pytest.mark.parametrize(("mr_state", "expected_result", "expected_comment"), [
+        # Has conflicts.
+        ({
             "needed_approvers_number": 0,
             "has_conflicts": True
-        },
-        # Has unresolved threads and pipeline is succeeded
-        {
+        }, EssentialRule.ExecutionResult.has_conflicts, "Please, do manual rebase"),
+        # Has unresolved threads, and the pipeline has succeeded.
+        ({
             "needed_approvers_number": 0,
             "blocking_discussions_resolved": False,
             "pipelines_list": [(DEFAULT_COMMIT["sha"], "success")]
-        },
-        # Has unresolved threads and pipeline is failed
-        {
+        }, EssentialRule.ExecutionResult.unresolved_threads, "Please, resolve all discussions"),
+        # Has unresolved threads, and the pipeline has failed.
+        ({
             "needed_approvers_number": 0,
             "blocking_discussions_resolved": False,
             "pipelines_list": [(DEFAULT_COMMIT["sha"], "failed")]
-        },
-        # No unresolved threads, pipeline is failed and no new commits
-        {
+        }, EssentialRule.ExecutionResult.unresolved_threads, "Please, resolve all discussions"),
+        # No unresolved threads, pipeline has failed, and no new commits.
+        ({
             "needed_approvers_number": 0,
             "pipelines_list": [(DEFAULT_COMMIT["sha"], "failed")]
-        }
+        }, EssentialRule.ExecutionResult.pipeline_failed, "Please, fix the errors"),
+        # Bad Jira Project.
+        ({
+            "title": "UNKNOWN-666: Test mr",
+        }, EssentialRule.ExecutionResult.bad_project_list, "Please, link this Merge Request"),
     ])
-    def test_return_to_development(self, essential_rule, mr, mr_manager):
-        for _ in range(2):  # State must not change after any number of rule executions.
-            assert not essential_rule.execute(mr_manager)
+    def test_return_to_development(
+            self, essential_rule, mr, mr_manager, expected_result, expected_comment):
 
-            assert mr.work_in_progress
+        assert essential_rule.execute(mr_manager) == expected_result
 
-            comments = mr.mock_comments()
-            assert "Merge request returned to development" in comments[-1], (
-                f"Got comments: {comments}")
+        assert mr.work_in_progress
+
+        comments = mr.mock_comments()
+        assert "Merge Request returned to development" in comments[-1], (
+            f"Got comments: {comments}")
+        assert expected_comment in comments[-1], f"Got comment: {comments[-1]}"
+
+        assert essential_rule.execute(mr_manager) in [
+            EssentialRule.ExecutionResult.work_in_progress, expected_result]
 
     @pytest.mark.parametrize("mr_state", [
+        # Good MR linked to a good Jira Project.
         {
             "emojis_list": [AwardEmojiManager.WATCH_EMOJI],
             "needed_approvers_number": 2,
             "approvers_list": ["user1", "user2"],
             "pipelines_list": [(DEFAULT_COMMIT["sha"], "success")],
+        },
+        # Good MR linked to one good and one bad Jira Project.
+        {
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}, UNKNOWN-666: Test mr",
+            "emojis_list": [AwardEmojiManager.WATCH_EMOJI],
+            "needed_approvers_number": 2,
+            "approvers_list": ["user1", "user2"],
+            "pipelines_list": [(DEFAULT_COMMIT["sha"], "success")],
+            "commits_list": [
+                {
+                    "sha": DEFAULT_COMMIT["sha"],
+                    "message": "{DEFAULT_JIRA_ISSUE_KEY}, UNKNOWN-666: Commit for test mr",
+                },
+            ],
         },
     ])
     def test_merge_allowed(self, essential_rule, mr, mr_manager):

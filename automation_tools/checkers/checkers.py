@@ -1,8 +1,8 @@
-from typing import Optional
+from typing import Optional, Set
 
+import automation_tools.checkers.config as config
 from automation_tools.jira import JiraIssue, JiraIssueStatus
 from automation_tools.git import Repo
-import automation_tools.checkers.config as config
 
 
 class WorkflowPolicyChecker:
@@ -86,7 +86,15 @@ class IssueIgnoreLabelChecker(WorkflowPolicyChecker):
 
 
 class IssueIgnoreProjectChecker(WorkflowPolicyChecker):
+    def __init__(self, project_keys: Set[str] = None):
+        self._project_keys = project_keys if project_keys else config.DEFAULT_PROJECT_KEYS_TO_CHECK
+        super().__init__()
+
     def run(self, issue: JiraIssue) -> Optional[str]:
-        if issue.project not in config.PROJECT_KEYS_TO_CHECK:
-            return f"issue project is {issue.project}"
+        return self.check_by_key(issue.project)
+
+    def check_by_key(self, issue_key: str) -> Optional[str]:
+        project_name, *_ = issue_key.partition("-")
+        if project_name not in self._project_keys:
+            return f"issue project is {project_name}"
         return

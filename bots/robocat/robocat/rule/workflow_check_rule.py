@@ -2,10 +2,11 @@ import logging
 import re
 
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Set
 
 from automation_tools.checkers.checkers import (
     WrongVersionChecker, IssueIgnoreLabelChecker, IssueIgnoreProjectChecker)
+from automation_tools.checkers.config import DEFAULT_PROJECT_KEYS_TO_CHECK
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.merge_request_manager import MergeRequestManager
 from automation_tools.jira import JiraAccessor
@@ -26,8 +27,9 @@ class WorkflowCheckRule(BaseRule):
             "inconsistent_descriptions": "MR description is inconsistent with the commit messages",
         })
 
-    def __init__(self, jira: JiraAccessor):
+    def __init__(self, jira: JiraAccessor, project_keys: Set[str] = None):
         self._jira = jira
+        self._project_keys = project_keys if project_keys else DEFAULT_PROJECT_KEYS_TO_CHECK
         super().__init__()
 
     def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
@@ -129,7 +131,8 @@ class WorkflowCheckRule(BaseRule):
         result = []
         for key in issue_keys:
             issue = self._jira.get_issue(key)
-            if IssueIgnoreLabelChecker().run(issue) or IssueIgnoreProjectChecker().run(issue):
+            checkers = [IssueIgnoreLabelChecker(), IssueIgnoreProjectChecker(self._project_keys)]
+            if any(c.run(issue) for c in checkers):
                 continue
             result.append(key)
 

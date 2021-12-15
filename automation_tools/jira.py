@@ -10,7 +10,7 @@ import jira.exceptions
 import automation_tools.utils
 import automation_tools.jira_comments as jira_messages
 import automation_tools.bot_info
-from automation_tools.checkers.config import PROJECT_KEYS_TO_CHECK
+from automation_tools.checkers.config import DEFAULT_PROJECT_KEYS_TO_CHECK
 
 logger = logging.getLogger(__name__)
 
@@ -242,17 +242,25 @@ class JiraIssue:
 
 
 class JiraAccessor:
-    def __init__(self, url: str, login: str, password: str, timeout: int, retries: int):
+    def __init__(
+            self,
+            url: str,
+            login: str,
+            password: str,
+            timeout: int,
+            retries: int,
+            project_keys: Set[str] = None):
         try:
             self._jira = jira.JIRA(
                 server=url, basic_auth=(login, password), max_retries=retries, timeout=timeout)
+            self._project_keys = project_keys if project_keys else DEFAULT_PROJECT_KEYS_TO_CHECK
 
         except jira.exceptions.JIRAError as error:
             raise JiraError(f"Unable to connect to {url} with {login}", error) from error
 
     def get_recently_closed_issues(self, period_min: int) -> List[JiraIssue]:
         closed_issues_filter = JiraIssue.closed_issues_filter(period_min)
-        projects_string = '"' + '", "'.join(PROJECT_KEYS_TO_CHECK) + '"'
+        projects_string = '"' + '", "'.join(self._project_keys) + '"'
         project_closed_issues_filter = f"project in ({projects_string}) AND {closed_issues_filter}"
         logger.debug(f'Searching issues with filter [{project_closed_issues_filter}]')
 
@@ -267,7 +275,7 @@ class JiraAccessor:
 
         return issues
 
-    @lru_cache(maxsize=8)
+    @lru_cache(maxsize=40)
     def get_issue(self, key: str) -> JiraIssue:
         try:
             raw_issue = self._jira.issue(key)
@@ -284,7 +292,7 @@ class JiraAccessor:
 
     @automation_tools.utils.cached(datetime.timedelta(minutes=10))
     def version_to_branch_mappings(self) -> Dict[str, Dict[str, str]]:
-        return {p: self._version_to_branch_mapping(p) for p in PROJECT_KEYS_TO_CHECK}
+        return {p: self._version_to_branch_mapping(p) for p in self._project_keys}
 
     def _version_to_branch_mapping(self, project: str) -> Dict[str, str]:
         try:

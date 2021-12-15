@@ -27,6 +27,11 @@ robocatConfig: |
     password: {{ .Values.jiraPassword }}
     timeout: 10
     retries: 1
+    project_keys:
+      - VMS
+      - MOBILE
+      - CB
+      - SQ
 
   repo:
     path: /var/workflow_robocat/nx

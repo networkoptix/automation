@@ -1,6 +1,7 @@
 from pathlib import Path
 import pytest
 
+from automation_tools.checkers.config import DEFAULT_PROJECT_KEYS_TO_CHECK
 import automation_tools.git
 import automation_tools.jira
 import automation_tools.tests.mocks.jira
@@ -11,6 +12,7 @@ from automation_tools.tests.mocks.git_mocks import (
 @pytest.fixture
 def jira(jira_issues, monkeypatch):
     def init_with_mock(this):
+        this._project_keys = DEFAULT_PROJECT_KEYS_TO_CHECK
         this._jira = automation_tools.tests.mocks.jira.Jira()
 
     monkeypatch.setattr(automation_tools.jira.JiraAccessor, "__init__", init_with_mock)

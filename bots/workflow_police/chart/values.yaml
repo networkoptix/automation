@@ -33,6 +33,12 @@ config: |
     password: {{ .Values.jiraPassword }}
     timeout: 10
     retries: 1
+    project_keys:
+      - VMS
+      - MOBILE
+      - CB
+      - SQ
+
   repo:
     path: /var/workflow_police/nx
     url: "git@gitlab.lan.hdw.mx:dev/nx.git"

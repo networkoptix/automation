@@ -50,16 +50,16 @@ class Bot:
             current_user=self._username,
             repo=self._repo)
 
+        jira = JiraAccessor(**config["jira"])
+
         self._rule_nx_submodules_check = NxSubmoduleCheckRule(
             self._project_manager,
             **config["nx_submodule_check_rule"])
-        self._rule_essential = EssentialRule()
+        self._rule_essential = EssentialRule(project_keys=config["jira"].get("project_keys"))
         self._rule_open_source_check = OpenSourceCheckRule(
             project_manager=self._project_manager, **config["open_source_check_rule"])
-        self._rule_workflow_check = WorkflowCheckRule(jira=JiraAccessor(**config["jira"]))
-        self._rule_followup = FollowupRule(
-            project_manager=self._project_manager,
-            jira=JiraAccessor(**config["jira"]))
+        self._rule_workflow_check = WorkflowCheckRule(jira=jira)
+        self._rule_followup = FollowupRule(project_manager=self._project_manager, jira=jira)
 
     def handle(self, mr_manager: MergeRequestManager):
         essential_rule_check_result = self._rule_essential.execute(mr_manager)

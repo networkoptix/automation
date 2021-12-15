@@ -1,8 +1,8 @@
+import re
 from typing import List, Optional
 
 import jira.exceptions
 
-from automation_tools.checkers.config import PROJECT_KEYS_TO_CHECK
 from automation_tools.tests.mocks.issue import JiraIssue
 from automation_tools.tests.mocks.resources import (
     Version, RemoteLink, Status, IssueType, Comment, Resolution)
@@ -18,11 +18,12 @@ class Jira:
         except KeyError:
             raise jira.exceptions.JIRAError
 
-    def search_issues(self, *_, **__):
+    def search_issues(self, issue_filter, **__):
         issues = []
+        match = re.match(r"project in \((?P<projects_string>.+?)\)", issue_filter)
         for key, issue in self._issues.items():
             project, _, __ = key.partition("-")
-            if project in PROJECT_KEYS_TO_CHECK:
+            if project in [p.strip('" ') for p in match.group('projects_string').split(',')]:
                 issues.append(issue)
         return issues
 

@@ -66,7 +66,7 @@ class WorkflowEnforcer:
         self._workflow_checker = WorkflowViolationChecker()
         self._workflow_checker.ignore_checkers = [
             IssueIgnoreLabelChecker(),
-            IssueIgnoreProjectChecker(),
+            IssueIgnoreProjectChecker(config["jira"].get("project_keys")),
             IssueTypeChecker(),
             IssueIsFixedChecker(),
         ]

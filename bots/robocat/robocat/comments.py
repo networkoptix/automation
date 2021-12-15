@@ -26,11 +26,17 @@ Lets wait until it finishes."""
 approval_wait_message = """Not enough approvals, **{approvals_left} more** required.
 I will start merging process once all approvals are collected."""
 
-unresolved_threads_message = f"""Merge request returned to development.
+unresolved_threads_message = f"""Merge Request returned to development.
 Please, resolve all discussions and [mark as Ready]({_mark_as_ready_url}) to continue merging
 process."""
 
-conflicts_message = f"""Merge request returned to development.
+no_supported_jira_projects = f"""
+Merge Request returned to development. Please, link this Merge Request to the Jira Issues from at
+least one of the supported Jira Projects (%s) and [mark as Ready]({_mark_as_ready_url}) to
+continue the merge process.
+"""
+
+conflicts_message = f"""Merge Request returned to development.
 Please, do manual rebase and [mark as Ready]({_mark_as_ready_url}) to continue merging process."""
 
 has_good_changes_in_open_source = """No problems were revealed by the auto-check. This merge
@@ -87,7 +93,7 @@ bad_open_source_offensive_word = "Bad word at {position}: **{word}**"
 
 bad_open_source_file_type = "Unknown file type: **{file}**"
 
-failed_pipeline_message = f"""Merge request returned to development.
+failed_pipeline_message = f"""Merge Request returned to development.
 Please, fix the errors and [mark as Ready]({_mark_as_ready_url}) to continue merging process.\n
 You may rebase or run new pipeline manually if errors are resolved outside MR."""
 

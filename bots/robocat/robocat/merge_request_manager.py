@@ -364,7 +364,7 @@ class MergeRequestManager:
         self._get_last_pipeline_by_status.cache_clear()
         return self._get_last_pipeline(include_skipped=True)
 
-    def return_to_development(self, reason) -> None:
+    def return_to_development(self, reason, *params) -> None:
         logger.info(f"{self}: Marking as Draft: {reason}")
 
         if reason == ReturnToDevelopmentReason.failed_pipeline:
@@ -377,6 +377,9 @@ class MergeRequestManager:
         elif reason == ReturnToDevelopmentReason.unresolved_threads:
             title = "Unresolved threads"
             message = robocat.comments.unresolved_threads_message
+        elif reason == ReturnToDevelopmentReason.bad_project_list:
+            title = "No supported project found"
+            message = robocat.comments.no_supported_jira_projects % params
         else:
             assert False, f"Unknown reason: {reason}"
 
