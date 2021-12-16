@@ -152,7 +152,7 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
         if not self._is_diff_complete(mr_manager):
             return True
 
-        if self._has_new_open_source_files(mr_manager):
+        if self._has_new_open_source_files(mr_manager) and not mr_manager.is_followup():
             return True
 
         return False
@@ -236,7 +236,7 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
 
         authorized_approvers = self._get_approvers_by_changed_files(mr_manager)
         is_author_authorized_approver = (mr_manager.data.author_name in authorized_approvers)
-        if self._has_new_open_source_files(mr_manager) and not is_author_authorized_approver:
+        if self._is_manual_check_required(mr_manager) and not is_author_authorized_approver:
             message = robocat.comments.has_good_changes_in_open_source.format(
                 approvers=", @".join(authorized_approvers))
             autoresolve = False

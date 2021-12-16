@@ -88,6 +88,18 @@ class TestOpenSourceRule:
             "mock_huge_mr": True,
             "assignees": [{"username": "user1"}]
         },
+        # Not a follow-up Merge Request with new files.
+        {
+            "commits_list": [{
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
+                "message": "msg",
+                "diffs": [],
+                "files": {"open/dontreadme.md": {
+                    "is_new": True, "raw_data": GOOD_README_RAW_DATA
+                }},
+            }],
+            "mock_huge_mr": False,
+        },
     ])
     def test_set_assignee(self, open_source_rule, mr, mr_manager):
         reviewers_before = {r["username"] for r in mr.reviewers}
@@ -149,6 +161,7 @@ class TestOpenSourceRule:
             mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
 
     @pytest.mark.parametrize("mr_state", [
+        # Simple Merge Request with "good" changes in a new file.
         {
             "blocking_discussions_resolved": True,
             "commits_list": [GOOD_README_COMMIT_NEW_FILE],
@@ -173,9 +186,22 @@ class TestOpenSourceRule:
             mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
 
     @pytest.mark.parametrize("mr_state", [
+        # Simple Merge Request with "good" changes in an old file.
         {
             "blocking_discussions_resolved": True,
             "commits_list": [GOOD_README_COMMIT_CHANGED_FILE],
+        },
+        # Follow-up Merge Request with new files.
+        {
+            "commits_list": [{
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
+                "message": "msg",
+                "diffs": [],
+                "files": {"open/dontreadme.md": {
+                    "is_new": True, "raw_data": GOOD_README_RAW_DATA
+                }},
+            }],
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
         },
     ])
     def test_files_dont_need_manual_check(self, open_source_rule, mr, mr_manager):
@@ -208,6 +234,16 @@ class TestOpenSourceRule:
             "commits_list": [BAD_OPENSOURCE_COMMIT],
         },
         # Unknown file type.
+        {
+            "blocking_discussions_resolved": True,
+            "commits_list": [{
+                "sha": FILE_COMMITS_SHA["opensource_unknown_file"],
+                "message": "msg1",
+                "diffs": [],
+                "files": {"open/badtype.foobar": {"is_new": True, "raw_data": ""}},
+            }],
+        },
+        # New file is in the follow-up Merge Request.
         {
             "blocking_discussions_resolved": True,
             "commits_list": [{
