@@ -28,3 +28,11 @@ open_source_check_rule:
                 - open_candidate/libs/.+
             approvers:
                 - ptolstov
+
+# Configuration for checking changes in Nx Submodules.
+nx_submodule_check_rule:
+    nx_submodule_dirs:
+        - conan_profiles
+        - build_utils/nx_submodule
+        - open_candidate/artifacts/analytics_icons
+        - open_candidate/conan_profiles

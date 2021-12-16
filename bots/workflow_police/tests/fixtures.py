@@ -40,10 +40,10 @@ def police_test_repo(repo_accessor):
 
 @pytest.fixture
 def workflow_checker(jira, police_test_repo):
-    return WorkflowEnforcer({}, jira, police_test_repo)._workflow_checker
+    return WorkflowEnforcer({"jira": {}}, jira, police_test_repo)._workflow_checker
 
 
 @pytest.fixture
 def bot(monkeypatch, jira, police_test_repo):
     monkeypatch.setenv("BOT_NAME", "Police")
-    return WorkflowEnforcer({}, jira, police_test_repo)
+    return WorkflowEnforcer({"jira": {}}, jira, police_test_repo)
