@@ -128,7 +128,8 @@ class MergeRequest:
     @property
     def issue_keys(self) -> List[str]:
         """Extract Jira issue names from the Merge Request title and description"""
-        issue_keys = self.extract_issue_keys(self.title, self.description)
+        title = (self.title if not self.title.startswith("Draft:") else self.title[6:]).strip()
+        issue_keys = self.extract_issue_keys(title, self.description)
         return list(issue_keys)
 
     def extract_issue_keys(self, header: str, description: str) -> Set[str]:

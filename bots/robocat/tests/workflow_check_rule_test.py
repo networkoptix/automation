@@ -55,11 +55,17 @@ class TestWorkflowCheckRule:
             assert execution_result == WorkflowCheckRule.ExecutionResult.work_in_progress
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
-        # Merge request is attached to one good Jira Issue.
+        # Merge Request is attached to one good Jira Issue.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"],
         }], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Merge request attached to Jira Issue"
+        }),
+        # Merge Request in "Draft" state is attached to one good Jira Issue.
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"],
+        }], {
+            "title": f"Draft: {DEFAULT_JIRA_ISSUE_KEY}: Merge request attached to Jira Issue"
         }),
         # Merge request is attached to one good Jira Issue (2)
         ([{
