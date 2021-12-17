@@ -47,13 +47,14 @@ class EssentialRule(BaseRule):
             mr_manager.ensure_wait_state(WaitReason.no_commits)
             return preliminary_check_result
 
-        belongs_to_supported_projects = any([
-            True for k in mr_manager.data.issue_keys
-            if not IssueIgnoreProjectChecker(self._project_keys).check_by_key(k)])
-        if not belongs_to_supported_projects:
-            mr_manager.return_to_development(
-                ReturnToDevelopmentReason.bad_project_list, self._project_keys)
-            return self.ExecutionResult.bad_project_list
+        if preliminary_check_result != self.ExecutionResult.work_in_progress:
+            belongs_to_supported_projects = any([
+                True for k in mr_manager.data.issue_keys
+                if not IssueIgnoreProjectChecker(self._project_keys).check_by_key(k)])
+            if not belongs_to_supported_projects:
+                mr_manager.return_to_development(
+                    ReturnToDevelopmentReason.bad_project_list, self._project_keys)
+                return self.ExecutionResult.bad_project_list
 
         mr_manager.ensure_watching()
         mr_manager.ensure_user_requested_pipeline_run()
