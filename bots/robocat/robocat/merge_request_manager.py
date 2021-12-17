@@ -236,11 +236,16 @@ class MergeRequestManager:
         self._run_pipeline(RunPipelineReason.no_pipelines_before)
         return True
 
-    @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
     def _get_last_pipeline(self, include_skipped=False) -> Optional[Pipeline]:
+        status_set = frozenset(
+            s for s in PipelineStatus if include_skipped or s != PipelineStatus.skipped)
+        return self._get_last_pipeline_by_status(status_set)
+
+    @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
+    def _get_last_pipeline_by_status(self, status_set: Set[PipelineStatus]) -> Optional[Pipeline]:
         pipeline_ids = [
             p['id'] for p in self._mr.raw_pipelines_list()
-            if include_skipped or Pipeline.translate_status(p["status"]) != PipelineStatus.skipped]
+            if Pipeline.translate_status(p["status"]) in status_set]
         if not pipeline_ids:
             return None
 
@@ -326,6 +331,10 @@ class MergeRequestManager:
     def _run_pipeline(self, reason, details=None):
         logger.info(f"{self._mr}: Running pipeline ({reason})")
 
+        running_pipeline = self._get_last_pipeline_by_status(frozenset([PipelineStatus.running]))
+        if running_pipeline:
+            running_pipeline.stop()
+
         pipeline = self._get_last_pipeline(include_skipped=True)
 
         # NOTE: There's no need to create pipelines in other cases because they are created by
@@ -348,11 +357,11 @@ class MergeRequestManager:
 
         # Must clear last pipeline info from the cache since it's state will probably change as a
         # result of this function run.
-        self._get_last_pipeline.cache_clear()
+        self._get_last_pipeline_by_status.cache_clear()
 
     def _create_mr_pipeline(self):
         self._gitlab.create_detached_pipeline(project_id=self._mr.project_id, mr_id=self._mr.id)
-        self._get_last_pipeline.cache_clear()
+        self._get_last_pipeline_by_status.cache_clear()
         return self._get_last_pipeline(include_skipped=True)
 
     def return_to_development(self, reason) -> None:

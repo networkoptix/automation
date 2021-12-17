@@ -61,6 +61,9 @@ class PipelineMock:
         pipeline_jobs.pipeline_filter = self
         return pipeline_jobs
 
+    def cancel(self):
+        pass
+
 
 @dataclass
 class PipelineManagerMock:

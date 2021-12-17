@@ -78,6 +78,10 @@ class Pipeline:
             if job.status == "manual":
                 project.jobs.get(job.id, lazy=True).play()
 
+    def stop(self):
+        logger.info(f"{self}: Stopping...")
+        self._gitlab_pipeline.cancel()
+
     def _get_project(self):
         project_id = self._gitlab_pipeline.project_id
         return self._gitlab_pipeline.manager.gitlab.projects.get(project_id, lazy=True)
