@@ -101,7 +101,7 @@ class TestEssentialRule:
                 (DEFAULT_COMMIT["sha"], "manual")]
         },
         # Pipeline started if fail was in previous commit, in new commit commit message changed
-        # (ammend) and otherwise MR is ready to merge (no unresolved discussions and enough
+        # (amend) and otherwise MR is ready to merge (no unresolved discussions and enough
         # approvals)
         {
             "needed_approvers_number": 0,
@@ -156,9 +156,9 @@ class TestEssentialRule:
                 ("26", "success"),
                 (DEFAULT_COMMIT["sha"], "manual")]
         },
-        # Pipeline started if previous commit pipeline is still running, in new commit commit
-        # message changed (ammend) and otherwise MR is ready to merge (no unresolved discussions
-        # and enough approvals)
+        # Pipeline started if previous commit pipeline is still running, in new commit changes were
+        # introduced and otherwise MR is ready to merge (no unresolved discussions and enough
+        # approvals)
         {
             "needed_approvers_number": 0,
             "commits_list": [

@@ -29,7 +29,7 @@ class Project:
         file_handler = self._gitlab_project.files.get(file_path=file, ref=sha)
         # TODO: Need some check what file we are trying to read. If it is a binary file, don't try
         # to decode it. If it is a text file and it doesn't contain valid utf8 data, log this fact
-        # and do some workaroud.
+        # and do some workaround.
         try:
             return file_handler.decode().decode('utf-8')
         except UnicodeDecodeError:
