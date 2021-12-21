@@ -194,10 +194,10 @@ class TestNoOpenSource:
         updated_follow_up_mr = helpers.gitlab.get_last_opened_mr(project)
 
         mr_notes = updated_follow_up_mr.notes.list()
-        assert len(mr_notes) == 6, (
+        assert len(mr_notes) == 5, (
             f"Wrong notes number ({len(mr_notes)}). Notes: {[n.body for n in mr_notes]!r}")
-        assert mr_notes[3].body.startswith("### :cherries: Manual conflict resolution required"), (
-            f"Wrong conflicts note: {mr_notes[3].body!r}")
+        assert mr_notes[2].body.startswith("### :cherries: Manual conflict resolution required"), (
+            f"Wrong conflicts note: {mr_notes[2].body!r}")
 
         for issue in jira_issues:
             updated_issue = helpers.jira.update_issue_data(jira_handler, issue)

@@ -164,10 +164,10 @@ class TestOpenSource:
         assert not updated_mr.work_in_progress
 
         # "notes" and "discussions" are ordered in reverse order to each other.
-        open_source_discussions = updated_mr.discussions.list()[2:5]
+        open_source_discussions = updated_mr.discussions.list()[5:]
         for i, open_source_discussion in enumerate(open_source_discussions):
             discussion_note = open_source_discussion.attributes["notes"][0]
-            assert discussion_note["id"] == notes[-3-i].id
+            assert discussion_note["id"] == notes[-6-i].id
             helpers.gitlab.resolve_discussion(mr, open_source_discussion.id)
 
         helpers.gitlab.approve_mr(mr)
