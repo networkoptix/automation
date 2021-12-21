@@ -28,9 +28,11 @@ _trademark_exceptions_re = re.compile(
     r'com/networkoptix/nxwitness|spaceX|Nvidia (Tegra|GPU|GeForce)|Google {0,1}Test|'
     r'application/x-noptix-[\w-]+|google-services\.json|GoogleService-Info\.plist|InitGoogleMock|'
     r'\"mts\"|SEI UNIT|Bad SEI detected. SEI too short|skip this sei message|'
-    r'github.com/google/googletest|googletest|groups.google.com|developer.download.nvidia.com')
+    r'github.com/google/googletest|googletest|groups.google.com|developer.download.nvidia.com|'
+    r'nx_copyright_owner \"Network Optix\"')
 _license_words_exceptions_re = re.compile(
-    r'\"copyright\"|\bcopyright_identification_|\b1 - Copyrighted\.(?:\s|$)')
+    r'\"copyright\"|\bcopyright_identification_|\b1 - Copyrighted\.(?:\s|$)|'
+    r'nx_copyright \"Copyright \(c\)|nx_copyright_owner \"Network Optix\"')
 
 
 class WordError:
