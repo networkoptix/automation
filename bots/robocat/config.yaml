@@ -9,6 +9,7 @@ jira:
         - MOBILE
         - CB
         - SQ
+        - NXLIB
 
 repo:
     path: /var/workflow_robocat/nx

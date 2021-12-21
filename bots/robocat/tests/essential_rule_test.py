@@ -374,7 +374,7 @@ class TestEssentialRule:
         },
         # Good MR linked to one good and one bad Jira Project.
         {
-            "title": f"{DEFAULT_JIRA_ISSUE_KEY}, UNKNOWN-666: Test mr",
+            "title": f"NXLIB-666, UNKNOWN-666: Test mr",
             "emojis_list": [AwardEmojiManager.WATCH_EMOJI],
             "needed_approvers_number": 2,
             "approvers_list": ["user1", "user2"],
@@ -382,7 +382,7 @@ class TestEssentialRule:
             "commits_list": [
                 {
                     "sha": DEFAULT_COMMIT["sha"],
-                    "message": "{DEFAULT_JIRA_ISSUE_KEY}, UNKNOWN-666: Commit for test mr",
+                    "message": "NXLIB-666, UNKNOWN-666: Commit for test mr",
                 },
             ],
         },

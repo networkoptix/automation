@@ -38,6 +38,7 @@ config: |
       - MOBILE
       - CB
       - SQ
+      - NXLIB
 
   repo:
     path: /var/workflow_police/nx
