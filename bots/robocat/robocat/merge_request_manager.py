@@ -58,36 +58,33 @@ class ApprovalRequirements:
 @dataclasses.dataclass
 class MergeRequestChanges:
     not_changed: bool = False
-    commits_changed: bool = False
+    mr_diff_changed: bool = False
     is_rebased: bool = False
-    message: str = ""
+    is_message_changed: bool = False
+    text: str = ""
 
     def __str__(self):
-        return self.message
+        return self.text
 
 
 @dataclasses.dataclass
 class MergeRequestChangesSameSha(MergeRequestChanges):
-    message: str = "nothing changed"
+    text: str = "nothing changed"
     not_changed: bool = True
 
 
 @dataclasses.dataclass
 class MergeRequestChangesRebased(MergeRequestChanges):
-    message: str = "last commit sha changed"
+    is_message_changed: bool
+    text: str = "last commit sha changed"
     is_rebased: bool = True
 
 
 @dataclasses.dataclass
 class MergeRequestChangesDiffHashChanged(MergeRequestChanges):
-    message: str = "last commit diff changed"
-    commits_changed: bool = True
-
-
-@dataclasses.dataclass
-class MergeRequestChangesCommitMessageChanged(MergeRequestChanges):
-    message: str = "last commit name changed"
-    commits_changed: bool = True
+    is_message_changed: bool
+    text: str = "last commit diff changed"
+    mr_diff_changed: bool = True
 
 
 @dataclasses.dataclass
@@ -226,12 +223,17 @@ class MergeRequestManager:
             self._mr.award_emoji.delete(AwardEmojiManager.PIPELINE_EMOJI, own=False)
             return False
 
+        if self.ensure_rebase():
+            return False
+
         self._run_pipeline(RunPipelineReason.requested_by_user)
         return True
 
     def ensure_first_pipeline_run(self) -> bool:
         pipeline = self._get_last_pipeline()
         if pipeline:
+            return False
+        if self.ensure_rebase():
             return False
         self._run_pipeline(RunPipelineReason.no_pipelines_before)
         return True
@@ -261,7 +263,9 @@ class MergeRequestManager:
         if changes.not_changed:
             return False
 
-        if changes.commits_changed:
+        if changes.mr_diff_changed:
+            if self.ensure_rebase():
+                return False
             self._run_pipeline(RunPipelineReason.mr_updated, changes)
             return True
 
@@ -271,6 +275,8 @@ class MergeRequestManager:
         # itself can't break the build) and all threads are resolved (since if they are not,
         # probably some changes will be added and we will have to re-run pipeline after that)
         if pipeline.status == PipelineStatus.failed and self._mr.blocking_discussions_resolved:
+            if self.ensure_rebase():
+                return False
             self._run_pipeline(RunPipelineReason.mr_rebased, changes)
             return True
 
@@ -282,21 +288,34 @@ class MergeRequestManager:
 
         commit_message_for_sha = self._get_commit_message(sha)
         last_commit_message = self._get_commit_message(self._mr.sha)
-        if commit_message_for_sha != last_commit_message:
-            return MergeRequestChangesCommitMessageChanged()
+        is_message_changed = commit_message_for_sha != last_commit_message
 
         diff_for_sha = self._get_commit_diff_hash(sha)
         diff_for_current_sha = self._get_commit_diff_hash(self._mr.sha)
         if diff_for_sha != diff_for_current_sha:
-            return MergeRequestChangesDiffHashChanged()
+            return MergeRequestChangesDiffHashChanged(is_message_changed=is_message_changed)
 
-        return MergeRequestChangesRebased()
+        return MergeRequestChangesRebased(is_message_changed=is_message_changed)
 
     def _get_commit_message(self, sha: str):
         return self._get_project().get_commit_message(sha)
 
     def _get_commit_diff_hash(self, sha: str):
-        return self._get_project().get_commit_diff_hash(sha)
+        return self._get_project().get_commit_diff_hash(sha, include_line_numbers=False)
+
+    def ensure_rebase(self) -> bool:
+        full_mr_data = self._get_project().get_raw_mr_by_id(
+            self._mr.id, include_diverged_commits_count=True)
+
+        if full_mr_data.diverged_commits_count:
+            self._mr.rebase()
+            return True
+
+        return False
+
+    @property
+    def rebase_in_progress(self):
+        return self._mr.rebase_in_progress
 
     def ensure_authorized_approvers(self, approvers: Set[str]) -> bool:
         current_approvers = self._mr.assignees | self._mr.reviewers | set([self._mr.author_name])

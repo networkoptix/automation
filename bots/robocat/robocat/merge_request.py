@@ -21,6 +21,7 @@ class MergeRequest:
         self._gitlab_mr = gitlab_mr
         self._award_emoji = AwardEmojiManager(gitlab_mr.awardemojis, current_user)
         self._discussions = []
+        self.rebase_in_progress = False
         self.load_discussions()
 
     def __str__(self):
@@ -144,6 +145,7 @@ class MergeRequest:
 
     def rebase(self):
         logger.debug(f"{self}: Rebasing")
+        self.rebase_in_progress = True
         self._gitlab_mr.rebase()
 
     def merge(self):

@@ -195,6 +195,7 @@ class MergeRequestMock:
     squash_commit_sha: str = None
     source_project_id: int = DEFAULT_PROJECT_ID
     target_project_id: int = DEFAULT_PROJECT_ID
+    diverged_commits_count: int = 0
 
     # Fake fields for testing purposes.
     mock_needs_rebase: bool = False

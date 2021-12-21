@@ -20,14 +20,15 @@ class EssentialRuleExecutionResultClass(RuleExecutionResultClass, Enum):
 class EssentialRule(BaseRule):
     ExecutionResult = EssentialRuleExecutionResultClass.create(
         "EssentialRuleExecutionResult", {
+            "bad_project_list": "Merge Request does not belong to any supported Jira Project",
             "essential_rule_ok": "Essential rule check hasn't found any problems",
             "has_conflicts": "Has conflicts",
             "not_approved": "Not approved",
             "pipeline_started": "Pipeline is (re)started",
             "pipeline_running": "Pipeline is running",
             "pipeline_failed": "Pipeline failed",
+            "rebase_in_progress": "Rebase in progress",
             "unresolved_threads": "Unresolved threads found",
-            "bad_project_list": "Merge Request does not belong to any supported Jira Project",
         })
 
     def __init__(self, project_keys: Set[str] = None):
@@ -47,27 +48,27 @@ class EssentialRule(BaseRule):
             mr_manager.ensure_wait_state(WaitReason.no_commits)
             return preliminary_check_result
 
-        if preliminary_check_result != self.ExecutionResult.work_in_progress:
-            belongs_to_supported_projects = any([
-                True for k in mr_manager.data.issue_keys
-                if not IssueIgnoreProjectChecker(self._project_keys).check_by_key(k)])
-            if not belongs_to_supported_projects:
-                mr_manager.return_to_development(
-                    ReturnToDevelopmentReason.bad_project_list, self._project_keys)
-                return self.ExecutionResult.bad_project_list
-
-        mr_manager.ensure_watching()
-        mr_manager.ensure_user_requested_pipeline_run()
-
         if preliminary_check_result == self.ExecutionResult.work_in_progress:
             mr_manager.unset_wait_state()
             return preliminary_check_result
+
+        belongs_to_supported_projects = any([
+            True for k in mr_manager.data.issue_keys
+            if not IssueIgnoreProjectChecker(self._project_keys).check_by_key(k)])
+        if not belongs_to_supported_projects:
+            mr_manager.return_to_development(
+                ReturnToDevelopmentReason.bad_project_list, self._project_keys)
+            return self.ExecutionResult.bad_project_list
+
+        mr_manager.ensure_watching()
+        mr_manager.ensure_user_requested_pipeline_run()
 
         if mr_data.has_conflicts:
             mr_manager.return_to_development(ReturnToDevelopmentReason.conflicts)
             return self.ExecutionResult.has_conflicts
 
         first_pipeline_started = mr_manager.ensure_first_pipeline_run()
+        first_pipeline_started = False
 
         approval_requirements = ApprovalRequirements(approvals_left=0)
         if not mr_manager.satisfies_approval_requirements(approval_requirements):
@@ -76,6 +77,9 @@ class EssentialRule(BaseRule):
 
         if first_pipeline_started or mr_manager.ensure_pipeline_rerun():
             return self.ExecutionResult.pipeline_started
+
+        if mr_manager.rebase_in_progress:
+            return self.ExecutionResult.rebase_in_progress
 
         last_pipeline_status = mr_manager.get_last_pipeline_status()
         if last_pipeline_status == PipelineStatus.running:

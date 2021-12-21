@@ -2,6 +2,7 @@ import logging
 import json
 from functools import lru_cache
 from typing import List, Dict, Optional
+import re
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -14,6 +15,8 @@ class MergeRequestDiffData:
 
 
 class Project:
+    DIFF_LINE_NUMBER_REMOVER_RE = re.compile(r'^^\@\@ -\d+,\d+ \+\d+,\d+ \@\@\s+', re.MULTILINE)
+
     def __init__(self, gitlab_project):
         self._gitlab_project = gitlab_project
 
@@ -49,8 +52,11 @@ class Project:
         return self._gitlab_project.commits.get(sha).message
 
     @lru_cache(maxsize=512)
-    def get_commit_diff_hash(self, sha):
+    def get_commit_diff_hash(self, sha: str, include_line_numbers: bool = True) -> int:
         diff = self._gitlab_project.commits.get(sha).diff()
+        if not include_line_numbers:
+            for d in diff:
+                d["diff"] = re.sub(self.DIFF_LINE_NUMBER_REMOVER_RE, "", d["diff"])
         return hash(json.dumps(diff, sort_keys=True))
 
     @lru_cache(maxsize=512)
@@ -67,8 +73,10 @@ class Project:
     def get_raw_mrs(self, **kwargs):
         return self._gitlab_project.mergerequests.list(order_by='updated_at', **kwargs)
 
-    def get_raw_mr_by_id(self, mr_id: int):
-        return self._gitlab_project.mergerequests.get(mr_id)
+    def get_raw_mr_by_id(self, mr_id: int, include_diverged_commits_count=False):
+        return self._gitlab_project.mergerequests.get(
+            mr_id,
+            include_diverged_commits_count=include_diverged_commits_count)
 
     @property
     def name(self):

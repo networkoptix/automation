@@ -121,23 +121,11 @@ class TestEssentialRule:
                 {
                     "sha": "24",
                     "message": DEFAULT_COMMIT["message"],
-                    "diffs": ["old diff"]
+                    "diffs": [{"diff": "old diff"}],
                 },
                 DEFAULT_COMMIT],
             "pipelines_list": [
                 ("24", "failed"),
-                (DEFAULT_COMMIT["sha"], "manual")]
-        },
-        # Pipeline started if success was in previous commit, in new commit commit message changed
-        # (ammend) and otherwise MR is ready to merge (no unresolved discussions and enough
-        # approvals)
-        {
-            "needed_approvers_number": 0,
-            "commits_list": [
-                {"sha": "25", "message": "old_message"},
-                DEFAULT_COMMIT],
-            "pipelines_list": [
-                ("25", "success"),
                 (DEFAULT_COMMIT["sha"], "manual")]
         },
         # Pipeline started if success was in previous commit, in new commit commit changes were
@@ -149,7 +137,7 @@ class TestEssentialRule:
                 {
                     "sha": "26",
                     "message": DEFAULT_COMMIT["message"],
-                    "diffs": ["old diff"]
+                    "diffs": [{"diff": "old diff"}],
                 },
                 DEFAULT_COMMIT],
             "pipelines_list": [
@@ -162,27 +150,35 @@ class TestEssentialRule:
         {
             "needed_approvers_number": 0,
             "commits_list": [
-                {"sha": "27", "message": "old_message"},
-                DEFAULT_COMMIT],
-            "pipelines_list": [
-                ("27", "running"),
-                (DEFAULT_COMMIT["sha"], "manual")]
-        },
-        # Pipeline started if previous commit pipeline is still running, in new commit changes were
-        # introduced and otherwise MR is ready to merge (no unresolved discussions and enough
-        # approvals)
-        {
-            "needed_approvers_number": 0,
-            "commits_list": [
                 {
                     "sha": "28",
                     "message": DEFAULT_COMMIT["message"],
-                    "diffs": ["old diff"]
+                    "diffs": [{"diff": "old diff"}],
                 },
                 DEFAULT_COMMIT],
             "pipelines_list": [
                 ("28", "running"),
                 (DEFAULT_COMMIT["sha"], "manual")]
+        },
+        # Diff changed.
+        {
+            "needed_approvers_number": 0,
+            "commits_list": [
+                {
+                    "sha": f"{DEFAULT_COMMIT['sha']}0",
+                    "message": DEFAULT_COMMIT["message"],
+                    "diffs": [{"diff": "@@ -1,1 +1,1 @@\n- Old string\n+ Newer string"}],
+                },
+                {
+                    "sha": f"{DEFAULT_COMMIT['sha']}1",
+                    "message": DEFAULT_COMMIT["message"],
+                    "diffs": [{"diff": "@@ -4,1 +4,1 @@\n- Old string\n+ New string"}],
+                },
+            ],
+            "pipelines_list": [
+                (f"{DEFAULT_COMMIT['sha']}0", "success"),
+                (f"{DEFAULT_COMMIT['sha']}1", "manual"),
+            ],
         },
     ])
     def test_run_pipeline(self, essential_rule, mr, mr_manager):
@@ -301,6 +297,37 @@ class TestEssentialRule:
         {
             "emojis_list": [AwardEmojiManager.PIPELINE_EMOJI],
             "pipelines_list": [(DEFAULT_COMMIT["sha"], "failed")]
+        },
+        # Only line numbers changed in the diff.
+        {
+            "needed_approvers_number": 0,
+            "commits_list": [
+                {
+                    "sha": f"{DEFAULT_COMMIT['sha']}2",
+                    "message": DEFAULT_COMMIT["message"],
+                    "diffs": [{"diff": "@@ -1,1 +1,1 @@\n- Old string\n+ New string"}],
+                },
+                {
+                    "sha": f"{DEFAULT_COMMIT['sha']}3",
+                    "message": DEFAULT_COMMIT["message"],
+                    "diffs": [{"diff": "@@ -4,1 +4,1 @@\n- Old string\n+ New string"}],
+                },
+            ],
+            "pipelines_list": [
+                (f"{DEFAULT_COMMIT['sha']}2", "success"),
+                (f"{DEFAULT_COMMIT['sha']}3", "manual"),
+            ],
+        },
+        # Pipeline does not start if success was in the previous commit, and only the commit
+        # message was changed in the new commit.
+        {
+            "needed_approvers_number": 0,
+            "commits_list": [
+                {"sha": "25", "message": "old_message"},
+                DEFAULT_COMMIT],
+            "pipelines_list": [
+                ("25", "success"),
+                (DEFAULT_COMMIT["sha"], "manual")]
         },
     ])
     def test_norun_pipeline(self, essential_rule, mr, mr_manager):
