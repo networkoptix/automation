@@ -59,7 +59,7 @@ class TestPoliceChecker:
         # "Good" issue.
         [{"key": "VMS-1", "branches": ["master", "vms_4.2_patch"]}],
         # "Good" issue for another project.
-        [{"key": "MOBILE-1", "branches": ["master", "mobile_21.1"]}],
+        [{"key": "MOBILE-1", "branches": ["master"]}],
         # And another one.
         [{"key": "CB-1", "branches": ["master", "cloud_backend_20.1"]}],
         # Bad version set, but has "version_specific" label.
