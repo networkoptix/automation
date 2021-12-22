@@ -5,6 +5,21 @@ include:
 - project: 'dev/ci'
   file: 'pipelines/infra-templates.yml'
 
+.set_common_k8_values:
+  script:
+  - 'echo "gitSshKey: |" > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
+  - 'vault kv get --field="workflow-robocat-ssh-private-key" "apptokens/gitlab/prod"
+      | sed "s/^/  /" >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
+  - 'echo "jiraPassword: $(vault kv get --field="service@networkoptix.com" "apptokens/jira")"
+     >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
+
+.stop_k8_containers:
+  script:
+  - |
+    set +o pipefail
+    kubectl scale deployment ${PRODUCT}-${K8S_PRODUCT_RELEASE} --replicas=0|:
+
+
 variables:
   WORKFLOW_POLICE_VERSION: "1.14"
   ROBOCAT_VERSION: "2.0"
@@ -137,16 +152,10 @@ k8s:workflow_police:deploy:
     DOCKER_DIR: "bots/workflow_police"
     HELM_CHART_DIR: "$DOCKER_DIR/chart"
     PRODUCT: "workflow-police"
-    PRE_SCRIPT: |
-      HELM_CHART_VERSION="$(awk -F"['\"]" "/^version:/{print \$$2}" ${HELM_CHART_DIR}/Chart.yaml)";
-      echo "gitSshKey: |"
-        > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
-      vault kv get --field="workflow-robocat-ssh-private-key" "apptokens/gitlab/prod" | sed 's/^/  /'
-        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
-      echo "jiraPassword: $(vault kv get --field="service@networkoptix.com" "apptokens/jira")"
-        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
-      set +o pipefail;
-      kubectl scale deployment ${PRODUCT}-${K8S_PRODUCT_RELEASE} --replicas=0|:
+  script:
+  - !reference [.set_common_k8_values, script]
+  - !reference [.stop_k8_containers, script]
+  - !reference [.k8s.deploy.template, script]
   rules:
   - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "master"
     changes:
@@ -161,18 +170,12 @@ k8s:robocat:deploy:
     DOCKER_DIR: "bots/robocat"
     HELM_CHART_DIR: "$DOCKER_DIR/chart"
     PRODUCT: "workflow-police-robocat"
-    PRE_SCRIPT: |
-      HELM_CHART_VERSION="$(awk -F"['\"]" "/^version:/{print \$$2}" ${HELM_CHART_DIR}/Chart.yaml)";
-      echo "gitSshKey: |"
-        > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
-      vault kv get --field="workflow-robocat-ssh-private-key" "apptokens/gitlab/prod" | sed 's/^/  /'
-        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
-      echo "gitlabToken: $(vault kv get --field="workflow-police-app-token" "apptokens/gitlab/prod")"
-        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
-      echo "jiraPassword: $(vault kv get --field="service@networkoptix.com" "apptokens/jira")"
-        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml;
-      set +o pipefail;
-      kubectl scale deployment ${PRODUCT}-${K8S_PRODUCT_RELEASE} --replicas=0|:
+  script:
+  - !reference [.set_common_k8_values, script]
+  - 'echo "gitlabToken: $(vault kv get --field="workflow-police-app-token" "apptokens/gitlab/prod")"
+       >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
+  - !reference [.stop_k8_containers, script]
+  - !reference [.k8s.deploy.template, script]
   rules:
   - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "master"
     changes:
