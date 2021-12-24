@@ -162,6 +162,7 @@ k8s:workflow_police:deploy:
     - $DOCKER_DIR/**/*
     - $HELM_CHART_DIR/**/*
     - automation_tools/**/*
+    - .gitlab-ci.yml
 
 # deploy robocat
 k8s:robocat:deploy:
@@ -182,3 +183,4 @@ k8s:robocat:deploy:
     - $DOCKER_DIR/**/*
     - $HELM_CHART_DIR/**/*
     - automation_tools/**/*
+    - .gitlab-ci.yml
