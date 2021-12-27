@@ -17,11 +17,11 @@ include:
 .stop_k8_containers:
   script:
   - set +o pipefail
-  - >-
-      kubectl scale deployment "${PRODUCT}-${K8S_PRODUCT_RELEASE}"
-        --namespace "${K8S_DEPLOY_NAMESPACE}"
-        --replicas=0
-        |:
+  - >
+    kubectl scale deployment "${PRODUCT}-${K8S_PRODUCT_RELEASE}"
+    --namespace "${K8S_DEPLOY_NAMESPACE}"
+    --replicas=0
+    |:
 
 
 variables:
