@@ -193,6 +193,18 @@ class MergeRequestManager:
             message,
             emoji=AwardEmojiManager.INITIAL_EMOJI,
             message_id=MessageId.Initial)
+
+        # Gitlab automatically appends `Closes-<issue_key>.` to Merge Request descriptions. We
+        # don't need this, and, moreover, it conflicts with our sanity checks. So, if the bot
+        # suspects that this phrase is auto-added (this is the last words in the Merge Request
+        # description and the Issue Key mentioned is the same that in the Merge Request title), it
+        # strips this phrase out.
+        issue_key, *_ = self._mr.title.partition(":")
+        description = self._mr.description.strip()
+        search_string = f"Closes {issue_key}"
+        if description.endswith(search_string):
+            self._mr.description = description[:len(description) - len(search_string)].strip()
+
         return True
 
     def _add_comment(

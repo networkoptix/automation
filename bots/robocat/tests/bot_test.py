@@ -67,6 +67,24 @@ class TestBot:
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
             "squash": False
         }),
+        # One commit, "Closes <issue_key>" auto-added.
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"]}], {
+            "title": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[0],
+            "description": (
+                GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[1] +
+                f"\nCloses {DEFAULT_JIRA_ISSUE_KEY}"),
+            "blocking_discussions_resolved": True,
+            "needed_approvers_number": 0,
+            "commits_list": [{
+                "sha": FILE_COMMITS_SHA["good_dontreadme"],
+                "message": f"{DEFAULT_JIRA_ISSUE_KEY}: some title\nsome msg",
+                "diffs": [],
+                "files": {},
+            }],
+            "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
+            "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
+            "squash": False
+        }),
         # Two commits, no squashing.
         ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"]}], {
             "blocking_discussions_resolved": True,

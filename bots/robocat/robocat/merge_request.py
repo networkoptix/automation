@@ -65,6 +65,11 @@ class MergeRequest:
     def description(self) -> str:
         return self._gitlab_mr.description if self._gitlab_mr.description is not None else ""
 
+    @description.setter
+    def description(self, value: str):
+        self._gitlab_mr.description = value
+        self._gitlab_mr.save()
+
     @property
     def target_branch(self) -> str:
         return self._gitlab_mr.target_branch
