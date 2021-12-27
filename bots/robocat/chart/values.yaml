@@ -14,7 +14,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 # comment the line below to set default INFO level
-logLevel: DEBUG
+# logLevel: DEBUG
 
 # jira login api token
 jiraPassword:
