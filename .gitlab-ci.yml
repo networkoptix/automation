@@ -13,11 +13,15 @@ include:
   - 'echo "jiraPassword: $(vault kv get --field="service@networkoptix.com" "apptokens/jira")"
      >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
 
+# Remove pod to apply changes even if helm metadata is unchanged
 .stop_k8_containers:
   script:
-  - |
-    set +o pipefail
-    kubectl scale deployment ${PRODUCT}-${K8S_PRODUCT_RELEASE} --replicas=0|:
+  - set +o pipefail
+  - >-
+      kubectl scale deployment "${PRODUCT}-${K8S_PRODUCT_RELEASE}"
+        --namespace "${K8S_DEPLOY_NAMESPACE}"
+        --replicas=0
+        |:
 
 
 variables:
@@ -26,6 +30,12 @@ variables:
   K8S_PRODUCT_RELEASE: "prod"
   DOCKER_REGISTRY: "docker.artifactory.lan.hdw.mx:80"
   K8S_DEPLOY_NAMESPACE: "workflow-police"
+  WORKFLOW_POLICE_LOG_LEVEL:
+    description: Workflow police log level
+    value:  "INFO"
+  ROBOCAT_LOG_LEVEL:
+    description: Robocat log level
+    value:  "INFO"
 
 stages:
   - validate
@@ -154,6 +164,8 @@ k8s:workflow_police:deploy:
     PRODUCT: "workflow-police"
   script:
   - !reference [.set_common_k8_values, script]
+  - 'echo "logLevel: ${WORKFLOW_POLICE_LOG_LEVEL}"
+       >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - !reference [.stop_k8_containers, script]
   - !reference [.k8s.deploy.template, script]
   rules:
@@ -163,6 +175,12 @@ k8s:workflow_police:deploy:
     - $HELM_CHART_DIR/**/*
     - automation_tools/**/*
     - .gitlab-ci.yml
+
+# Deploy form web ui using branch pipeline
+k8s:workflow_police:manual:deploy:
+  extends: k8s:workflow_police:deploy
+  rules:
+  - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_NAME == "master"
 
 # deploy robocat
 k8s:robocat:deploy:
@@ -175,6 +193,8 @@ k8s:robocat:deploy:
   - !reference [.set_common_k8_values, script]
   - 'echo "gitlabToken: $(vault kv get --field="workflow-police-app-token" "apptokens/gitlab/prod")"
        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
+  - 'echo "logLevel: ${ROBOCAT_LOG_LEVEL}"
+       >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - !reference [.stop_k8_containers, script]
   - !reference [.k8s.deploy.template, script]
   rules:
@@ -184,3 +204,9 @@ k8s:robocat:deploy:
     - $HELM_CHART_DIR/**/*
     - automation_tools/**/*
     - .gitlab-ci.yml
+
+# Deploy form web ui using branch pipeline
+k8s:robocat:manual:deploy:
+  extends: k8s:robocat:deploy
+  rules:
+  - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_NAME == "master"
