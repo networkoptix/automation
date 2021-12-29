@@ -13,7 +13,7 @@ from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.pipeline import Pipeline, PipelineStatus, PlayPipelineError, RunPipelineReason
 from robocat.action_reasons import WaitReason, ReturnToDevelopmentReason
 from robocat.merge_request import MergeRequest
-from robocat.note import MessageId, Note
+from robocat.note import Comment, MessageId, Note
 from robocat.project import MergeRequestDiffData
 from robocat.gitlab import Gitlab
 import automation_tools.bot_info
@@ -511,20 +511,21 @@ class MergeRequestManager:
 
         return [c.id[0:12] for c in self._mr.commits()]
 
-    def ensure_workflow_errors_info(self, errors: List[str], title: str = "") -> bool:
-        if not errors:
-            return self._mr.award_emoji.delete(AwardEmojiManager.BAD_ISSUE_EMOJI, own=True)
-
-        if self._mr.award_emoji.find(AwardEmojiManager.BAD_ISSUE_EMOJI, own=True):
-            return False
-
+    def add_workflow_error_info(self, error: Comment = None, title: str = ""):
         self._add_comment(
-            title,
-            robocat.comments.bad_fix_versions_message.format(errors="  \n".join(errors)),
-            AwardEmojiManager.BAD_ISSUE_EMOJI)
+            title=title,
+            message=robocat.comments.workflow_error_message.format(error=error.text),
+            emoji=AwardEmojiManager.BAD_ISSUE_EMOJI,
+            message_id=error.id)
         self._mr.award_emoji.create(AwardEmojiManager.BAD_ISSUE_EMOJI)
 
-        return True
+    def ensure_no_workflow_errors(self):
+        if self._mr.award_emoji.delete(AwardEmojiManager.BAD_ISSUE_EMOJI, own=True):
+            self._add_comment(
+                title="Workflow errors are fixed",
+                message=robocat.comments.workflow_no_errors_message,
+                emoji=AwardEmojiManager.AUTOCHECK_OK_EMOJI,
+                message_id=MessageId.WorkflowOk)
 
     def squash_locally_if_needed(self, repo: automation_tools.git.Repo):
         if not self._mr.squash or len(list(self._mr.commits())) <= 1:

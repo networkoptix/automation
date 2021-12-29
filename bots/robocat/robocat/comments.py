@@ -123,11 +123,12 @@ branch and cherry-pick the following commits manually:
 `git cherry-pick -x {commits}`
 """
 
-bad_fix_versions_message = """Workflow violation detected for Jira Issue(s) closed by this Merge
-Request:
+workflow_error_message = """Workflow violation detected:
 
-> {errors}
+{error}
 """
+
+workflow_no_errors_message = "No workflow errors found."
 
 cannot_squash_locally = "Failed to squash commits locally by git. See bot logs for details."
 

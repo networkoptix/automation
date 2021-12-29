@@ -13,7 +13,7 @@ from automation_tools.tests.mocks.resources import Version
 
 class TestWorkflowCheckRule:
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
-        # Commit without Jira Issue referencees in its title.
+        # Commit without Jira Issue references in its title.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"],
         }], {
@@ -27,7 +27,7 @@ class TestWorkflowCheckRule:
             assert execution_result == WorkflowCheckRule.ExecutionResult.no_commits
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
-        # Commit without Jira Issue referencees in its title.
+        # Commit without Jira Issue references in its title.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"],
         }], {
@@ -41,7 +41,7 @@ class TestWorkflowCheckRule:
             assert execution_result == WorkflowCheckRule.ExecutionResult.merged
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
-        # Commit without Jira Issue referencees in its title.
+        # Commit without Jira Issue references in its title.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"],
         }], {
@@ -249,6 +249,9 @@ class TestWorkflowCheckRule:
             emojis = mr.awardemojis.list()
             assert not any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
 
+            comments = mr.mock_comments()
+            assert len(comments) == 0, f"Got comments: {comments}"
+
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Merge request is initially attached to bad Jira Issue.
         ([{
@@ -305,23 +308,6 @@ class TestWorkflowCheckRule:
         ], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}, VMS-667, VMS-668: Multiple Jira Issues"
         }),
-    ])
-    def test_has_bad_version_set(self, workflow_rule, mr, mr_manager, jira):
-        for _ in range(2):  # State must not change after any number of rule executions.
-            assert not workflow_rule.execute(mr_manager)
-
-            emojis = mr.awardemojis.list()
-            assert any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
-
-            assert len(mr.mock_comments()) == 1
-            first_comment = mr.mock_comments()[0]
-            has_bad_jira_issue_token = (
-                f':{AwardEmojiManager.BAD_ISSUE_EMOJI}: Jira workflow check failed')
-            assert has_bad_jira_issue_token in first_comment
-            assert re.search(r"Bad `fixVersions` .+ VMS-66[7|8]: Version set", first_comment), (
-                f"Error string is not found in {first_comment}")
-
-    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Merge Request is attached to good Jira Issues with different fixVersions.
         ([
             {"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0", "vms_4.2_patch"]},
@@ -330,20 +316,30 @@ class TestWorkflowCheckRule:
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}, VMS-667: Multiple Jira Issues"
         }),
     ])
-    def test_has_inconsistent_version_set(self, workflow_rule, mr, mr_manager):
+    def test_has_bad_or_inconsistent_version_set(self, workflow_rule, mr, mr_manager, jira):
+        initial_comments_number = None
         for _ in range(2):  # State must not change after any number of rule executions.
             assert not workflow_rule.execute(mr_manager)
 
             emojis = mr.awardemojis.list()
             assert any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
 
-            assert len(mr.mock_comments()) == 1
-            first_comment = mr.mock_comments()[0]
-            has_bad_jira_issue_token = (
-                f":{AwardEmojiManager.BAD_ISSUE_EMOJI}: Jira workflow check failed")
-            assert has_bad_jira_issue_token in first_comment
-            assert re.search(r"VMS-66[6|7]: `fixVersions` is inconsistent", first_comment), (
-                f"Error string is not found in {first_comment}")
+            if initial_comments_number is None:
+                initial_comments_number = len(mr.mock_comments())
+                assert len(mr.mock_comments()) >= 1, f"Got comments: {mr.mock_comments()}"
+            else:
+                assert len(mr.mock_comments()) == initial_comments_number, (
+                    f"Got comments: {mr.mock_comments()}")
+            for comment in mr.mock_comments():
+                has_bad_jira_issue_token = (
+                    f':{AwardEmojiManager.BAD_ISSUE_EMOJI}: Jira workflow check failed')
+                assert has_bad_jira_issue_token in comment
+                condition = (
+                    re.search(r"VMS-66[6|7|8]: `fixVersions` is inconsistent", comment) or
+                    re.search(r"Bad `fixVersions` .+ VMS-66[7|8]: Version set", comment))
+                assert condition, f"Error string is not found in {comment}"
+
+            mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Jira Issue in Merge Request title differs from Jira Issue from commit message for
@@ -434,9 +430,85 @@ class TestWorkflowCheckRule:
             assert any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
 
             comments = mr.mock_comments()
-            assert len(comments) == 1
+            assert len(comments) == 1, f"Got comments: {comments}"
 
             expected_title = (
                 f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: "
-                "Merge request title/description is not compliant with the rules")
+                "Merge request title/description does not comply with the rules")
             assert comments[0].startswith(expected_title), f"Unexpected comment: {comments[0]!r}"
+
+            mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"],
+        }, {
+            "key": f"{DEFAULT_JIRA_ISSUE_KEY}1", "branches": ["vms_4.2"],
+        }], {
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Merge request attached to Jira Issue",
+            "commits_list": [{
+                "sha": DEFAULT_COMMIT["sha"],
+                "message": f"{DEFAULT_JIRA_ISSUE_KEY}: commit 1 title\n",
+                "files": {},
+            }],
+            "squash": False,
+        }),
+    ])
+    def test_comment_updates(self, workflow_rule, mr, mr_manager):
+        def _check_mr(
+                successfull: bool,
+                comments_count: str,
+                expected_comment_title: str,
+                new_mr_title: str = None):
+            if new_mr_title is not None:
+                mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
+                mr.title = new_mr_title
+
+            assert successfull == bool(workflow_rule.execute(mr_manager))
+
+            emojis = mr.awardemojis.list()
+            has_bad_issue_emoji = any(
+                e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
+            assert successfull != has_bad_issue_emoji
+
+            comments_after_fix = mr.mock_comments()
+            assert len(comments_after_fix) == comments_count, f"Got comments: {comments_after_fix}"
+            assert comments_after_fix[-1].startswith(expected_comment_title), (
+                f"Unexpected comment: {comments_after_fix[-1]!r}")
+
+        expected_comment_title = (
+            f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: "
+            "Merge request title/description does not comply with the rules")
+        _check_mr(
+            successfull=False,
+            comments_count=1,
+            expected_comment_title=expected_comment_title)
+
+        # Fix the error - the emoji must be unset, no new comments added.
+        expected_comment_title = (
+            f"### :{AwardEmojiManager.AUTOCHECK_OK_EMOJI}: Workflow errors are fixed")
+        _check_mr(
+            successfull=True,
+            comments_count=2,
+            expected_comment_title=expected_comment_title,
+            new_mr_title=f"{DEFAULT_JIRA_ISSUE_KEY}: commit 1 title")
+
+        # Add the same error - the emoji must be set, new comment added.
+        expected_comment_title = (
+            f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: "
+            "Merge request title/description does not comply with the rules")
+        _check_mr(
+            successfull=False,
+            comments_count=3,
+            expected_comment_title=expected_comment_title,
+            new_mr_title=f"{DEFAULT_JIRA_ISSUE_KEY}: some bad name")
+
+        # Add a new error - the emoji must be set, another comment added.
+        expected_comment_title = (
+            f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: "
+            "Jira workflow check failed\n\nWorkflow violation detected:\n\nBad `fixVersions`")
+        _check_mr(
+            successfull=False,
+            comments_count=4,
+            expected_comment_title=expected_comment_title,
+            new_mr_title=f"{DEFAULT_JIRA_ISSUE_KEY}1: some bad name")

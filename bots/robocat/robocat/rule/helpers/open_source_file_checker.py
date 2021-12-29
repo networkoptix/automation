@@ -32,8 +32,8 @@ EXCLUDED_FILE_NAME_PATTERNS = {
 
 @dataclass(frozen=True)
 class FileError(CheckError):
-    file: str
-    raw_text: str
+    file: str = ""
+    raw_text: str = ""
     line: Optional[int] = None
 
 

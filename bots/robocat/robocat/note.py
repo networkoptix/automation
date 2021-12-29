@@ -28,6 +28,20 @@ class MessageId(Enum):
     NxSubmoduleCheckHugeDiffUncheckable = auto()
     NxSubmoduleCheckPassed = auto()
 
+    WorkflowBadFixVersions = auto()
+    WorkflowDifferentCommitMessage = auto()
+    WorkflowDifferentJiraIssueSets = auto()
+    WorkflowInconsistentFixVersions = auto()
+    WorkflowNoJiraIssueInCommitMessage = auto()
+    WorkflowNoJiraIssueInMr = auto()
+    WorkflowOk = auto()
+    WorkflowParenthesesNotAllowed = auto()
+
+
+class Comment(NamedTuple):
+    id: MessageId
+    text: str
+
 
 class NoteDetails(NamedTuple):
     message_id: MessageId = None
@@ -71,7 +85,7 @@ class Note:
         note_details = self._parse_node_details(note_data["body"])
         self.message_id = note_details.message_id
         self.sha = note_details.sha
-        self.additional_data = note_details.data
+        self.additional_data = note_details.data or {}
 
     @classmethod
     def _parse_node_details(cls, note_text: str) -> NoteDetails:

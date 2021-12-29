@@ -4,13 +4,13 @@ from dataclasses import dataclass, field
 from typing import Dict, List, NamedTuple, Set, Tuple
 
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import Note
+from robocat.note import Note, MessageId
 
 
 @dataclass(frozen=True)
 class CheckError:
-    type: str
-    params: Dict[str, str] = field(hash=False, compare=True)
+    type: str = "generic"
+    params: Dict[str, str] = field(hash=False, compare=True, default_factory=dict)
 
 
 class ErrorCheckResult(NamedTuple):
@@ -22,10 +22,10 @@ class ErrorCheckResult(NamedTuple):
 class StoredCheckResults:
     CheckErrorClass = CheckError
 
-    ERROR_MESSAGE_IDS = {}
-    OK_MESSAGE_IDS = {}
-    UNCHECKABLE_MESSAGE_IDS = {}
-    NEEDS_MANUAL_CHECK_MESSAGE_IDS = {}
+    ERROR_MESSAGE_IDS = set()
+    OK_MESSAGE_IDS = set()
+    UNCHECKABLE_MESSAGE_IDS = set()
+    NEEDS_MANUAL_CHECK_MESSAGE_IDS = set()
 
     def __init__(self, mr_manager: MergeRequestManager):
         checker_message_ids = (
@@ -37,16 +37,19 @@ class StoredCheckResults:
     def is_current_revision_checked(self) -> bool:
         return any([n for n in self._notes if n.sha == self._current_revision_sha])
 
-    def is_current_revision_checked(self) -> bool:
-        return any([n for n in self._notes if n.sha == self._current_revision_sha])
-
     def does_latest_revision_have_errors(self) -> bool:
-        return self._notes[-1].message_id in self.ERROR_MESSAGE_IDS
+        return self._notes and self._notes[-1].message_id in self.ERROR_MESSAGE_IDS
 
     def have_error(self, error: CheckErrorClass) -> bool:
         return any([
             n for n in self._error_notes()
             if error == self.CheckErrorClass(**n.additional_data)])
+
+    def get_errors(self) -> Dict[MessageId, Set[CheckErrorClass]]:
+        result = {}
+        for n in self._notes:
+            result.setdefault(n.message_id, set()).add(self.CheckErrorClass(**n.additional_data))
+        return result
 
     def _error_notes(self) -> List[Note]:
         return [n for n in self._notes if n.message_id in self.ERROR_MESSAGE_IDS]

@@ -5,7 +5,7 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 
 from robocat.merge_request_manager import MergeRequestManager, ApprovalRequirements
-from robocat.note import MessageId, Note
+from robocat.note import MessageId
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.rule.helpers.open_source_file_checker import OpenSourceFileChecker, FileError
 from robocat.rule.helpers.statefull_checker_helpers import (
