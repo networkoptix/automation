@@ -116,8 +116,7 @@ class JiraIssue:
         issue = self._raw_issue
         labels = issue.fields.labels
         return {
-            mapping[automation_tools.utils.Version(v.name)]
-            for v in issue.fields.fixVersions
+            mapping[v.name] for v in issue.fields.fixVersions
             if not exclude_already_merged or self.already_in_version_label(v.name) not in labels}
 
     @property
@@ -127,9 +126,7 @@ class JiraIssue:
 
         mapping = self._version_to_branch_mapping
         issue = self._raw_issue
-        return {
-            v.name: mapping[automation_tools.utils.Version(v.name)]
-            for v in issue.fields.fixVersions}
+        return {v.name: mapping[v.name] for v in issue.fields.fixVersions}
 
     @property
     def status(self) -> JiraIssueStatus:
@@ -304,7 +301,7 @@ class JiraAccessor:
                 if not branch:
                     logger.warning(f"Version {v.name} doesn't have branch in description")
                 else:
-                    mapping[automation_tools.utils.Version(v.name)] = branch
+                    mapping[v.name] = branch
 
             mapping = {k: mapping[k] for k in sorted(mapping, reverse=True)}
             logger.debug(f"Got mapping from jira releases: {mapping}")

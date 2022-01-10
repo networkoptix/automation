@@ -10,31 +10,6 @@ class Error(Exception):
     pass
 
 
-class Version:
-    def __init__(self, jira_version: str):
-        version_parts = jira_version.split('_')
-        if not(len(version_parts) == 2 and version_parts[1] == "patch" or len(version_parts) == 1):
-            raise Error("Wrong version name format: {jira_version}")
-        self.number = version_parts[0]
-        self.is_patch = len(version_parts) == 2
-
-    def __gt__(self, other):
-        if "Future" == self.number:
-            return True
-        if "Future" == other.number:
-            return False
-        return (self.number, self.is_patch) > (other.number, other.is_patch)
-
-    def __eq__(self, other):
-        return (self.number, self.is_patch) == (other.number, other.is_patch)
-
-    def __hash__(self):
-        return hash((self.number, self.is_patch))
-
-    def __repr__(self):
-        return self.number + ("_patch" if self.is_patch else "")
-
-
 def parse_config_file(filepath: Path):
     if filepath.suffix == '.json':
         def parse_file(f): return json.load(f)
