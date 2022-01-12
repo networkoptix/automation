@@ -15,7 +15,7 @@ from automation_tools.checkers.config import DEFAULT_PROJECT_KEYS_TO_CHECK
 logger = logging.getLogger(__name__)
 
 
-class JiraError(automation_tools.utils.Error):
+class JiraError(automation_tools.utils.AutomationError):
     def __init__(self, message: str, jira_error: jira.exceptions.JIRAError = None):
         super().__init__(message + (': ' + str(jira_error) if jira_error else ""))
 

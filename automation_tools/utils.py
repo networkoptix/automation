@@ -2,11 +2,12 @@ from dataclasses import dataclass
 import datetime
 from pathlib import Path
 import json
+from typing import List
 
 import yaml
 
 
-class Error(Exception):
+class AutomationError(Exception):
     pass
 
 
@@ -20,6 +21,10 @@ def parse_config_file(filepath: Path):
 
     with open(filepath, 'r') as f:
         return parse_file(f)
+
+
+def flatten_list(list_of_lists: List):
+    return [i for e in list_of_lists for i in (e if isinstance(e, list) else [e])]
 
 
 class cached:

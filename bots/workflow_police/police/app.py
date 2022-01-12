@@ -12,11 +12,17 @@ import argparse
 import sys
 
 from automation_tools.checkers.checkers import (
-    WrongVersionChecker, MasterMissingIssueCommitChecker, VersionMissingIssueCommitChecker,
-    BranchMissingChecker, IssueTypeChecker, IssueIsFixedChecker, IssueIgnoreLabelChecker,
-    IssueIgnoreProjectChecker)
-import automation_tools.utils
+    WrongVersionChecker,
+    MasterMissingIssueCommitChecker,
+    VersionMissingIssueCommitChecker,
+    BranchMissingChecker,
+    IssueTypeChecker,
+    IssueIsFixedChecker,
+    IssueIgnoreLabelChecker,
+    IgnoreIrrelevantProjectChecker,
+    WorkflowPolicyChecker)
 from automation_tools.jira import JiraAccessor, JiraError, JiraIssue
+from automation_tools.utils import AutomationError, flatten_list, parse_config_file
 import automation_tools.git
 
 logger = logging.getLogger(__name__)
@@ -55,28 +61,66 @@ class WorkflowViolationChecker:
 
 
 class WorkflowEnforcer:
+    CLASS_NAME_TO_CONFIG_KEY_MAP = {
+        "IssueIgnoreLabelChecker": "ignore_by_label",
+        "IssueTypeChecker": "ignore_by_type",
+        "IssueIsFixedChecker": "ignore_fixed",
+        "IgnoreIrrelevantProjectChecker": "ignore_by_project",
+        "WrongVersionChecker": "wrong_version",
+        "BranchMissingChecker": "missing_branch",
+        "VersionMissingIssueCommitChecker": "missing_issue_commit",
+        "MasterMissingIssueCommitChecker": "missing_commit_to_master",
+    }
+
     def __init__(
             self, config: Dict, jira: JiraAccessor = None, repo: automation_tools.git.Repo = None):
         self._polling_period_min = config.get("polling_period_min", 5)
         self._last_check_file = config.get("last_check_file", "/tmp/last_check")
 
         self._jira = jira if jira else JiraAccessor(**config["jira"])
-        self._repo = repo if repo else automation_tools.git.Repo(**config["repo"])
+        self._config = config
 
         self._workflow_checker = WorkflowViolationChecker()
+
         self._workflow_checker.ignore_checkers = [
-            IssueIgnoreLabelChecker(),
-            IssueIgnoreProjectChecker(config["jira"].get("project_keys")),
-            IssueTypeChecker(),
-            IssueIsFixedChecker(),
+            IgnoreIrrelevantProjectChecker(
+                project_keys=self._projects_list_by_class(IgnoreIrrelevantProjectChecker)),
+            IssueIgnoreLabelChecker(
+                project_keys=self._projects_list_by_class(IssueIgnoreLabelChecker)),
+            IssueTypeChecker(project_keys=self._projects_list_by_class(IssueTypeChecker)),
+            IssueIsFixedChecker(project_keys=self._projects_list_by_class(IssueIsFixedChecker)),
         ]
 
-        self._workflow_checker.reopen_checkers = [
-            WrongVersionChecker(),
-            BranchMissingChecker(self._repo),
-            VersionMissingIssueCommitChecker(self._repo),
-            MasterMissingIssueCommitChecker(self._repo),
+        self._repos = {}
+        repo_dependent_checkers = [
+            BranchMissingChecker,
+            VersionMissingIssueCommitChecker,
+            MasterMissingIssueCommitChecker,
         ]
+        for klass in repo_dependent_checkers:
+            self._repos[klass.__name__] = repo if repo else self._repo_by_class(klass)
+
+        self._workflow_checker.reopen_checkers = [
+            WrongVersionChecker(project_keys=self._projects_list_by_class(WrongVersionChecker)),
+            BranchMissingChecker(
+                repo=self._repos[BranchMissingChecker.__name__],
+                project_keys=self._projects_list_by_class(BranchMissingChecker)),
+            VersionMissingIssueCommitChecker(
+                repo=self._repos[VersionMissingIssueCommitChecker.__name__],
+                project_keys=self._projects_list_by_class(VersionMissingIssueCommitChecker)),
+            MasterMissingIssueCommitChecker(
+                repo=self._repos[MasterMissingIssueCommitChecker.__name__],
+                project_keys=self._projects_list_by_class(MasterMissingIssueCommitChecker)),
+        ]
+
+    def _projects_list_by_class(self, klass: WorkflowPolicyChecker):
+        return flatten_list(self._checker_config_by_class(klass)["projects"])
+
+    def _checker_config_by_class(self, klass: WorkflowPolicyChecker):
+        return self._config["checkers"][self.CLASS_NAME_TO_CONFIG_KEY_MAP[klass.__name__]]
+
+    def _repo_by_class(self, klass: WorkflowPolicyChecker):
+        return flatten_list(self._checker_config_by_class(klass)["repo"])
 
     def get_recent_issues_interval_min(self):
         try:
@@ -98,7 +142,8 @@ class WorkflowEnforcer:
             recent_issues_interval_min = self.get_recent_issues_interval_min()
             logger.debug(f"Verifying issues updated for last {recent_issues_interval_min} minutes")
             issues = self._jira.get_recently_closed_issues(recent_issues_interval_min)
-            self._repo.update_repository()
+            for repo in self._repos.values():
+                repo.update_repository()
 
             for issue in issues:
                 self.handle(issue)
@@ -125,7 +170,7 @@ class WorkflowEnforcer:
                 return
             issue.return_issue(reason)
 
-        except automation_tools.utils.Error as e:
+        except AutomationError as e:
             logger.warning(f"Error while processing issue {issue}: {e}")
 
 
@@ -154,7 +199,7 @@ def main():
         format='%(asctime)s %(levelname)s %(name)s\t%(message)s')
 
     try:
-        config = automation_tools.utils.parse_config_file(Path(arguments.config_file))
+        config = parse_config_file(Path(arguments.config_file))
         enforcer = WorkflowEnforcer(config)
         enforcer.run()
     except Exception as e:

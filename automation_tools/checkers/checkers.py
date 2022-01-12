@@ -1,20 +1,34 @@
+import re
 from typing import Optional, Set
+
+import gitlab.v4.objects
 
 import automation_tools.checkers.config as config
 from automation_tools.jira import JiraIssue, JiraIssueStatus
 from automation_tools.git import Repo
+import automation_tools.utils
 
 
 class WorkflowPolicyChecker:
-    def __init__(self, repo: Repo = None):
+    def __init__(self, repo: Repo = None, project_keys: Set[str] = None):
         self._repo = repo
+        self._project_keys = project_keys if project_keys else config.DEFAULT_PROJECT_KEYS_TO_CHECK
 
-    def run(WorkflowPolicyChecker) -> Optional[str]:
+    def run(self, issue: JiraIssue) -> Optional[str]:
+        if not self.is_applicable(issue.project):
+            return
+        return self._class_specific_check_run(issue)
+
+    def _class_specific_check_run(self):
         return
+
+    def is_applicable(self, project_name_or_key: str) -> bool:
+        project_name, *_ = project_name_or_key.partition("-")
+        return project_name in self._project_keys
 
 
 class WrongVersionChecker(WorkflowPolicyChecker):
-    def run(self, issue: JiraIssue) -> Optional[str]:
+    def _class_specific_check_run(self, issue: JiraIssue) -> Optional[str]:
         if issue.has_label(config.VERSION_SPECIFIC_LABEL):
             return
 
@@ -29,7 +43,7 @@ class WrongVersionChecker(WorkflowPolicyChecker):
 
 
 class BranchMissingChecker(WorkflowPolicyChecker):
-    def run(self, issue: JiraIssue) -> Optional[str]:
+    def _class_specific_check_run(self, issue: JiraIssue) -> Optional[str]:
         for version, branch in issue.versions_to_branches_map.items():
             # NOTE: Checking only recent commits as an optimization.
             if not self._repo.check_branch_exists(branch):
@@ -38,7 +52,7 @@ class BranchMissingChecker(WorkflowPolicyChecker):
 
 
 class VersionMissingIssueCommitChecker(WorkflowPolicyChecker):
-    def run(self, issue: JiraIssue) -> Optional[str]:
+    def _class_specific_check_run(self, issue: JiraIssue) -> Optional[str]:
         issue_key = str(issue)
         for version, branch in issue.versions_to_branches_map.items():
             if issue.has_label(issue.already_in_version_label(version)):
@@ -50,7 +64,7 @@ class VersionMissingIssueCommitChecker(WorkflowPolicyChecker):
 
 
 class MasterMissingIssueCommitChecker(WorkflowPolicyChecker):
-    def run(self, issue: JiraIssue) -> Optional[str]:
+    def _class_specific_check_run(self, issue: JiraIssue) -> Optional[str]:
         if issue.has_label(config.VERSION_SPECIFIC_LABEL):
             return
 
@@ -60,14 +74,14 @@ class MasterMissingIssueCommitChecker(WorkflowPolicyChecker):
 
 
 class IssueTypeChecker(WorkflowPolicyChecker):
-    def run(self, issue: JiraIssue) -> Optional[str]:
+    def _class_specific_check_run(self, issue: JiraIssue) -> Optional[str]:
         if issue.type_name in ["New Feature", "Epic", "Func Spec", "Tech Spec"]:
             return f"issue type [{issue.type_name}]"
         return
 
 
 class IssueIsFixedChecker(WorkflowPolicyChecker):
-    def run(self, issue: JiraIssue) -> Optional[str]:
+    def _class_specific_check_run(self, issue: JiraIssue) -> Optional[str]:
         if issue.resolution in ["Fixed", "Done"]:
             return
 
@@ -79,22 +93,13 @@ class IssueIsFixedChecker(WorkflowPolicyChecker):
 
 
 class IssueIgnoreLabelChecker(WorkflowPolicyChecker):
-    def run(self, issue: JiraIssue) -> Optional[str]:
+    def _class_specific_check_run(self, issue: JiraIssue) -> Optional[str]:
         if issue.has_label(config.IGNORE_LABEL):
             return f"{config.IGNORE_LABEL} is set"
         return
 
 
-class IssueIgnoreProjectChecker(WorkflowPolicyChecker):
-    def __init__(self, project_keys: Set[str] = None):
-        self._project_keys = project_keys if project_keys else config.DEFAULT_PROJECT_KEYS_TO_CHECK
-        super().__init__()
-
+class IgnoreIrrelevantProjectChecker(WorkflowPolicyChecker):
     def run(self, issue: JiraIssue) -> Optional[str]:
-        return self.check_by_key(issue.project)
-
-    def check_by_key(self, issue_key: str) -> Optional[str]:
-        project_name, *_ = issue_key.partition("-")
-        if project_name not in self._project_keys:
-            return f"issue project is {project_name}"
-        return
+        if not self.is_applicable(issue.project):
+            return f"issue project is {issue.project}"

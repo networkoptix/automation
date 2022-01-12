@@ -1,7 +1,9 @@
+from pathlib import Path
 import pytest
 
 from automation_tools.tests.fixtures import jira, repo_accessor
 from automation_tools.tests.mocks.git_mocks import CommitMock, BranchMock
+from automation_tools.utils import parse_config_file
 from bots.workflow_police.police.app import WorkflowEnforcer
 
 
@@ -40,10 +42,12 @@ def police_test_repo(repo_accessor):
 
 @pytest.fixture
 def workflow_checker(jira, police_test_repo):
-    return WorkflowEnforcer({"jira": {}}, jira, police_test_repo)._workflow_checker
+    config = parse_config_file(Path(__file__).parents[1].resolve() / "config.yaml")
+    return WorkflowEnforcer(config, jira, police_test_repo)._workflow_checker
 
 
 @pytest.fixture
 def bot(monkeypatch, jira, police_test_repo):
     monkeypatch.setenv("BOT_NAME", "Police")
-    return WorkflowEnforcer({"jira": {}}, jira, police_test_repo)
+    config = parse_config_file(Path(__file__).parents[1].resolve() / "config.yaml")
+    return WorkflowEnforcer(config, jira, police_test_repo)

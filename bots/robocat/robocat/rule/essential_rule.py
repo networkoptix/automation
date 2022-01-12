@@ -2,7 +2,7 @@ import logging
 from enum import Enum
 from typing import Set
 
-from automation_tools.checkers.checkers import IssueIgnoreProjectChecker
+from automation_tools.checkers.checkers import WorkflowPolicyChecker
 from automation_tools.checkers.config import DEFAULT_PROJECT_KEYS_TO_CHECK
 from robocat.merge_request_manager import MergeRequestManager, ApprovalRequirements
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
@@ -54,7 +54,7 @@ class EssentialRule(BaseRule):
 
         belongs_to_supported_projects = any([
             True for k in mr_manager.data.issue_keys
-            if not IssueIgnoreProjectChecker(self._project_keys).check_by_key(k)])
+            if WorkflowPolicyChecker(project_keys=self._project_keys).is_applicable(k)])
         if not belongs_to_supported_projects:
             mr_manager.return_to_development(
                 ReturnToDevelopmentReason.bad_project_list, self._project_keys)

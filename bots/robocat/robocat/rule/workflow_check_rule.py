@@ -4,8 +4,7 @@ import re
 from enum import Enum
 from typing import List, Optional, Set
 
-from automation_tools.checkers.checkers import (
-    WrongVersionChecker, IssueIgnoreLabelChecker, IssueIgnoreProjectChecker)
+from automation_tools.checkers.checkers import (WrongVersionChecker, IssueIgnoreLabelChecker)
 from automation_tools.checkers.config import DEFAULT_PROJECT_KEYS_TO_CHECK
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId, Comment
@@ -101,8 +100,8 @@ class WorkflowCheckRule(BaseRule):
         actual_issue_keys = self._exclude_ignored_issues(mr_manager.data.issue_keys)
         for issue_key in actual_issue_keys:
             issue = self._jira.get_issue(issue_key)
-            version_error_string = WrongVersionChecker().run(issue)
-            if version_error_string:
+            checker = WrongVersionChecker(project_keys=self._project_keys)
+            if version_error_string := checker.run(issue):
                 comment_text = (
                     f"Bad `fixVersions` field in the related Jira Issue {issue_key}: "
                     f"{version_error_string}")
@@ -170,8 +169,8 @@ class WorkflowCheckRule(BaseRule):
         result = []
         for key in issue_keys:
             issue = self._jira.get_issue(key)
-            checkers = [IssueIgnoreLabelChecker(), IssueIgnoreProjectChecker(self._project_keys)]
-            if any(c.run(issue) for c in checkers):
+            checker = IssueIgnoreLabelChecker(project_keys=self._project_keys)
+            if checker.run(issue):
                 continue
             result.append(key)
 

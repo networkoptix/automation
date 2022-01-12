@@ -4,15 +4,52 @@ jira:
     password: PASSWORD_HERE
     timeout: 10
     retries: 1
-    project_keys:
-        - VMS
-        - MOBILE
-        - CB
-        - SQ
-        - NXLIB
 
-repo:
+standard_projects: &standard_projects
+    - VMS
+    - MOBILE
+    - CB
+    - SQ
+    - NXLIB
+
+vms_repo: &vms_repo
     path: /tmp/nx
     url: "git@gitlab.lan.hdw.mx:dev/nx.git"
+
+checkers:
+    ignore_by_project:
+        projects:
+            - *standard_projects
+            - CLOUD
+    ignore_by_label:
+        projects:
+            - *standard_projects
+            - CLOUD
+    ignore_by_type:
+        projects: *standard_projects
+    ignore_fixed:
+        projects: *standard_projects
+    wrong_version:
+        projects: *standard_projects
+    missing_branch:
+        repo: *vms_repo
+        projects: *standard_projects
+    missing_issue_commit:
+        repo: *vms_repo
+        projects: *standard_projects
+    missing_commit_to_master:
+        repo: *vms_repo
+        projects: *standard_projects
+    linked_commit_close:
+        repo: *vms_repo
+        commit_message_template: "Updates webadmin to"
+        projects:
+            - CLOUD
+    linked_commit_reopen:
+        repo: *vms_repo
+        commit_message_template: "Updates webadmin to"
+        projects:
+            - CLOUD
+
 polling_period_min: 5
 last_check_file: /tmp/last_check

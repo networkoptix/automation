@@ -101,7 +101,7 @@ class Bot:
                 logger.warning(f"{mr_manager}: Gitlab error: {e}")
             except JiraError as e:
                 logger.warning(f"{mr_manager}: Jira error: {e}")
-            except automation_tools.utils.Error as e:
+            except automation_tools.utils.AutomationError as e:
                 logger.warning(f"{mr_manager}: Generic error: {e}")
             except git.GitError as e:
                 logger.warning(f"{mr_manager}: Git error: {e}")
