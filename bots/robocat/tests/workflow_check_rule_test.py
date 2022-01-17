@@ -4,7 +4,7 @@ import re
 from robocat.rule.workflow_check_rule import WorkflowCheckRule
 from robocat.award_emoji_manager import AwardEmojiManager
 from tests.fixtures import *
-from tests.robocat_constants import DEFAULT_JIRA_ISSUE_KEY, DEFAULT_COMMIT
+from automation_tools.tests.gitlab_constants import DEFAULT_JIRA_ISSUE_KEY, DEFAULT_COMMIT
 
 import automation_tools.checkers.config
 from automation_tools.tests.fixtures import jira

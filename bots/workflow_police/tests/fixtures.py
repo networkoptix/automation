@@ -3,6 +3,8 @@ import pytest
 
 from automation_tools.tests.fixtures import jira, repo_accessor
 from automation_tools.tests.mocks.git_mocks import CommitMock, BranchMock
+from automation_tools.tests.mocks.merge_request import MergeRequestMock
+from automation_tools.tests.mocks.project import ProjectMock
 from automation_tools.utils import parse_config_file
 from bots.workflow_police.police.app import WorkflowEnforcer
 
@@ -41,13 +43,48 @@ def police_test_repo(repo_accessor):
 
 
 @pytest.fixture
-def workflow_checker(jira, police_test_repo):
-    config = parse_config_file(Path(__file__).parents[1].resolve() / "config.yaml")
-    return WorkflowEnforcer(config, jira, police_test_repo)._workflow_checker
+def mr_states():
+    return [{}]
 
 
 @pytest.fixture
-def bot(monkeypatch, jira, police_test_repo):
+def project(mr_states):
+    project = ProjectMock()
+    # create merge request mock object bonded to "project".
+    for mr_state in mr_states:
+        MergeRequestMock(project=project, **mr_state)
+    return project
+
+
+@pytest.fixture
+def workflow_enforcer(monkeypatch, jira, police_test_repo, project):
+    config = parse_config_file(Path(__file__).parents[1].resolve() / "config.test.yaml")
+    del config["gitlab"]
+    del config["jira"]
+
+    def _update_repos(obj, *_, **__):
+        obj._repos["default"] = police_test_repo
+        return police_test_repo
+
+    def _related_project_by_class(obj, *_, **__):
+        return project
+
+    monkeypatch.setattr(WorkflowEnforcer, "_update_repos", _update_repos)
+    monkeypatch.setattr(WorkflowEnforcer, "_related_project_by_class", _related_project_by_class)
+
+    workflow_enforcer = WorkflowEnforcer(config)
+    workflow_enforcer._jira = jira
+    workflow_enforcer._gitlab = project.manager.gitlab
+
+    return workflow_enforcer
+
+
+@pytest.fixture
+def workflow_checker(workflow_enforcer):
+    return workflow_enforcer._workflow_checker
+
+
+@pytest.fixture
+def bot(monkeypatch, workflow_enforcer):
     monkeypatch.setenv("BOT_NAME", "Police")
-    config = parse_config_file(Path(__file__).parents[1].resolve() / "config.yaml")
-    return WorkflowEnforcer(config, jira, police_test_repo)
+    return workflow_enforcer

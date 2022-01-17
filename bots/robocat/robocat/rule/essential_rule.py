@@ -3,7 +3,6 @@ from enum import Enum
 from typing import Set
 
 from automation_tools.checkers.checkers import WorkflowPolicyChecker
-from automation_tools.checkers.config import DEFAULT_PROJECT_KEYS_TO_CHECK
 from robocat.merge_request_manager import MergeRequestManager, ApprovalRequirements
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.action_reasons import WaitReason, ReturnToDevelopmentReason
@@ -31,8 +30,8 @@ class EssentialRule(BaseRule):
             "unresolved_threads": "Unresolved threads found",
         })
 
-    def __init__(self, project_keys: Set[str] = None):
-        self._project_keys = project_keys if project_keys else DEFAULT_PROJECT_KEYS_TO_CHECK
+    def __init__(self, project_keys: Set[str]):
+        self._project_keys = project_keys
         super().__init__()
 
     def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:

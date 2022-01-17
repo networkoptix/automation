@@ -1,7 +1,12 @@
 import pytest
 
 from automation_tools.tests.fixtures import jira, repo_accessor
-from bots.workflow_police.tests.fixtures import police_test_repo, bot
+from bots.workflow_police.tests.fixtures import (
+    police_test_repo,
+    bot,
+    project,
+    workflow_enforcer,
+    mr_states)
 
 
 class TestPoliceBot:
@@ -64,7 +69,4 @@ class TestPoliceBot:
             issue_key = issue_data["key"]
             issue = jira.get_issue(issue_key)
 
-            initial_issue_state = issue_data.get("state", "Open")
-            expected_state = "Open" if initial_issue_state == "Closed" else "In progress"
-            current_issue_state = str(issue.status)
-            assert current_issue_state == expected_state, f'Issue "{issue_key}" was not reopend'
+            assert str(issue.status) == "In Review", f'Issue "{issue_key}" was not reopend'

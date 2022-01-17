@@ -44,7 +44,7 @@ class Jira:
                 fixVersions.append(versions[0])
 
         remoteLinks = [
-            RemoteLink(f"https://gitlab.lan.hdw.mx/-/dev/nx/merge_requests/{mr_id}")
+            RemoteLink(f"https://gitlab.lan.hdw.mx/dev/nx/-/merge_requests/{mr_id}")
             for mr_id in (merge_requests or [])]
         comments = [Comment(body=c) for c in (comments_list or [])]
         status = Status(state)
@@ -81,6 +81,11 @@ class Jira:
                 Version("20.1", "<cloud_backend_20.1>"),
                 Version("master", "<master>"),
             ],
+            "CLOUD": [
+                Version("21.1", ""),
+                Version("master", "<master>"),
+                Version("5.0", "<vms_5.0>"),
+            ],
         }.get(project, {})
 
     @staticmethod
@@ -88,6 +93,7 @@ class Jira:
         if issue.fields.status.name == "Closed":
             return [
                 {"name": "Reopen", "to": {"name": "Open"}},
+                {"name": "Workflow failure", "to": {"name": "In Review"}},
                 {"name": "Update Resolution", "to": {"name": "Closed"}}]
 
         if issue.fields.status.name == "In Review":
@@ -113,6 +119,7 @@ class Jira:
             return [
                 {"name": "Reject", "to": {"name": "Closed"}},
                 {"name": "Back to Development", "to": {"name": "In progress"}},
+                {"name": "Workflow failure", "to": {"name": "In Review"}},
                 {"name": "I'll test it", "to": {"name": "In QA"}}]
 
         return []

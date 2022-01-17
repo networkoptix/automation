@@ -3,7 +3,7 @@ from typing import List, Tuple
 
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.note import Note, MessageId
-from tests.robocat_constants import (
+from automation_tools.tests.gitlab_constants import (
     BAD_OPENSOURCE_COMMIT,
     BAD_OPENCANDIDATE_COMMIT,
     GOOD_README_COMMIT_CHANGED_FILE,
@@ -14,7 +14,7 @@ from tests.robocat_constants import (
     OPEN_SOURCE_APPROVER_COMMON_2,
     OPEN_SOURCE_APPROVER_CLIENT,
     DEFAULT_REQUIRED_APPROVALS_COUNT)
-from tests.mocks.file import (
+from automation_tools.tests.mocks.file import (
     GOOD_README_RAW_DATA, BAD_README_RAW_DATA, BAD_README_RAW_DATA_2, GOOD_CPP_RAW_DATA)
 from tests.fixtures import *
 

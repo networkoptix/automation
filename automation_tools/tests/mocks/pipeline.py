@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from tests.mocks.gitlab import GitlabManagerMock
+from automation_tools.tests.mocks.gitlab import GitlabManagerMock
 
 
 @dataclass

@@ -1,7 +1,6 @@
 from pathlib import Path
 import pytest
 
-from automation_tools.checkers.config import DEFAULT_PROJECT_KEYS_TO_CHECK
 import automation_tools.git
 import automation_tools.jira
 import automation_tools.tests.mocks.jira
@@ -12,10 +11,18 @@ from automation_tools.tests.mocks.git_mocks import (
 @pytest.fixture
 def jira(jira_issues, monkeypatch):
     def init_with_mock(this):
-        this._project_keys = DEFAULT_PROJECT_KEYS_TO_CHECK
+        project_keys_list = list({i["key"].partition("-")[0] for i in jira_issues})
+        this.project_keys = set(project_keys_list)
         this._jira = automation_tools.tests.mocks.jira.Jira()
 
+    def version_to_branch_mappings(obj):
+        return {p: obj._version_to_branch_mapping(p) for p in obj.project_keys}
+
     monkeypatch.setattr(automation_tools.jira.JiraAccessor, "__init__", init_with_mock)
+    monkeypatch.setattr(
+        automation_tools.jira.JiraAccessor,
+        "version_to_branch_mappings",
+        version_to_branch_mappings)
 
     accessor = automation_tools.jira.JiraAccessor()
     if jira_issues:

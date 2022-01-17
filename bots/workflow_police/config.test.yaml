@@ -29,6 +29,12 @@ checkers:
         projects: *standard_projects
     ignore_fixed:
         projects: *standard_projects
+    ignore_by_version:
+        projects:
+            - CLOUD
+        relevant_versions:
+            - master
+            - "5.0"
     wrong_version:
         projects: *standard_projects
     missing_branch:
@@ -40,16 +46,17 @@ checkers:
     missing_commit_to_master:
         repo: *vms_repo
         projects: *standard_projects
-    linked_commit_close:
+    no_related_commit:
         repo: *vms_repo
-        commit_message_template: "Updates webadmin to"
-        projects:
-            - CLOUD
-    linked_commit_reopen:
-        repo: *vms_repo
-        commit_message_template: "Updates webadmin to"
+        related_project_id: 1
         projects:
             - CLOUD
 
 polling_period_min: 5
 last_check_file: /tmp/last_check
+
+gitlab:
+    url: https://gitlab.lan.hdw.mx/
+    private_token: <PRIVATE_TOKEN>
+    api_version: "4"
+    timeout: 20

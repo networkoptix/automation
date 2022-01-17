@@ -10,7 +10,6 @@ import jira.exceptions
 import automation_tools.utils
 import automation_tools.jira_comments as jira_messages
 import automation_tools.bot_info
-from automation_tools.checkers.config import DEFAULT_PROJECT_KEYS_TO_CHECK
 
 logger = logging.getLogger(__name__)
 
@@ -35,13 +34,15 @@ class JiraIssueStatus(Enum):
 class JiraIssueTransition(Enum):
     Reopen = "Reopen"
     BackToDevelopment = "Back to Development"
+    WorkflowFailure = "Workflow failure"
 
     def __str__(self):
         return str(self.value)
 
 
 class JiraIssue:
-    _MERGE_REQUEST_LINK_RE = re.compile(r"/merge_requests/(?P<id>\d+)$")
+    _MERGE_REQUEST_LINK_RE = re.compile(
+        r"//[\w\.]+?/(?P<repo_path>[\w\/]+)/\-/merge_requests/(?P<id>\d+)$")
 
     def __init__(
             self, jira_handler: jira.JIRA, issue: jira.Issue, branch_mapping: Dict[str, str]):
@@ -82,7 +83,7 @@ class JiraIssue:
             f'(status = {JiraIssueStatus.closed} AND resolved >= -{period_min}m OR '
             f'status = "{JiraIssueStatus.qa}" AND updated >= -{period_min}m)')
 
-    def get_related_merge_request_ids(self) -> Set[int]:
+    def get_related_merge_request_ids(self, project_path: str = None) -> Set[int]:
         issue = self._raw_issue
         logger.debug(f"Obtaining branches with merge requests for issue {self}")
 
@@ -90,7 +91,7 @@ class JiraIssue:
         try:
             for link in self._jira.remote_links(issue):
                 logger.debug(f"Remote link for {self} found: {link}")
-                gitlab_mr_id = self._extract_mr_id_from_link(link)
+                gitlab_mr_id = self._extract_mr_id_from_link(link, project_path)
                 if gitlab_mr_id is None:
                     continue
                 mr_ids.add(gitlab_mr_id)
@@ -102,11 +103,14 @@ class JiraIssue:
 
         return mr_ids
 
-    def _extract_mr_id_from_link(self, link: jira.resources.RemoteLink) -> int:
+    def _extract_mr_id_from_link(
+            self, link: jira.resources.RemoteLink, project_path: str = None) -> int:
         link_match = self._MERGE_REQUEST_LINK_RE.search(link.object.url)
-        if link_match:
-            return int(link_match["id"])
-        return None
+        if not link_match:
+            return None
+        if project_path and link_match["repo_path"] != project_path:
+            return None
+        return int(link_match["id"])
 
     def branches(self, exclude_already_merged: bool = False) -> Set[str]:
         if not self._raw_issue.fields.fixVersions:
@@ -116,17 +120,17 @@ class JiraIssue:
         issue = self._raw_issue
         labels = issue.fields.labels
         return {
-            mapping[v.name] for v in issue.fields.fixVersions
+            mapping.get(v.name, None) for v in issue.fields.fixVersions
             if not exclude_already_merged or self.already_in_version_label(v.name) not in labels}
 
     @property
     def versions_to_branches_map(self) -> Dict[str, str]:
         if not self._raw_issue.fields.fixVersions:
-            return []
+            return {}
 
         mapping = self._version_to_branch_mapping
         issue = self._raw_issue
-        return {v.name: mapping[v.name] for v in issue.fields.fixVersions}
+        return {v.name: mapping.get(v.name, None) for v in issue.fields.fixVersions}
 
     @property
     def status(self) -> JiraIssueStatus:
@@ -204,19 +208,18 @@ class JiraIssue:
         try:
             logger.info(f'Reopening issue {issue.key}: {reason}')
 
-            if self.status == JiraIssueStatus.closed:
-                self._jira.transition_issue(issue, str(JiraIssueTransition.Reopen))
-            elif self.status == JiraIssueStatus.qa:
-                self._jira.transition_issue(issue, str(JiraIssueTransition.BackToDevelopment))
-            else:
-                assert False, f"Unexpected issue {issue.key} status {issue.fields.status}"
+            assert self.status in [JiraIssueStatus.qa, JiraIssueStatus.closed], (
+                f"Unexpected issue {issue.key} status {issue.fields.status}")
+
+            self._jira.transition_issue(issue, str(JiraIssueTransition.WorkflowFailure))
 
             self._add_comment(jira_messages.reopen_issue.format(
                 reason=reason,
                 resolution=issue.fields.resolution))
 
         except jira.exceptions.JIRAError as error:
-            raise JiraError(f"Unable to reopen issue {issue.key}: {error}") from error
+            self._add_comment(f'Unable to reopen issue {issue.key}: {error}. Forcing state "Open"')
+            self._set_status(JiraIssueStatus.open)
 
     def add_followups_created_comment(self, branches: Set[str]):
         self._add_comment(
@@ -246,18 +249,18 @@ class JiraAccessor:
             password: str,
             timeout: int,
             retries: int,
-            project_keys: Set[str] = None):
+            project_keys: Set[str]):
         try:
             self._jira = jira.JIRA(
                 server=url, basic_auth=(login, password), max_retries=retries, timeout=timeout)
-            self._project_keys = project_keys if project_keys else DEFAULT_PROJECT_KEYS_TO_CHECK
+            self.project_keys = project_keys
 
         except jira.exceptions.JIRAError as error:
             raise JiraError(f"Unable to connect to {url} with {login}", error) from error
 
     def get_recently_closed_issues(self, period_min: int) -> List[JiraIssue]:
         closed_issues_filter = JiraIssue.closed_issues_filter(period_min)
-        projects_string = '"' + '", "'.join(self._project_keys) + '"'
+        projects_string = '"' + '", "'.join(self.project_keys) + '"'
         project_closed_issues_filter = f"project in ({projects_string}) AND {closed_issues_filter}"
         logger.debug(f'Searching issues with filter [{project_closed_issues_filter}]')
 
@@ -289,7 +292,7 @@ class JiraAccessor:
 
     @automation_tools.utils.cached(datetime.timedelta(minutes=10))
     def version_to_branch_mappings(self) -> Dict[str, Dict[str, str]]:
-        return {p: self._version_to_branch_mapping(p) for p in self._project_keys}
+        return {p: self._version_to_branch_mapping(p) for p in self.project_keys}
 
     def _version_to_branch_mapping(self, project: str) -> Dict[str, str]:
         try:
@@ -304,7 +307,7 @@ class JiraAccessor:
                     mapping[v.name] = branch
 
             mapping = {k: mapping[k] for k in sorted(mapping, reverse=True)}
-            logger.debug(f"Got mapping from jira releases: {mapping}")
+            logger.debug(f"For project {project} got mapping from jira releases: {mapping}")
             return mapping
 
         except jira.exceptions.JIRAError as error:

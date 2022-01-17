@@ -4,8 +4,8 @@ import uuid
 
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.note import Note, MessageId
-from tests.robocat_constants import FILE_COMMITS_SHA
-from tests.mocks.file import (
+from automation_tools.tests.gitlab_constants import FILE_COMMITS_SHA
+from automation_tools.tests.mocks.file import (
     NX_SUBMODULE_GOOD_RAW_DATA,
     NX_SUBMODULE_BAD_RAW_DATA_1,
     NX_SUBMODULE_BAD_RAW_DATA_2,

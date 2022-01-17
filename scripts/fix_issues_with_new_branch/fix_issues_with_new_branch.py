@@ -102,8 +102,7 @@ def main():
         help=(
             "Yaml file with configuration options, example: "
             "https://gitlab.lan.hdw.mx/dev/Automation/-/blob/master/bots/workflow_police/"
-            'config.yaml. Only "jira" section is needed by this script. This parameter is '
-            "mandatory."))
+            'config.test.yaml. This parameter is mandatory.'))
     parser.add_argument(
         "--days", type=int, default=45,
         help=(

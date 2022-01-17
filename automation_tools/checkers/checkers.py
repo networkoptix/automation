@@ -1,18 +1,22 @@
+import logging
 import re
 from typing import Optional, Set
 
 import gitlab.v4.objects
+from gitlab import GitlabGetError
 
 import automation_tools.checkers.config as config
 from automation_tools.jira import JiraIssue, JiraIssueStatus
 from automation_tools.git import Repo
-import automation_tools.utils
+
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowPolicyChecker:
-    def __init__(self, repo: Repo = None, project_keys: Set[str] = None):
+    def __init__(self, project_keys: Set[str], repo: Repo = None):
         self._repo = repo
-        self._project_keys = project_keys if project_keys else config.DEFAULT_PROJECT_KEYS_TO_CHECK
+        self._project_keys = project_keys
 
     def run(self, issue: JiraIssue) -> Optional[str]:
         if not self.is_applicable(issue.project):
@@ -103,3 +107,44 @@ class IgnoreIrrelevantProjectChecker(WorkflowPolicyChecker):
     def run(self, issue: JiraIssue) -> Optional[str]:
         if not self.is_applicable(issue.project):
             return f"issue project is {issue.project}"
+
+
+class IgnoreIrrelevantVersionsChecker(WorkflowPolicyChecker):
+    def __init__(self, project_keys: Set[str], relevant_versions: Set[str]):
+        super().__init__(repo=None, project_keys=project_keys)
+        self._relevant_versions = relevant_versions
+
+    def _class_specific_check_run(self, issue: JiraIssue) -> Optional[str]:
+        version_set = set(issue.versions_to_branches_map.keys())
+        if not version_set.intersection(self._relevant_versions):
+            return (
+                f"No relevant version ({self._relevant_versions}) in fixVersions ({version_set})")
+        return
+
+
+class RelatedCommitAbsenceChecker(WorkflowPolicyChecker):
+    def __init__(self, project_keys: Set[str], related_project: gitlab.v4.objects.Project):
+        super().__init__(repo=None, project_keys=project_keys)
+        self._related_project = related_project
+
+    def _class_specific_check_run(self, issue: JiraIssue) -> Optional[str]:
+        related_project_merged_branches = set()
+        mr_ids = issue.get_related_merge_request_ids(
+            project_path=self._related_project.path_with_namespace)
+        for mr_id in mr_ids:
+            try:
+                merge_request = self._related_project.mergerequests.get(mr_id)
+            except GitlabGetError as error:
+                logger.debug(f"Can't get Merge Request {mr_id}: {error}")
+                continue
+            if merge_request.state != "merged":
+                continue
+            related_project_merged_branches.add(merge_request.target_branch)
+
+        issue_branches = {b for b in issue.branches(exclude_already_merged=True) if b is not None}
+        if not issue_branches.issubset(related_project_merged_branches):
+            return (
+                f"Must fix branches {issue_branches}; "
+                f"merged branches: {related_project_merged_branches}")
+
+        return

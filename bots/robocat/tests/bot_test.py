@@ -2,7 +2,7 @@ import pytest
 
 from automation_tools.tests.mocks.git_mocks import CommitMock, BranchMock, BOT_EMAIL, BOT_NAME
 from robocat.award_emoji_manager import AwardEmojiManager
-from tests.robocat_constants import (
+from automation_tools.tests.gitlab_constants import (
     BAD_OPENSOURCE_COMMIT,
     DEFAULT_COMMIT,
     GOOD_README_COMMIT_NEW_FILE,

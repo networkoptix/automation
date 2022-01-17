@@ -3,11 +3,13 @@ import pytest
 from automation_tools.tests.mocks.git_mocks import BOT_NAME, BOT_USERNAME
 from robocat.merge_request import MergeRequest
 import robocat.gitlab
-from tests.mocks.project import ProjectMock
-from tests.mocks.merge_request import MergeRequestMock
-from tests.mocks.pipeline import PipelineMock
-from tests.robocat_constants import DEFAULT_APPROVE_RULES_LIST, DEFAULT_SUBMODULE_DIRS
-
+from automation_tools.tests.mocks.project import ProjectMock
+from automation_tools.tests.mocks.merge_request import MergeRequestMock
+from automation_tools.tests.mocks.pipeline import PipelineMock
+from automation_tools.tests.gitlab_constants import (
+    DEFAULT_APPROVE_RULES_LIST,
+    DEFAULT_SUBMODULE_DIRS)
+from automation_tools.tests.jira_constants import DEFAULT_PROJECT_KEYS_TO_CHECK
 from robocat.app import Bot
 from robocat.rule.essential_rule import EssentialRule
 from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
@@ -30,7 +32,7 @@ def project(mr_state, monkeypatch):
     # create merge request mock object bonded to "project".
     mr = MergeRequestMock(project=project, **mr_state)
 
-    def create_pipeline(_, project_id, mr_id):
+    def create_pipeline(_, *__, **___):
         new_pipeline_id = len(project.pipelines.list())
         pipeline = PipelineMock(
             project=project, id=new_pipeline_id, sha=mr.sha, status="manual")
@@ -55,7 +57,7 @@ def mr_manager(project):
 
 @pytest.fixture
 def essential_rule(monkeypatch):
-    return EssentialRule()
+    return EssentialRule(DEFAULT_PROJECT_KEYS_TO_CHECK)
 
 
 @pytest.fixture

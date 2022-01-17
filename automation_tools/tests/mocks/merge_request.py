@@ -8,10 +8,10 @@ import uuid
 from gitlab.exceptions import GitlabMRClosedError
 
 from automation_tools.tests.mocks.git_mocks import BOT_USERNAME
-from tests.mocks.gitlab import GitlabManagerMock
-from tests.mocks.pipeline import PipelineMock
-from tests.mocks.commit import CommitMock
-from tests.robocat_constants import (
+from automation_tools.tests.mocks.gitlab import GitlabManagerMock
+from automation_tools.tests.mocks.pipeline import PipelineMock
+from automation_tools.tests.mocks.commit import CommitMock
+from automation_tools.tests.gitlab_constants import (
     DEFAULT_COMMIT,
     DEFAULT_PROJECT_ID,
     USERS,

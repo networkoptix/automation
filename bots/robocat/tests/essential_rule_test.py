@@ -2,7 +2,7 @@ import pytest
 
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.rule.essential_rule import EssentialRule
-from tests.robocat_constants import DEFAULT_COMMIT, DEFAULT_JIRA_ISSUE_KEY
+from automation_tools.tests.gitlab_constants import DEFAULT_COMMIT, DEFAULT_JIRA_ISSUE_KEY
 from tests.fixtures import *
 
 

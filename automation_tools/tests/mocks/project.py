@@ -3,13 +3,13 @@ import time
 from typing import Any, Dict, Set
 from gitlab import GitlabCreateError
 
-from tests.mocks.gitlab import GitlabManagerMock
-from tests.mocks.pipeline import PipelineManagerMock, JobsManagerMock
-from tests.mocks.commit import CommitsManagerMock, CommitMock
-from tests.mocks.file import FileManagerMock
-from tests.mocks.merge_request import MergeRequestMock
-from tests.mocks.user import UserManagerMock
-from tests.robocat_constants import DEFAULT_PROJECT_ID
+from automation_tools.tests.mocks.gitlab import GitlabManagerMock
+from automation_tools.tests.mocks.pipeline import PipelineManagerMock, JobsManagerMock
+from automation_tools.tests.mocks.commit import CommitsManagerMock, CommitMock
+from automation_tools.tests.mocks.file import FileManagerMock
+from automation_tools.tests.mocks.merge_request import MergeRequestMock
+from automation_tools.tests.mocks.user import UserManagerMock
+from automation_tools.tests.gitlab_constants import DEFAULT_PROJECT_ID
 
 
 @dataclass
@@ -111,6 +111,7 @@ class ProjectMock:
     users: UserManagerMock = field(default_factory=UserManagerMock, init=False)
     files: FileManagerMock = field(default_factory=FileManagerMock, init=False)
     branches: BranchManagerMock = field(default_factory=BranchManagerMock, init=False)
+    path_with_namespace: str = "dev/nx"
 
     manager: GitlabManagerMock = field(default_factory=GitlabManagerMock)
 

@@ -1,5 +1,7 @@
 import jira
+import json
 import git
+import gitlab
 import graypy
 
 from pathlib import Path
@@ -20,6 +22,8 @@ from automation_tools.checkers.checkers import (
     IssueIsFixedChecker,
     IssueIgnoreLabelChecker,
     IgnoreIrrelevantProjectChecker,
+    IgnoreIrrelevantVersionsChecker,
+    RelatedCommitAbsenceChecker,
     WorkflowPolicyChecker)
 from automation_tools.jira import JiraAccessor, JiraError, JiraIssue
 from automation_tools.utils import AutomationError, flatten_list, parse_config_file
@@ -39,6 +43,7 @@ class WorkflowViolationChecker:
     def __init__(self):
         self.reopen_checkers = []
         self.ignore_checkers = []
+        self.autoclose_checkers = []
 
     def should_ignore_issue(self, issue: jira.Issue) -> Optional[str]:
         return self._run_checkers(issue, self.ignore_checkers)
@@ -65,19 +70,28 @@ class WorkflowEnforcer:
         "IssueIgnoreLabelChecker": "ignore_by_label",
         "IssueTypeChecker": "ignore_by_type",
         "IssueIsFixedChecker": "ignore_fixed",
+        "IgnoreIrrelevantVersionsChecker": "ignore_by_version",
         "IgnoreIrrelevantProjectChecker": "ignore_by_project",
         "WrongVersionChecker": "wrong_version",
         "BranchMissingChecker": "missing_branch",
         "VersionMissingIssueCommitChecker": "missing_issue_commit",
         "MasterMissingIssueCommitChecker": "missing_commit_to_master",
+        "RelatedCommitAbsenceChecker": "no_related_commit",
     }
 
-    def __init__(
-            self, config: Dict, jira: JiraAccessor = None, repo: automation_tools.git.Repo = None):
+    def __init__(self, config: Dict):
         self._polling_period_min = config.get("polling_period_min", 5)
         self._last_check_file = config.get("last_check_file", "/tmp/last_check")
 
-        self._jira = jira if jira else JiraAccessor(**config["jira"])
+        all_projects = list(set(flatten_list(
+            [flatten_list(c["projects"]) for c in config["checkers"].values()])))
+        self._jira = JiraAccessor(**config["jira"], project_keys=all_projects) \
+            if "jira" in config else None
+        if "gitlab" in config:
+            self._gitlab = gitlab.Gitlab(**config["gitlab"])
+            self._gitlab.auth()
+        else:
+            self._gitlab = None
         self._config = config
 
         self._workflow_checker = WorkflowViolationChecker()
@@ -85,6 +99,10 @@ class WorkflowEnforcer:
         self._workflow_checker.ignore_checkers = [
             IgnoreIrrelevantProjectChecker(
                 project_keys=self._projects_list_by_class(IgnoreIrrelevantProjectChecker)),
+            IgnoreIrrelevantVersionsChecker(
+                project_keys=self._projects_list_by_class(IgnoreIrrelevantVersionsChecker),
+                relevant_versions=self._relevant_versions_by_class(
+                    IgnoreIrrelevantVersionsChecker)),
             IssueIgnoreLabelChecker(
                 project_keys=self._projects_list_by_class(IssueIgnoreLabelChecker)),
             IssueTypeChecker(project_keys=self._projects_list_by_class(IssueTypeChecker)),
@@ -92,25 +110,29 @@ class WorkflowEnforcer:
         ]
 
         self._repos = {}
-        repo_dependent_checkers = [
+        pre_initialized_checkers = {}
+
+        repo_dependent_checker_classes = [
             BranchMissingChecker,
             VersionMissingIssueCommitChecker,
             MasterMissingIssueCommitChecker,
         ]
-        for klass in repo_dependent_checkers:
-            self._repos[klass.__name__] = repo if repo else self._repo_by_class(klass)
+        for klass in repo_dependent_checker_classes:
+            pre_initialized_checkers[klass.__name__] = klass(
+                repo=self._update_repos(klass),
+                project_keys=self._projects_list_by_class(klass))
+
+        klass = RelatedCommitAbsenceChecker
+        pre_initialized_checkers[klass.__name__] = klass(
+                project_keys=self._projects_list_by_class(klass),
+                related_project=self._related_project_by_class(klass))
 
         self._workflow_checker.reopen_checkers = [
             WrongVersionChecker(project_keys=self._projects_list_by_class(WrongVersionChecker)),
-            BranchMissingChecker(
-                repo=self._repos[BranchMissingChecker.__name__],
-                project_keys=self._projects_list_by_class(BranchMissingChecker)),
-            VersionMissingIssueCommitChecker(
-                repo=self._repos[VersionMissingIssueCommitChecker.__name__],
-                project_keys=self._projects_list_by_class(VersionMissingIssueCommitChecker)),
-            MasterMissingIssueCommitChecker(
-                repo=self._repos[MasterMissingIssueCommitChecker.__name__],
-                project_keys=self._projects_list_by_class(MasterMissingIssueCommitChecker)),
+            pre_initialized_checkers[BranchMissingChecker.__name__],
+            pre_initialized_checkers[VersionMissingIssueCommitChecker.__name__],
+            pre_initialized_checkers[MasterMissingIssueCommitChecker.__name__],
+            pre_initialized_checkers[RelatedCommitAbsenceChecker.__name__],
         ]
 
     def _projects_list_by_class(self, klass: WorkflowPolicyChecker):
@@ -119,8 +141,18 @@ class WorkflowEnforcer:
     def _checker_config_by_class(self, klass: WorkflowPolicyChecker):
         return self._config["checkers"][self.CLASS_NAME_TO_CONFIG_KEY_MAP[klass.__name__]]
 
-    def _repo_by_class(self, klass: WorkflowPolicyChecker):
-        return flatten_list(self._checker_config_by_class(klass)["repo"])
+    def _relevant_versions_by_class(self, klass: WorkflowPolicyChecker):
+        return self._checker_config_by_class(klass)["relevant_versions"]
+
+    def _update_repos(self, klass: WorkflowPolicyChecker) -> automation_tools.git.Repo:
+        repo_config = self._checker_config_by_class(klass)["repo"]
+        repo_key = json.dumps(repo_config, sort_keys=True)
+        self._repos[repo_key] = automation_tools.git.Repo(**repo_config)
+        return self._repos[repo_key]
+
+    def _related_project_by_class(self, klass: WorkflowPolicyChecker):
+        project_id = self._checker_config_by_class(klass)["related_project_id"]
+        return self._gitlab.projects.get(project_id)
 
     def get_recent_issues_interval_min(self):
         try:

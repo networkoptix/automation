@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from automation_tools.tests.mocks.git_mocks import BOT_EMAIL, BOT_USERNAME
-from tests.mocks.user import UserMock
-from tests.robocat_constants import BOT_USERID, DEFAULT_PROJECT_ID
+from automation_tools.tests.mocks.user import UserMock
+from automation_tools.tests.gitlab_constants import BOT_USERID, DEFAULT_PROJECT_ID
 
 
 @dataclass

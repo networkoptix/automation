@@ -4,7 +4,7 @@ import pytest
 from automation_tools.tests.fixtures import jira, repo_accessor
 from automation_tools.tests.mocks.git_mocks import RemoteMock
 from robocat.award_emoji_manager import AwardEmojiManager
-from tests.robocat_constants import (
+from automation_tools.tests.gitlab_constants import (
     DEFAULT_COMMIT,
     DEFAULT_PROJECT_ID,
     FORK_PROJECT_ID,

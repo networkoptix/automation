@@ -1,4 +1,4 @@
-from bots.robocat.tests.mocks.file import (
+from automation_tools.tests.mocks.file import (
     GOOD_README_RAW_DATA, BAD_README_RAW_DATA, BAD_CMAKELISTS_RAW_DATA)
 from automation_tools.tests.mocks.git_mocks import BOT_EMAIL, BOT_NAME, BOT_USERNAME
 
