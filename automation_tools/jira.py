@@ -41,6 +41,12 @@ class JiraIssueTransition(Enum):
 
 
 class JiraIssue:
+    # Links to Merge Requests mentioning the Issues have a form
+    # "<gitlab_url>/<path_to_project>/-/merge_requests/<mr_id>"
+    # where
+    # "gitlab_url" is a base url of the gitlab server (like "https://gitlab.lab.hdw.mx")
+    # "path_to_project" has the format "<part1>/<part2>/.../<partN>"
+    # "mr_id" is a numeric identifier of the Merge Request.
     _MERGE_REQUEST_LINK_RE = re.compile(
         r"//[\w\.]+?/(?P<repo_path>[\w\/]+)/\-/merge_requests/(?P<id>\d+)$")
 
