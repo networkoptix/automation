@@ -113,7 +113,7 @@ class Repo:
         except git.GitCommandError as error:
             if "nothing to commit" in error.stdout:
                 logging.warning(
-                    f"An error occured while cherry-picking: {error!r}. "
+                    f"An error occurred while cherry-picking: {error!r}. "
                     f"Stdout is: {error.stdout}, stderr is: {error.stderr}. "
                     "Probably, just empty cherry-pick. Trying to continue cherry-pick process.")
                 self._mixed_reset("HEAD")

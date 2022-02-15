@@ -176,3 +176,6 @@ nx_submodule_bad_git_data = """Git error occurred while fetching subrepo `{subre
 `{subrepo_commit_sha}` for Nx submodule `{nx_submodule_dir}` (probably, because of an incorrect
 value in `subrepo-url` or `commit-sha`): *{explanation}*.
 """
+
+issue_is_not_finalized = """The Issue {issue_key} was not moved to the QA state because of its
+current status. Check the Issue status and fix in manually if necessary."""

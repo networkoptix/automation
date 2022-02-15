@@ -164,12 +164,13 @@ class JiraIssue:
     def project(self) -> str:
         return self._raw_issue.fields.project.key
 
-    def try_finalize(self):
+    def try_finalize(self) -> bool:
         logger.info(f"Trying to close issue {self}")
 
         if self.status in [JiraIssueStatus.closed, JiraIssueStatus.qa]:
-            logger.info(f'Nothing to do: issue {self} already has status {self.status}.')
-            return
+            self._add_comment(jira_messages.issue_already_finalized.format(status=self.status))
+            logger.warning(f'Nothing to do: issue {self} already has status {self.status}.')
+            return True
 
         if self.status not in [JiraIssueStatus.progress, JiraIssueStatus.review]:
             raise JiraError(
@@ -177,18 +178,22 @@ class JiraIssue:
                 f'status "{self._raw_issue.fields.status.name}".')
 
         if self.status == JiraIssueStatus.progress:
-            self._set_status(JiraIssueStatus.review)
+            logger.info(
+              f'The issue {self} is in "{JiraIssueStatus.progress}" status - leaving it as is.')
+            return False
 
         if self._set_status(JiraIssueStatus.qa, no_throw=True):
             self._add_comment(jira_messages.issue_moved_to_qa.format(
                 branches="\n* ".join(self.branches())))
-            logger.info(f'Status "Waiting for QA" is set for issue {self}.')
-            return
+            logger.info(f'Status "{JiraIssueStatus.qa}" is set for the Issue {self}.')
+            return True
 
         self._set_status(JiraIssueStatus.closed)
         self._add_comment(
             jira_messages.issue_closed.format(branches="\n* ".join(self.branches())))
         logger.info(f'Status "Closed" is set for issue {self}.')
+
+        return True
 
     def _set_status(self, target_status: JiraIssueStatus, no_throw=False) -> bool:
         review_transition_name = self._get_transition_name(target_status)

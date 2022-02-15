@@ -610,3 +610,11 @@ class MergeRequestManager:
         if bot_only and self._current_user:
             return [n for n in all_notes if n.author == self._current_user]
         return all_notes
+
+    def add_issue_not_finalized_notification(self, issue_key: str):
+        message = robocat.comments.issue_is_not_finalized.format(issue_key=issue_key)
+        self._add_comment(
+          "Issue was not moved to QA/Closed",
+          message,
+          emoji=AwardEmojiManager.ISSUE_NOT_MOVED_TO_QA_EMOJI,
+          message_id=MessageId.FollowUpIssueNotMovedToQA)

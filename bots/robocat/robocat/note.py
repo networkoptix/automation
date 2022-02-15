@@ -37,6 +37,8 @@ class MessageId(Enum):
     WorkflowOk = auto()
     WorkflowParenthesesNotAllowed = auto()
 
+    FollowUpIssueNotMovedToQA = auto()
+
 
 class Comment(NamedTuple):
     id: MessageId

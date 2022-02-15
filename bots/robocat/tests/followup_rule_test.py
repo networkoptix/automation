@@ -99,7 +99,7 @@ class TestFollowupRule:
         assert len(issue.fields.comment.comments) == 1, (
             f"Got Jira issue comments: {issue.fields.comment.comments}")
         assert issue.fields.comment.comments[0].body.startswith(
-            "An error occured while trying to execute follow-up actions for merge request")
+            "An error occurred while trying to execute follow-up actions for merge request")
 
         assert len(mr.mock_comments()) == 0
         emojis = mr.awardemojis.list()
@@ -356,7 +356,7 @@ class TestFollowupRule:
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Has merged merge requests for all issue branches, follow-up merge request just merged,
-        # issue is in uncloseable state.
+        # but the Issue has "Open" status.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
             "branches": ["master", "vms_4.1"],
@@ -370,7 +370,7 @@ class TestFollowupRule:
             "target_branch": "vms_4.1",
         }),
     ])
-    def test_failed_close_jira_issue(self, project, followup_rule, mr, mr_manager, jira):
+    def test_bad_jira_issue_status(self, project, followup_rule, mr, mr_manager, jira):
         # Init project state. TODO: Move project state to parameters.
         MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS["merged"])
         MergeRequestMock(project=project, **MERGED_TO_4_1_MERGE_REQUESTS["opened"])
@@ -388,6 +388,93 @@ class TestFollowupRule:
         assert issue.fields.status.name == issue_state_before
         assert len(issue.fields.comment.comments) == 1
         assert 'Cannot automatically move to QA or close ' in issue.fields.comment.comments[0].body
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        # Has merged Merge Requests for all Issue branches, follow-up Merge Request was just
+        # merged, but the Issue has "In progress" status.
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY,
+            "branches": ["master", "vms_4.1"],
+            "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
+            "state": "In progress",
+        }], {
+            "state": "merged",
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash_commit_sha": DEFAULT_COMMIT["sha"],
+            "target_branch": "vms_4.1",
+        }),
+    ])
+    def test_in_progress_jira_issue(self, project, followup_rule, mr, mr_manager, jira):
+        # Init the Project state.
+        # TODO: Move the Project state to parameters.
+        MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS["merged"])
+        MergeRequestMock(project=project, **MERGED_TO_4_1_MERGE_REQUESTS["opened"])
+        MergeRequestMock(project=project, **MERGED_TO_4_2_MERGE_REQUESTS["merged"])
+
+        mr_count_before = len(project.mergerequests.list())
+        issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
+        issue_state_before = issue.fields.status.name
+
+        assert followup_rule.execute(mr_manager)
+        assert len(project.mergerequests.list()) == mr_count_before
+        comments = mr.mock_comments()
+        assert len(comments) == 1
+        assert comments[0].startswith(f"### :{AwardEmojiManager.ISSUE_NOT_MOVED_TO_QA_EMOJI}:"), (
+            f"Commenti s: {comments[0]}.")
+
+        issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
+        assert issue.fields.status.name == issue_state_before
+        assert len(issue.fields.comment.comments) == 0
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        # Has merged Merge Requests for all Issue branches, follow-up Merge Request was just
+        # merged, but the Issue has "Closed" status.
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY,
+            "branches": ["master", "vms_4.1"],
+            "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
+            "state": "Closed",
+        }], {
+            "state": "merged",
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash_commit_sha": DEFAULT_COMMIT["sha"],
+            "target_branch": "vms_4.1",
+        }),
+        # The same as previous, but the Issue has "Waiting for QA" status.
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY,
+            "branches": ["master", "vms_4.1"],
+            "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
+            "state": "Waiting for QA",
+        }], {
+            "state": "merged",
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash_commit_sha": DEFAULT_COMMIT["sha"],
+            "target_branch": "vms_4.1",
+        }),
+    ])
+    def test_finalized_jira_issue(self, project, followup_rule, mr, mr_manager, jira):
+        # Init the Project state.
+        # TODO: Move the Project state to parameters.
+        MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS["merged"])
+        MergeRequestMock(project=project, **MERGED_TO_4_1_MERGE_REQUESTS["opened"])
+        MergeRequestMock(project=project, **MERGED_TO_4_2_MERGE_REQUESTS["merged"])
+
+        mr_count_before = len(project.mergerequests.list())
+        issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
+        issue_state_before = issue.fields.status.name
+
+        assert followup_rule.execute(mr_manager)
+        assert len(project.mergerequests.list()) == mr_count_before
+        assert len(mr.mock_comments()) == 0
+
+        issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
+        assert issue.fields.status.name == issue_state_before
+        assert len(issue.fields.comment.comments) == 1
+        assert 'workflow violation ' in issue.fields.comment.comments[0].body
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Has merged merge requests for all issue branches, follow-up merge request just merged,
@@ -476,7 +563,8 @@ class TestFollowupRule:
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "vms_4.1",
         }),
-        # The same that preivous, but follow-up state detection from commit messages.
+        # The same as the previous, but performing a follow-up state detection from the commit
+        # messages.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
             "branches": ["master", "vms_4.1"],
@@ -518,22 +606,8 @@ class TestFollowupRule:
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "vms_4.1",
         }),
-        # Has merged merge requests for all issue branches, follow-up merge request just merged,
-        # issue is in "In progress" state which is not right but bot can fix it.
-        ([{
-            "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
-            "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
-            "state": "In progress",
-        }], {
-            "state": "merged",
-            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
-            "squash_commit_sha": DEFAULT_COMMIT["sha"],
-            "target_branch": "vms_4.1",
-        }),
-        # No unmerged branches in jira issue, primary merge request just merged, issue is in "good"
-        # state.
+        # No unmerged branches in the Jira Issue, the primary Merge Request was just merged, the
+        # Issue is in a "good" state.
         ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"], "state": "In Review"}], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",

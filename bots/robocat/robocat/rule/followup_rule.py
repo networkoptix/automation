@@ -77,7 +77,9 @@ class FollowupRule(BaseRule):
                 "QA/close single-branch Jira issues and create follow-up merge requests.")
             self._create_followup_merge_requests(original_mr_manager=mr_manager)
             self._try_close_single_branch_jira_issues(
-                target_branch=mr_data.target_branch, issue_keys=jira_issue_keys)
+                target_branch=mr_data.target_branch,
+                issue_keys=jira_issue_keys,
+                mr_manager=mr_manager)
             return self.ExecutionResult.rule_execution_successfull
 
         except Exception as error:
@@ -103,13 +105,13 @@ class FollowupRule(BaseRule):
                     f"{merged_branches!r}.")
                 continue
 
-            issue.try_finalize()
+            issue.try_finalize() or mr_manager.add_issue_not_finalized_notification(str(issue))
 
     def _try_close_single_branch_jira_issues(
-            self, target_branch: str, issue_keys: List[str]):
+            self, target_branch: str, issue_keys: List[str], mr_manager: MergeRequestManager):
         for issue in self._jira.get_issues(issue_keys):
             if issue.branches(exclude_already_merged=True) == {target_branch}:
-                issue.try_finalize()
+                issue.try_finalize() or mr_manager.add_issue_not_finalized_notification(str(issue))
 
     def _create_followup_merge_requests(self, original_mr_manager: MergeRequestManager):
         original_target_branch = original_mr_manager.data.target_branch

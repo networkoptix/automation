@@ -24,6 +24,7 @@ class AwardEmojiManager():
     BAD_ISSUE_EMOJI = "beetle"
     LOCAL_SQUASH_PROBLEMS_EMOJI = "warning"
     NOTIFICATION_EMOJI = "bell"
+    ISSUE_NOT_MOVED_TO_QA_EMOJI = "point_up"
 
     def __init__(self, gitlab_award_emoji_manager, current_user):
         self._gitlab_manager = gitlab_award_emoji_manager

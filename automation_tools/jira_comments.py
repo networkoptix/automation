@@ -30,7 +30,7 @@ reopen_issue = """Returning the issue, workflow violation found:
 “{{color}}{{color:#97a0af}}*{resolution}*{{color}}{{color:#97a0af}}“ come under mandatory Workflow
 Police inspection. Please, consider changing resolution value if the issue *does not imply any code
 changes*.{{color}}
-"""  # noqa
+"""
 
 followup_mrs_created = """Merge requests for cherry-picking changes were autocreated for the
 following branches:
@@ -38,10 +38,13 @@ following branches:
 * {branches}
 """
 
-followup_error = """An error occured while trying to execute follow-up actions for merge request
+followup_error = """An error occurred while trying to execute follow-up actions for merge request
 [{mr_url}|{mr_url}]:
 
 {{noformat}}{error}{{noformat}}
 
 Please, investigate the problem - check this merge request and all related Jira issues.
 """
+
+issue_already_finalized = """The Issue is already in "{status}" status. This situation is
+considered as a workflow violation - it is strongly advised to avoid this in the future."""

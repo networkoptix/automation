@@ -107,7 +107,7 @@ class ProjectManager:
                 logger.warning(f"Can't cherry-pick commit {sha} to branch {branch}: {error}")
                 return cherry_picked_commit_count
 
-        # No error occured but nothing was cherry-picked, thus no neeed to create the follow-up MR.
+        # No error occurred but nothing was cherry-picked, thus no need to create the follow-up MR.
         if not cherry_picked_commit_count:
             raise EmptyFollowupError
 
