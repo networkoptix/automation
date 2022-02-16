@@ -5,7 +5,7 @@
 
 
 ## open_source_check
-To run this script you need a path to the robocat directory to be in the PYTHONPATH environment
+To run this script, you need the path to the robocat directory to be in the PYTHONPATH environment
 variable, e.g.:
 
 `PYTHONPATH=.:./bots/robocat ./scripts/open_source_check/open_source_check.py --repo-dir
