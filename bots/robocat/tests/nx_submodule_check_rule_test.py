@@ -273,6 +273,12 @@ class TestNxSubmoduleCheckRule:
                 },
                 "check_result": True,
                 "result_message_id": MessageId.NxSubmoduleCheckPassed.value,
+            }, {
+                # Re-introduce problem.
+                "files": {"conan_profiles/2.txt": {"raw_data": "file 2\n"}},
+                "check_result": False,
+                "result_message_id": MessageId.InconsistentNxSubmoduleChange.value,
+                "explanation": "File '2.txt' has wrong executable flag",
             },
         ]
 

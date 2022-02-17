@@ -45,14 +45,24 @@ class StoredCheckResults:
             n for n in self._error_notes()
             if error == self.CheckErrorClass(**n.additional_data)])
 
+    def is_error_actual(self, error: CheckErrorClass) -> bool:
+        last_notes_index = len(self._notes) - 1
+        ok_note_index = next((
+            last_notes_index - i for i, n in enumerate(reversed(self._notes))
+            if n.message_id in self.OK_MESSAGE_IDS),
+            -1)
+        return any([
+            n for n in self._error_notes(start_index=ok_note_index + 1)
+            if error == self.CheckErrorClass(**n.additional_data)])
+
     def get_errors(self) -> Dict[MessageId, Set[CheckErrorClass]]:
         result = {}
         for n in self._notes:
             result.setdefault(n.message_id, set()).add(self.CheckErrorClass(**n.additional_data))
         return result
 
-    def _error_notes(self) -> List[Note]:
-        return [n for n in self._notes if n.message_id in self.ERROR_MESSAGE_IDS]
+    def _error_notes(self, start_index: int = 0) -> List[Note]:
+        return [n for n in self._notes[start_index:] if n.message_id in self.ERROR_MESSAGE_IDS]
 
     def does_latest_revision_need_manual_check(self) -> bool:
         return self._notes[-1].message_id in self.NEEDS_MANUAL_CHECK_MESSAGE_IDS

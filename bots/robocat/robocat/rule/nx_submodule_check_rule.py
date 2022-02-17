@@ -89,7 +89,7 @@ class NxSubmoduleCheckRule(CheckChangesMixin, BaseRule):
 
                 if error:
                     has_errors = True
-                    if not old_errors_info.have_error(error=error):
+                    if not old_errors_info.is_error_actual(error=error):
                         new_errors.add(error)
 
         return (has_errors, new_errors)
