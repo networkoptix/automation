@@ -157,8 +157,8 @@ class WorkflowCheckRule(BaseRule):
         if not mr_data.squash:
             if any([True for keys in commits_data.issue_keys if not keys]):
                 comment_text = (
-                    "In non-squashed Merge Request all commit messages must contain a reference "
-                    "to at least one Jira Issue.")
+                    "In a non-squashed Merge Request, each commit message must contain a "
+                    "reference to at least one Jira Issue")
                 return Comment(id=MessageId.WorkflowNoJiraIssueInCommitMessage, text=comment_text)
 
         return None
