@@ -37,6 +37,16 @@ open_source_check_rule:
                 - ptolstov
                 - mshevchenko
 
+# Configuration for processing Issues from the related Projects.
+process_related_merge_requests_rule:
+    rules:
+        -
+            trigger_title_pattern: 'VMS-28944: Updates webadmin to [a-z0-9]+'
+            issue_keys_pattern: 'Changelog: (?P<issue_keys>(?: *,? *[A-Z][A-Z0-9_]+-\d+)+)'
+            related_projects:
+                - CLOUD
+            action: finalize
+
 # Configuration for checking changes in Nx Submodules.
 nx_submodule_check_rule:
     nx_submodule_dirs:

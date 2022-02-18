@@ -53,12 +53,12 @@ class FollowupRule(BaseRule):
         # Intercept all the exceptions and leave a comment in Jira issues about failing of merge
         # request follow-up processing. TODO: Add more sophisticated error processing.
         try:
-            # Follow-up merge request. Close Jira Issues which are mentioned by the current merge
-            # request, if all their branches (defined by "fixVersions" field) have merged Merge
-            # Requests.
+            # A follow-up Merge Request. Close Jira Issues mentioned by the current Merge Request,
+            # if all their branches (defined by the "fixVersions" field) have the respective Merge
+            # Requests merged.
             if mr_manager.is_followup():
                 logger.info(
-                    f"{mr_manager}: Merge request is a follow-up merge request. Trying to move to "
+                    f"{mr_manager}: The Merge Request is a follow-up. Trying to move to "
                     "QA/close Jira issues.")
                 self._try_close_jira_issues(
                     mr_manager=mr_manager,

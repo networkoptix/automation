@@ -23,6 +23,7 @@ from robocat.rule.essential_rule import EssentialRule
 from robocat.rule.open_source_check_rule import OpenSourceCheckRule
 from robocat.rule.followup_rule import FollowupRule
 from robocat.rule.workflow_check_rule import WorkflowCheckRule
+from robocat.rule.process_related_projects_issues import ProcessRelatedProjectIssuesRule
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,8 @@ class Bot:
             project_manager=self._project_manager, **config["open_source_check_rule"])
         self._rule_workflow_check = WorkflowCheckRule(jira=jira)
         self._rule_followup = FollowupRule(project_manager=self._project_manager, jira=jira)
+        self._rule_process_related_projects_issues = ProcessRelatedProjectIssuesRule(
+            jira=jira, **config["process_related_merge_requests_rule"])
 
     def handle(self, mr_manager: MergeRequestManager):
         essential_rule_check_result = self._rule_essential.execute(mr_manager)
@@ -82,11 +85,21 @@ class Bot:
         if not workflow_check_result:
             return
 
+        self.merge_and_do_postprocessing(mr_manager)
+
+    def merge_and_do_postprocessing(self, mr_manager: MergeRequestManager):
         mr_manager.squash_locally_if_needed(self._repo)
+
         mr_manager.update_unfinished_processing_flag(True)
+
         mr_manager.merge_or_rebase()
+
+        process_related_result = self._rule_process_related_projects_issues.execute(mr_manager)
+        logger.debug(f"{mr_manager}: {process_related_result}")
+
         followup_result = self._rule_followup.execute(mr_manager)
         logger.debug(f"{mr_manager}: {followup_result}")
+
         mr_manager.update_unfinished_processing_flag(False)
 
     def run(self, mr_poll_rate: Optional[int] = None):

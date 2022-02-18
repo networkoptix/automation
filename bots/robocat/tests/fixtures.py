@@ -1,3 +1,4 @@
+from pathlib import Path
 import pytest
 
 from automation_tools.tests.mocks.git_mocks import BOT_NAME, BOT_USERNAME
@@ -14,11 +15,13 @@ from robocat.app import Bot
 from robocat.rule.essential_rule import EssentialRule
 from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
 from robocat.rule.open_source_check_rule import OpenSourceCheckRule
+from robocat.rule.process_related_projects_issues import ProcessRelatedProjectIssuesRule
 from robocat.rule.followup_rule import FollowupRule
 from robocat.rule.workflow_check_rule import WorkflowCheckRule
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.project_manager import ProjectManager
 from automation_tools.tests.fixtures import jira, repo_accessor
+from automation_tools.utils import parse_config_file
 
 
 @pytest.fixture
@@ -46,6 +49,11 @@ def project(mr_state, monkeypatch):
 def mr(project):
     first_mr_id = list(project.mergerequests.list())[0].iid
     return project.mergerequests.get(first_mr_id)
+
+
+@pytest.fixture
+def bot_config():
+    return parse_config_file(Path(__file__).parents[1].resolve() / "config.test.yaml")
 
 
 @pytest.fixture
@@ -94,15 +102,29 @@ def followup_rule(project, jira, monkeypatch, repo_accessor):
 
 
 @pytest.fixture
+def process_related_projects_issues_rule(jira, bot_config, monkeypatch):
+    monkeypatch.setenv("BOT_NAME", "Robocat")
+    return ProcessRelatedProjectIssuesRule(
+        jira=jira, **bot_config["process_related_merge_requests_rule"])
+
+
+@pytest.fixture
 def bot(
-        essential_rule, nx_submodule_check_rule, open_source_rule, followup_rule, workflow_rule,
-        repo_accessor, monkeypatch):
+        essential_rule,
+        nx_submodule_check_rule,
+        open_source_rule,
+        followup_rule,
+        workflow_rule,
+        process_related_projects_issues_rule,
+        repo_accessor,
+        monkeypatch):
     def bot_init(bot):
         bot._rule_essential = essential_rule
         bot._rule_nx_submodules_check = nx_submodule_check_rule
         bot._rule_open_source_check = open_source_rule
         bot._rule_followup = followup_rule
         bot._rule_workflow_check = workflow_rule
+        bot._rule_process_related_projects_issues = process_related_projects_issues_rule
         bot._repo = repo_accessor
 
     monkeypatch.setattr(Bot, "__init__", bot_init)
