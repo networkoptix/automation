@@ -9,13 +9,15 @@ from robocat.rule.helpers.statefull_checker_helpers import CheckError
 # Paths configuration.
 OPENSOURCE_ROOTS = ("open", "open_candidate")
 EXCLUDED_DIRS = {
-    "open/artifacts/nx_kit/src/json11",
     "open/licenses",
-    "open_candidate/artifacts",
+    "open/artifacts",
     "open_candidate/artifacts",
 }
 EXCLUDED_FILE_PATHS = {
     "open/readme.md",
+    "open/build_info.txt",
+    "open/vms/distribution/unit_tests/build_distribution_conf.py.in",
+    "open/libs/nx_utils/static-resources/common_passwords.txt",
     "open_candidate/build_info.txt",
     "open_candidate/vms/distribution/unit_tests/build_distribution_conf.py.in",
     "open_candidate/libs/nx_utils/static-resources/common_passwords.txt",

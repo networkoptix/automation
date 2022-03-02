@@ -41,21 +41,22 @@ robocatConfig: |
   # Configuration for checking open-source part of the project.
   open_source_check_rule:
     approve_rules:
+      # The order of patterns is important: to find the set of the most appropriate approvers,
+      # these patterns are checked in the order listed here, so the most specific patterns must go
+      # first, followed by the least specific ones.
       -
         patterns:
           - open_candidate/vms/client/.+
           - open_candidate/cloud/.+
+          - open/vms/client/.+
+          - open/cloud/.+
         approvers:
           - sivanov
           - mshevchenko
       -
         patterns:
           - open/.+
-          - open_candidate/build_utils/.+
-          - open_candidate/cmake/.+
-          - open_candidate/dependencies/.+
-          - open_candidate/vms/libs/.+
-          - open_candidate/libs/.+
+          - open_candidate/.+
         approvers:
           - ptolstov
           - mshevchenko
@@ -75,8 +76,8 @@ robocatConfig: |
     nx_submodule_dirs:
       - conan_profiles
       - build_utils/nx_submodule
-      - open_candidate/artifacts/analytics_icons
-      - open_candidate/conan_profiles
+      - open/artifacts/analytics_icons
+      - open/conan_profiles
 
 persistence:
   existingClaim: '{{ .Release.Name }}'
