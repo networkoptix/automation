@@ -5,7 +5,7 @@ import logging
 from pathlib import Path, PurePosixPath
 import sys
 
-import robocat.rule.helpers.open_source_file_checker
+import source_file_compliance
 
 
 SCRIPT_DESCRIPTION = """
@@ -14,36 +14,53 @@ This script is to be used for checking source files for compatibility with Open 
 """
 
 
-def check_directory(repo_directory: Path, check_directory: Path, consider_directory_context: bool):
-    Checker = robocat.rule.helpers.open_source_file_checker.OpenSourceFileChecker
+def check_directory(
+        repo_name: str,
+        repo_directory: Path,
+        check_directory: Path) -> bool:
+    no_errors_found = True
 
+    repo_configuration = source_file_compliance.repo_configurations.get(
+        repo_name,
+        source_file_compliance.GENERIC_REPO_CONFIG)
     logging.info(f"Checking {check_directory}...")
     for entry in check_directory.rglob("*"):
         if entry.is_dir():
             continue
 
-        if consider_directory_context:
-            check_path = PurePosixPath(entry.relative_to(repo_directory))
-        else:
-            check_path = PurePosixPath(entry)
-
-        if Checker.is_check_needed(str(check_path), consider_directory_context):
+        check_path = PurePosixPath(entry.relative_to(repo_directory))
+        is_check_needed = source_file_compliance.is_check_needed(
+            path=str(check_path),
+            repo_config=repo_configuration)
+        if is_check_needed:
             logging.debug(f"Checking {entry}...")
             with open(entry, encoding="latin1") as f:
-                errors = Checker(file_name=check_path, file_content=f.read()).file_errors()
+                errors = source_file_compliance.check_file_content(path=entry, content=f.read())
                 if not errors:
                     continue
-                errors_as_string = "\n".join(e.raw_text for e in errors)
+                no_errors_found = False
+                errors_as_string = "\n".join(repr(e) for e in errors)
                 logging.info(f"Problems found while checking {entry}:\n{errors_as_string}")
         else:
             logging.debug(f"No check is needed for {check_path}")
     logging.info(f"Done!")
+
+    return no_errors_found
 
 
 def main():
     parser = argparse.ArgumentParser(
         sys.argv[0], description=SCRIPT_DESCRIPTION,
         formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument(
+        "--repo-name",
+        choices=["vms"],
+        required=False,
+        default=None,
+        type=str,
+        help=(
+            "The repository name. If set, determines repository-specific settings, like ignored "
+            "file extensions, directory paths, etc."))
     parser.add_argument(
         "--repo-dir",
         type=str,
@@ -59,14 +76,6 @@ def main():
             'A directory to check. If not specified, the "open" and "open_candidate" directories '
             'will be checked. To check everything in the repo directory specify ".".'))
     parser.add_argument(
-        "--check-everything",
-        default=False,
-        required=False,
-        action='store_true',
-        help=(
-            'If this argument is specified, the files that reside in "special" directories (like '
-            '"artifacts/", "licenses/", etc. are also checked.'))
-    parser.add_argument(
         "--log-level", choices=logging._nameToLevel.keys(), default=logging.INFO,
         help="The level of the log file. Default value: INFO.")
     arguments = parser.parse_args()
@@ -81,11 +90,18 @@ def main():
         check_directories = [repo_directory / arguments.check_dir]
     else:
         check_directories = [repo_directory / "open", repo_directory / "open_candidate"]
+
+    result = True
     for cd in check_directories:
-        check_directory(
+        result &= check_directory(
+            repo_name=arguments.repo_name,
             repo_directory=repo_directory.resolve(),
-            check_directory=cd.resolve(),
-            consider_directory_context=not arguments.check_everything)
+            check_directory=cd.resolve())
+
+    if not result:
+        sys.exit("Some errors were found during the check.")
+
+    print("No errors were found during the check.")
 
 
 if __name__ == '__main__':

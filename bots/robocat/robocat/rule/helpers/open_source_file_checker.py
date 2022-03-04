@@ -45,23 +45,10 @@ class OpenSourceFileChecker:
         self._file_content = file_content
 
     @staticmethod
-    def is_check_needed(file_path: str, consider_directory_context: bool = True):
-        if consider_directory_context:
-            if not any(file_path.startswith(f"{d}/") for d in OPENSOURCE_ROOTS):
-                return False
-
-            if any(d for d in EXCLUDED_DIRS if file_path.startswith(f"{d}/")):
-                return False
-
-            if file_path in EXCLUDED_FILE_PATHS:
-                return False
-
-        file_path_object = Path(file_path)
-        for pattern in EXCLUDED_FILE_NAME_PATTERNS:
-            if file_path_object.match(pattern):
-                return False
-
-        return True
+    def is_check_needed(file_path: str):
+        return source_file_compliance.is_check_needed(
+            path=file_path,
+            repo_config=source_file_compliance.repo_configurations["vms"])
 
     def file_errors(self) -> List[FileError]:
         result = []

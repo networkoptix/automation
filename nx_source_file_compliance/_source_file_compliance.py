@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Collection, List, Union
 
 from ._make_trademarks_re import make_trademarks_re
+from ._generic_repo_check_config import RepoCheckConfig
 
 _boundary_re = re.compile(
     r'(?<=[a-z])(?=[A-Z])|'
@@ -117,6 +118,26 @@ def _is_a_license_word_exception(line, match):
         if exception.start() <= match.start() and match.end() <= exception.end():
             return True
     return False
+
+
+def is_check_needed(
+        path: str, repo_config: RepoCheckConfig):
+    opensource_roots = repo_config["opensource_roots"]
+    if opensource_roots and not any(path.startswith(f"{d}/") for d in opensource_roots):
+        return False
+
+    if any(d for d in repo_config["excluded_dirs"] if path.startswith(f"{d}/")):
+        return False
+
+    if path in repo_config["excluded_file_paths"]:
+        return False
+
+    file_path_object = Path(path)
+    for pattern in repo_config["excluded_file_name_patterns"]:
+        if file_path_object.match(pattern):
+            return False
+
+    return True
 
 
 def check_file_content(path, content) -> Collection[Union[WordError, LineError, FileError]]:

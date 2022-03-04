@@ -5,14 +5,14 @@
 
 
 ## open_source_check
-To run this script, you need the path to the robocat directory to be in the PYTHONPATH environment
-variable, e.g.:
+To run this script, it is necessary to install the `open_source_compliance` library:
+`pip install nx_source_file_compliance/`
 
-`PYTHONPATH=.:./bots/robocat ./scripts/open_source_check/open_source_check.py --repo-dir
-<repo_directory>`
-to run it from the repository root).
-Also to run this script it is necessary to install dependencies from the file
-`bots/robocat/requirements.txt`: `pip install -r bots/robocat/requirements.txt`.
+The script checks the repository specified by the `--repo-dir` parameter. If you need to take into
+account repository-specific settings like file directories to exclude from the checks, file
+patterns to exclude from the check, etc., specify the `--repo-name` parameter, e.g.:
 
-This script has a handful of parameters for tuning the checks - run the script with "--help"
-to find more information.
+`./scripts/open_source_check/open_source_check.py --repo-name vms --repo-dir ../nx`
+
+For the full list of all the available check options, run the script with the `--help` parameter:
+`./scripts/open_source_check/open_source_check.py --help`.
