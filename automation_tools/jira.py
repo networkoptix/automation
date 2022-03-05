@@ -24,6 +24,7 @@ class JiraIssueStatus(Enum):
     progress = "In progress"
     closed = "Closed"
     qa = "Waiting for QA"
+    ready_to_merge = "Ready to Merge"
     open = "Open"
     inqa = "In QA"
 
@@ -41,6 +42,8 @@ class JiraIssueTransition(Enum):
 
 
 class JiraIssue:
+    UNKNOWN_BRANCH_NAME = "<unknown>"
+
     # Links to Merge Requests mentioning the Issues have a form
     # "<gitlab_url>/<path_to_project>/-/merge_requests/<mr_id>"
     # where
@@ -125,8 +128,11 @@ class JiraIssue:
         mapping = self._version_to_branch_mapping
         issue = self._raw_issue
         labels = issue.fields.labels
+        # Return branch names corresponding to the Release names specified in the `fixVersions`
+        # field. A pre-defined string is returned instead of the branch name if the corresponding
+        # branch name cannot be found for the Release.
         return {
-            mapping.get(v.name, None) for v in issue.fields.fixVersions
+            mapping.get(v.name, self.UNKNOWN_BRANCH_NAME) for v in issue.fields.fixVersions
             if not exclude_already_merged or self.already_in_version_label(v.name) not in labels}
 
     @property
@@ -172,7 +178,12 @@ class JiraIssue:
             logger.warning(f'Nothing to do: issue {self} already has status {self.status}.')
             return True
 
-        if self.status not in [JiraIssueStatus.progress, JiraIssueStatus.review]:
+        allowed_statuses = [
+            JiraIssueStatus.progress,
+            JiraIssueStatus.review,
+            JiraIssueStatus.ready_to_merge,
+        ]
+        if self.status not in allowed_statuses:
             raise JiraError(
                 f"Cannot automatically move to QA or close Issue {self} because of the wrong "
                 f'status "{self._raw_issue.fields.status.name}".')

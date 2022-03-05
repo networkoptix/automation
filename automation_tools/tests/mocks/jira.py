@@ -106,6 +106,14 @@ class Jira:
                 {"name": "Merged", "to": {"name": "Waiting for QA"}},
                 {"name": "Review Failed", "to": {"name": "In progress"}}]
 
+        if issue.fields.status.name == "Ready to Merge":
+            if issue.fields.issuetype.name == "Internal":
+                assert False, (
+                    'Bad test condition: "Internal" Issues do not have "Ready to Merge" state.')
+            return [
+                {"name": "Merged", "to": {"name": "Waiting for QA"}},
+                {"name": "Review Failed", "to": {"name": "In progress"}}]
+
         if issue.fields.status.name == "In progress":
             return [
                 {"name": "Stop development", "to": {"name": "Open"}},

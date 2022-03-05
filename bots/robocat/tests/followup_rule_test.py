@@ -476,9 +476,9 @@ class TestFollowupRule:
         assert len(issue.fields.comment.comments) == 1
         assert 'workflow violation ' in issue.fields.comment.comments[0].body
 
-    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
-        # Has merged merge requests for all issue branches, follow-up merge request just merged,
-        # issue is in "good" state.
+    @pytest.mark.parametrize(("jira_issues", "mr_state", "expected_status"), [
+        # Has merged Merge Requests for all Issue branches, the follow-up Merge Request just
+        # merged, the Issue has type "Internal" and is in a "good" state.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
             "branches": ["master", "vms_4.1"],
@@ -493,8 +493,43 @@ class TestFollowupRule:
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "vms_4.1",
-        }),
-        # The same that preivous, but Jira issue has three branches.
+        }, "Closed"),
+        # Has merged Merge Requests for all Issue branches, the follow-up Merge Request just
+        # merged, the Issue has type "Internal" and is in a "good" state.
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY,
+            "branches": ["master", "vms_4.1"],
+            "merge_requests": [
+                MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"],
+                MERGED_TO_4_1_MERGE_REQUESTS["merged"]["iid"]
+            ],
+            "state": "In Review",
+            "typ": "Task",
+        }], {
+            "state": "merged",
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash_commit_sha": DEFAULT_COMMIT["sha"],
+            "target_branch": "vms_4.1",
+        }, "Waiting for QA"),
+        # The same that the previous case, but the Jira Issue has status "Ready to Merge".
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY,
+            "branches": ["master", "vms_4.1"],
+            "merge_requests": [
+                MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"],
+                MERGED_TO_4_1_MERGE_REQUESTS["merged"]["iid"]
+            ],
+            "state": "Ready to Merge",
+            "typ": "Task",
+        }], {
+            "state": "merged",
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash_commit_sha": DEFAULT_COMMIT["sha"],
+            "target_branch": "vms_4.1",
+        }, "Waiting for QA"),
+        # The same that the first case, but the Jira Issue has three branches.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
             "branches": ["master", "vms_4.1", "vms_4.2"],
@@ -510,7 +545,7 @@ class TestFollowupRule:
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "vms_4.1",
-        }),
+        }, "Closed"),
         # The same that the first but for the different Jira project.
         ([{
             "key": "MOBILE-666",
@@ -526,8 +561,8 @@ class TestFollowupRule:
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": MERGED_TO_MASTER_MERGE_REQUESTS_MOBILE["merged"]["iid"],
             "target_branch": "mobile_21.1",
-        }),
-        # Another Jira project.
+        }, "Closed"),
+        # Different Jira Project.
         ([{
             "key": "CB-666",
             "branches": ["master", "cloud_backend_20.1"],
@@ -542,7 +577,7 @@ class TestFollowupRule:
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": MERGED_TO_MASTER_MERGE_REQUESTS_CB["merged"]["iid"],
             "target_branch": "cloud_backend_20.1",
-        }),
+        }, "Closed"),
 
         # Has merged merge requests for all issue branches, follow-up merge request just merged,
         # issue is in "good" state, follow-up state detection from description.
@@ -562,7 +597,7 @@ class TestFollowupRule:
                 "(cherry picked from commit ca374322a8ce3f481d5d472ba27a394a69ffacea)"),
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "vms_4.1",
-        }),
+        }, "Closed"),
         # The same as the previous, but performing a follow-up state detection from the commit
         # messages.
         ([{
@@ -584,7 +619,7 @@ class TestFollowupRule:
                     "Blah blah blah\n"
                     "(cherry picked from commit ca374322a8ce3f481d5d472ba27a394a69ffacea)"),
             }],
-        }),
+        }, "Closed"),
         # Closes more than one issue.
         ([
             {
@@ -605,7 +640,7 @@ class TestFollowupRule:
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "vms_4.1",
-        }),
+        }, "Closed"),
         # No unmerged branches in the Jira Issue, the primary Merge Request was just merged, the
         # Issue is in a "good" state.
         ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"], "state": "In Review"}], {
@@ -613,9 +648,10 @@ class TestFollowupRule:
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "master",
-        })
+        }, "Closed")
     ])
-    def test_close_jira_issue(self, project, followup_rule, mr, mr_manager, jira_issues, jira):
+    def test_finalize_jira_issue(
+            self, project, followup_rule, mr, mr_manager, jira_issues, jira, expected_status):
         # Init project state. TODO: Move project state to parameters.
         MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS["merged"])
         MergeRequestMock(project=project, **MERGED_TO_4_1_MERGE_REQUESTS["merged"])
@@ -632,6 +668,7 @@ class TestFollowupRule:
         assert len(project.mergerequests.list()) == mr_count_before
 
         issue = jira._jira.issue(jira_issues[0]["key"])
-        assert issue.fields.status.name == "Closed"
+        assert issue.fields.status.name == expected_status
         assert len(issue.fields.comment.comments) == 1
-        assert issue.fields.comment.comments[0].body.startswith("Issue closed")
+        expected_transition = "closed" if expected_status == "Closed" else "moved to QA"
+        assert issue.fields.comment.comments[0].body.startswith(f"Issue {expected_transition}")
