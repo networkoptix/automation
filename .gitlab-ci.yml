@@ -12,6 +12,12 @@ include:
       | sed "s/^/  /" >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - 'echo "jiraPassword: $(vault kv get --field="service@networkoptix.com" "apptokens/jira")"
      >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
+  - 'echo "repositoryUrl: git@${CI_SERVER_HOST}:dev/nx.git"
+     >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
+  - 'echo "gelfServer: ${GRAYLOG_URL}" >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
+  - 'echo "gitlabUrl: ${CI_SERVER_URL}" >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
+  - 'echo "repositoryServer: ${CI_SERVER_HOST}"
+     >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
 
 # Remove pod to apply changes even if helm metadata is unchanged
 .stop_k8_containers:
@@ -28,7 +34,6 @@ variables:
   WORKFLOW_POLICE_VERSION: "1.14"
   ROBOCAT_VERSION: "2.0"
   K8S_PRODUCT_RELEASE: "prod"
-  DOCKER_REGISTRY: "docker.artifactory.lan.hdw.mx:80"
   K8S_DEPLOY_NAMESPACE: "workflow-police"
   WORKFLOW_POLICE_LOG_LEVEL:
     description: Workflow police log level

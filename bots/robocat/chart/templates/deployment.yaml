@@ -39,7 +39,7 @@ spec:
               fi
               chmod 700 /tmp/.ssh
               install -m 600 -o {{ .Values.podSecurityContext.runAsUser }} -g {{ .Values.podSecurityContext.runAsGroup }} /tmp/.ssh-secret/id_rsa /tmp/.ssh
-              ssh-keyscan gitlab.lan.hdw.mx > /tmp/.ssh/known_hosts
+              ssh-keyscan {{ .Values.repositoryServer }} > /tmp/.ssh/known_hosts
               chown -R {{ .Values.podSecurityContext.runAsUser }}:{{ .Values.podSecurityContext.runAsGroup }} /tmp/.ssh
               chown -R {{ .Values.podSecurityContext.runAsUser }}:{{ .Values.podSecurityContext.runAsGroup }} /tmp/data
 

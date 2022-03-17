@@ -1,3 +1,4 @@
+import os
 import re
 from typing import List, Optional
 
@@ -43,8 +44,9 @@ class Jira:
             if versions:
                 fixVersions.append(versions[0])
 
+        gitlab_host_url = os.getenv("CI_SERVER_URL", "https://gitlab.lan.hdw.mx")
         remoteLinks = [
-            RemoteLink(f"https://gitlab.lan.hdw.mx/dev/nx/-/merge_requests/{mr_id}")
+            RemoteLink(f"{gitlab_host_url}/dev/nx/-/merge_requests/{mr_id}")
             for mr_id in (merge_requests or [])]
         comments = [Comment(body=c) for c in (comments_list or [])]
         status = Status(state)

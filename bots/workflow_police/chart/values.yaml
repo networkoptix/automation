@@ -16,9 +16,6 @@ fullnameOverride: ""
 # comment the line below to set default INFO level
 # logLevel: DEBUG
 
-# Address of Graylog service to send GELF logs to
-gelfServer: graylog.lan.hdw.mx:12201
-
 # jira login api token
 jiraPassword:
 
@@ -43,7 +40,7 @@ config: |
 
     vms_repo: &vms_repo
         path: /tmp/nx
-        url: "git@gitlab.lan.hdw.mx:dev/nx.git"
+        url: {{ .Values.repositoryUrl }}
 
     checkers:
         ignore_by_project:

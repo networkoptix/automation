@@ -36,7 +36,7 @@ robocatConfig: |
 
   repo:
     path: /var/workflow_robocat/nx
-    url: "git@gitlab.lan.hdw.mx:dev/nx.git"
+    url: {{ .Values.repositoryUrl }}
 
   # Configuration for checking open-source part of the project.
   open_source_check_rule:
@@ -95,9 +95,6 @@ gitlabProjectId: 2
 # Merge requests poll rate
 gitlabMrPollRate: 30
 
-# Address of Graylog service to send GELF logs to
-gelfServer: graylog.lan.hdw.mx:12201
-
 # robocat gitlab config file
 gitlabConfig: |
   [global]
@@ -106,7 +103,7 @@ gitlabConfig: |
   timeout = 20
 
   [nx_gitlab]
-  url = https://gitlab.lan.hdw.mx/
+  url =  {{ .Values.gitlabUrl }}
   private_token = {{ .Values.gitlabToken }}
   api_version = 4
 
