@@ -27,7 +27,7 @@ config: |
     jira:
         url: https://networkoptix.atlassian.net/
         login: service@networkoptix.com
-        password: PASSWORD_HERE
+        password: {{ .Values.jiraPassword }}
         timeout: 10
         retries: 1
 
@@ -55,6 +55,12 @@ config: |
             projects: *standard_projects
         ignore_fixed:
             projects: *standard_projects
+        ignore_by_version:
+            projects:
+                - CLOUD
+            relevant_versions:
+                - master
+                - "5.0"
         wrong_version:
             projects: *standard_projects
         missing_branch:
@@ -66,9 +72,21 @@ config: |
         missing_commit_to_master:
             repo: *vms_repo
             projects: *standard_projects
+        no_related_commit:
+            repo: *vms_repo
+            related_project_id: 1
+            projects:
+                - CLOUD
 
     polling_period_min: 5
     last_check_file: /tmp/last_check
+
+    gitlab:
+        url: {{ .Values.gitlabUrl }}
+        private_token: {{ .Values.gitlabToken }}
+        api_version: "4"
+        timeout: 20
+
 
 persistence:
   existingClaim: '{{ .Release.Name }}'

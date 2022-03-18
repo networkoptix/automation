@@ -169,6 +169,8 @@ k8s:workflow_police:deploy:
     PRODUCT: "workflow-police"
   script:
   - !reference [.set_common_k8_values, script]
+  - 'echo "gitlabToken: $(vault kv get --field="workflow-police-app-token" "apptokens/gitlab/prod")"
+       >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - 'echo "logLevel: ${WORKFLOW_POLICE_LOG_LEVEL}"
        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - !reference [.stop_k8_containers, script]
