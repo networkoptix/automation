@@ -12,6 +12,7 @@ from automation_tools.tests.gitlab_constants import (
     DEFAULT_SUBMODULE_DIRS)
 from automation_tools.tests.jira_constants import DEFAULT_PROJECT_KEYS_TO_CHECK
 from robocat.app import Bot
+from robocat.rule.commit_message_check_rule import CommitMessageCheckRule
 from robocat.rule.essential_rule import EssentialRule
 from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
 from robocat.rule.open_source_check_rule import OpenSourceCheckRule
@@ -64,7 +65,7 @@ def mr_manager(project):
 
 
 @pytest.fixture
-def essential_rule(monkeypatch):
+def essential_rule():
     return EssentialRule(DEFAULT_PROJECT_KEYS_TO_CHECK)
 
 
@@ -78,6 +79,11 @@ def nx_submodule_check_rule(project, repo_accessor):
 def open_source_rule(project, repo_accessor):
     project_manager = ProjectManager(project, BOT_USERNAME, repo=repo_accessor)
     return OpenSourceCheckRule(project_manager, approve_rules=DEFAULT_APPROVE_RULES_LIST)
+
+
+@pytest.fixture
+def commit_message_rule():
+    return CommitMessageCheckRule(approve_rules=DEFAULT_APPROVE_RULES_LIST)
 
 
 @pytest.fixture
@@ -110,6 +116,7 @@ def process_related_projects_issues_rule(jira, bot_config, monkeypatch):
 
 @pytest.fixture
 def bot(
+        commit_message_rule,
         essential_rule,
         nx_submodule_check_rule,
         open_source_rule,
@@ -119,6 +126,7 @@ def bot(
         repo_accessor,
         monkeypatch):
     def bot_init(bot):
+        bot._rule_commit_message = commit_message_rule
         bot._rule_essential = essential_rule
         bot._rule_nx_submodules_check = nx_submodule_check_rule
         bot._rule_open_source_check = open_source_rule

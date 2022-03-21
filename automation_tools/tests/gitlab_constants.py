@@ -52,6 +52,12 @@ GOOD_README_COMMIT_NEW_FILE = {
     "diffs": [],
     "files": {"open/dontreadme.md": {"is_new": True, "raw_data": GOOD_README_RAW_DATA}},
 }
+GOOD_README_COMMIT_DELETED_FILE = {
+    "sha": FILE_COMMITS_SHA["good_dontreadme"],
+    "message": f"{DEFAULT_JIRA_ISSUE_KEY}: some title\nsome msg",
+    "diffs": [],
+    "files": {"open/dontreadme.md": {"is_new": False, "is_deleted": True, "raw_data": ""}},
+}
 OPEN_SOURCE_APPROVER_COMMON = "approver1"
 OPEN_SOURCE_APPROVER_CLIENT = "approver2"
 OPEN_SOURCE_APPROVER_COMMON_2 = "approver3"

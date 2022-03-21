@@ -70,9 +70,23 @@ Auto-check of this merge request has failed. Please, check carefully all the iss
 needed.
 """
 
+bad_commit_message = """{error_message}
+
+Auto-check of this Merge Request has failed. Fix all the issues, or ask one of @{approvers} to
+approve this Merge Request. Otherwise, this Merge Request **will not be merged**.
+"""
+
+bad_commit_message_from_authorized_approver = """{error_message}
+
+Auto-check of this Merge Request has failed. Please, check carefully all the issues and fix them if
+needed.
+"""
+
+commit_message_is_ok = "Commit message is ok."
+
 has_bad_changes_in_open_source = """{error_message}
 
-Auto-check of this merge request has failed. Also, it contains new or renamed files in the
+Auto-check of this Merge Request has failed. Also, it contains new or renamed files in the
 open-source part of the project, so it must be approved by one of: @{approvers}.
 """
 

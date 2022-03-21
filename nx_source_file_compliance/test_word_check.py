@@ -2,7 +2,11 @@ import unittest
 from pathlib import Path
 
 from ._make_trademarks_re import get_trademarks_from_file
-from ._source_file_compliance import _find_offensive_words, _find_trademarks, _find_license_words
+from ._source_file_compliance import (
+    _find_offensive_words,
+    _find_trademarks,
+    _find_license_words,
+    _find_disclosure_words)
 
 _offensive_words_criteria_reference = [
     ("Megafuck", 'positive'),
@@ -94,6 +98,18 @@ _license_words_criteria_reference = [
     ('1 - Copyrighted to somebody', 'positive'),
 ]
 
+_disclosure_words_criteria_reference = [
+    ("Protection", 'positive'),
+    ("ProTection", 'negative'),
+    ("activation", 'positive'),
+    ("activator", 'positive'),
+    ("licensing", 'positive'),
+    ("license", 'positive'),
+    ("signature", 'positive'),
+    ("signatureGenerator", 'positive'),
+    ("private_signature_generator", 'positive'),
+]
+
 
 class TestFindWords(unittest.TestCase):
 
@@ -102,9 +118,9 @@ class TestFindWords(unittest.TestCase):
             words = [*func(phrase)]
             with self.subTest(phrase=phrase, verdict=verdict):
                 if verdict == 'positive':
-                    self.assertTrue(words)
+                    self.assertTrue(words, msg=f'False negative for "{phrase}"')
                 else:
-                    self.assertListEqual(words, [])
+                    self.assertListEqual(words, [], msg=f'False positive for "{phrase}"')
 
     def test_offensive_search(self):
         self._check_correctness(_find_offensive_words, _offensive_words_criteria_reference)
@@ -114,3 +130,6 @@ class TestFindWords(unittest.TestCase):
 
     def test_license_words_search(self):
         self._check_correctness(_find_license_words, _license_words_criteria_reference)
+
+    def test_implementation_disclosure_words_search(self):
+        self._check_correctness(_find_disclosure_words, _disclosure_words_criteria_reference)

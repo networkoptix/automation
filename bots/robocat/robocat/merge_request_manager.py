@@ -299,8 +299,7 @@ class MergeRequestManager:
             return MergeRequestChangesSameSha()
 
         commit_message_for_sha = self._get_commit_message(sha)
-        last_commit_message = self._get_commit_message(self._mr.sha)
-        is_message_changed = commit_message_for_sha != last_commit_message
+        is_message_changed = commit_message_for_sha != self.last_commit_message()
 
         diff_for_sha = self._get_commit_diff_hash(sha)
         diff_for_current_sha = self._get_commit_diff_hash(self._mr.sha)
@@ -308,6 +307,9 @@ class MergeRequestManager:
             return MergeRequestChangesDiffHashChanged(is_message_changed=is_message_changed)
 
         return MergeRequestChangesRebased(is_message_changed=is_message_changed)
+
+    def last_commit_message(self):
+        return self._get_commit_message(self._mr.sha)
 
     def _get_commit_message(self, sha: str):
         return self._get_project().get_commit_message(sha)

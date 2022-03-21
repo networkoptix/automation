@@ -1,35 +1,10 @@
 from pathlib import Path
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Generator, List, Optional, Set
 
 import source_file_compliance
-
+from robocat.merge_request_manager import MergeRequestManager
 from robocat.rule.helpers.statefull_checker_helpers import CheckError
-
-# Paths configuration.
-OPENSOURCE_ROOTS = ("open", "open_candidate")
-EXCLUDED_DIRS = {
-    "open/licenses",
-    "open/artifacts",
-    "open_candidate/artifacts",
-}
-EXCLUDED_FILE_PATHS = {
-    "open/readme.md",
-    "open/build_info.txt",
-    "open/vms/distribution/unit_tests/build_distribution_conf.py.in",
-    "open/libs/nx_utils/static-resources/common_passwords.txt",
-    "open_candidate/build_info.txt",
-    "open_candidate/vms/distribution/unit_tests/build_distribution_conf.py.in",
-    "open_candidate/libs/nx_utils/static-resources/common_passwords.txt",
-}
-# go.mod and go.sum are auto-generated, so they do not need to be checked.
-EXCLUDED_FILE_NAME_PATTERNS = {
-    "go.mod", "go.sum", "*.json", "*.json.in", "*.pyc", "*.bmp", "*.gif", "*.mkv", "*.avi",
-    "*.png", "*.jpg", "*.jpeg", "*.svg", "*.ui", "*.ts", "*.rc", "qmldir", "control.template",
-    "*.wxs", "*.wxl", "*.wxi", "*.xml", "*.conf", "*.conf.in", "*.desktop", "*.plist", "*.def",
-    "*.profile", "*.vcproj", "*.vcxproj.user", "_nx_submodule", "*.natvis", "*.cfg", "*.frag",
-    "*.vert", "*.pyproj", "*.pem",
-}
 
 
 @dataclass(frozen=True)
@@ -39,46 +14,57 @@ class FileError(CheckError):
     line: Optional[int] = None
 
 
-class OpenSourceFileChecker:
-    def __init__(self, file_name: str, file_content: str):
-        self._file_path = Path(file_name)
-        self._file_content = file_content
+FileErrors = Set[FileError]
 
-    @staticmethod
-    def is_check_needed(file_path: str):
-        return source_file_compliance.is_check_needed(
-            path=file_path,
-            repo_config=source_file_compliance.repo_configurations["vms"])
 
-    def file_errors(self) -> List[FileError]:
-        result = []
-        raw_errors = source_file_compliance.check_file_content(self._file_path, self._file_content)
-        for raw_error in raw_errors:
-            raw_error_type = type(raw_error)
-            if raw_error_type == source_file_compliance.WordError:
-                error_type = f"{raw_error.reason}_word"
-                error_params = {
-                    "word": raw_error.word,
-                    "position": f"{raw_error.path!s}:{raw_error.line}",
-                }
-            elif raw_error_type == source_file_compliance.LineError:
-                error_type = "line"
-                actual_line = raw_error.actual if str(raw_error.actual) else "<empty line>"
-                expected_line = raw_error.expected if str(raw_error.expected) else "<empty line>"
-                error_params = {
-                    "actual": actual_line,
-                    "expected": expected_line,
-                    "position": f"{raw_error.path!s}:{raw_error.line}",
-                }
-            elif raw_error_type == source_file_compliance.FileError:
-                error_type = "file_type"
-                error_params = {"file": str(raw_error.path)}
-            else:
-                assert False, f"Bad raw error type: {raw_error_type!r}"
+def file_errors(file_name: str, file_content: str) -> List[FileError]:
+    result = []
+    raw_errors = source_file_compliance.check_file_content(Path(file_name), file_content)
+    for raw_error in raw_errors:
+        raw_error_type = type(raw_error)
+        if raw_error_type == source_file_compliance.WordError:
+            error_type = f"{raw_error.reason}_word"
+            error_params = {
+                "word": raw_error.word,
+                "position": f"{raw_error.path!s}:{raw_error.line}",
+            }
+        elif raw_error_type == source_file_compliance.LineError:
+            error_type = "line"
+            actual_line = raw_error.actual if str(raw_error.actual) else "<empty line>"
+            expected_line = raw_error.expected if str(raw_error.expected) else "<empty line>"
+            error_params = {
+                "actual": actual_line,
+                "expected": expected_line,
+                "position": f"{raw_error.path!s}:{raw_error.line}",
+            }
+        elif raw_error_type == source_file_compliance.FileError:
+            error_type = "file_type"
+            error_params = {"file": str(raw_error.path)}
+        else:
+            assert False, f"Bad raw error type: {raw_error_type!r}"
 
-            error_line = raw_error.line if hasattr(raw_error, 'line') else None
-            result.append(FileError(
-                type=error_type, params=error_params,
-                line=error_line, file=str(raw_error.path), raw_text=repr(raw_error)))
+        error_line = raw_error.line if hasattr(raw_error, 'line') else None
+        result.append(FileError(
+            type=error_type, params=error_params,
+            line=error_line, file=str(raw_error.path), raw_text=repr(raw_error)))
 
-        return result
+    return result
+
+
+def is_check_needed(file_path: str):
+    return source_file_compliance.is_check_needed(
+        path=file_path,
+        repo_config=source_file_compliance.repo_configurations["vms"])
+
+
+def changed_open_source_files(mr_manager: MergeRequestManager) -> Generator[str, None, None]:
+    changes = mr_manager.get_changes()
+    return (
+        c["new_path"] for c in changes.changes
+        if not c["deleted_file"] and is_check_needed(c["new_path"]))
+
+
+def affected_open_source_files(mr_manager: MergeRequestManager) -> Generator[str, None, None]:
+    changes = mr_manager.get_changes()
+    # Include deleted/moved files.
+    return (c["new_path"] for c in changes.changes if is_check_needed(c["new_path"]))

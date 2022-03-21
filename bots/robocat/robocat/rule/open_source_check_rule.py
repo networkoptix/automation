@@ -1,13 +1,14 @@
 import logging
 import re
 from typing import Dict, List, Set, Tuple
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 from enum import Enum
 
 from robocat.merge_request_manager import MergeRequestManager, ApprovalRequirements
 from robocat.note import MessageId
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
-from robocat.rule.helpers.open_source_file_checker import OpenSourceFileChecker, FileError
+import robocat.rule.helpers.approve_rule_helpers as approve_rule_helpers
+import robocat.rule.helpers.open_source_file_checker as open_source_file_checker
 from robocat.rule.helpers.statefull_checker_helpers import (
     CheckChangesMixin,
     ErrorCheckResult,
@@ -25,7 +26,7 @@ class OpenSourceCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
 
 
 class OpenSourceStoredCheckResults(StoredCheckResults):
-    CheckErrorClass = FileError
+    CheckErrorClass = open_source_file_checker.FileError
 
     ERROR_MESSAGE_IDS = {
         MessageId.OpenSourceHasBadChangesFromKeeper,
@@ -48,12 +49,6 @@ class OpenSourceStoredCheckResults(StoredCheckResults):
     }
 
 
-@dataclass
-class ApproveRule:
-    approvers: List[str]
-    patterns: List[str]
-
-
 class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
     ExecutionResult = OpenSourceCheckRuleExecutionResultClass.create(
         "OpenSourceCheckRuleExecutionResult", {
@@ -71,7 +66,7 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
     def __init__(self, project_manager, approve_rules: List[Dict[str, List[str]]]):
         self._approve_rules = []
         for rule_dict in approve_rules:
-            self._approve_rules.append(ApproveRule(
+            self._approve_rules.append(approve_rule_helpers.ApproveRule(
                 approvers=rule_dict["approvers"], patterns=rule_dict["patterns"]))
         logger.info(f"Open source rule created. Approvers list is {self._approve_rules!r}")
         self._project_manager = project_manager
@@ -85,20 +80,22 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
         if preliminary_check_result != self.ExecutionResult.preliminary_check_passed:
             return preliminary_check_result
 
-        if self._is_diff_complete(mr_manager) and not self._changed_open_source_files(mr_manager):
+        has_changed_open_source_files = any(
+            open_source_file_checker.changed_open_source_files(mr_manager))
+        if self._is_diff_complete(mr_manager) and not has_changed_open_source_files:
             return self.ExecutionResult.not_applicable
 
         error_check_result = self._do_error_check(
             mr_manager=mr_manager, check_results_class=OpenSourceStoredCheckResults)
 
-        authorized_approvers = self._get_open_source_keepers()
-        logger.debug(f"{mr_manager}: Authorized approvers are {authorized_approvers!r}")
-        approval_requirements = ApprovalRequirements(authorized_approvers=authorized_approvers)
+        keepers = approve_rule_helpers.get_all_open_source_keepers(self._approve_rules)
+        logger.debug(f"{mr_manager}: Authorized approvers are {keepers!r}")
+        approval_requirements = ApprovalRequirements(authorized_approvers=keepers)
 
         if self._is_manual_check_required(mr_manager):
             # MR can be approved by anybody from the authorized_approvers set, but we assign to the
             # MR only those who are the best choice for approving this particular MR.
-            preferred_approvers = self._get_approvers_by_changed_files(mr_manager)
+            preferred_approvers = self._get_keepers_by_changed_files(mr_manager)
             if mr_manager.ensure_authorized_approvers(preferred_approvers):
                 logger.debug(f"{mr_manager}: Preferred approvers assigned to MR.")
 
@@ -116,26 +113,19 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
 
         return self.ExecutionResult.no_manual_check_required
 
-    @staticmethod
-    def _changed_open_source_files(mr_manager) -> List[str]:
-        changes = mr_manager.get_changes()
-        open_source_files = [
-            c["new_path"] for c in changes.changes
-            if not c["deleted_file"] and OpenSourceFileChecker.is_check_needed(c["new_path"])]
-        return open_source_files
-
     def _find_errors(
             self,
             old_errors_info: OpenSourceStoredCheckResults,
-            mr_manager: MergeRequestManager) -> Tuple[bool, Set[FileError]]:
+            mr_manager: MergeRequestManager) -> Tuple[bool, open_source_file_checker.FileErrors]:
         has_errors = False
         new_errors = set()
 
-        for file_name in self._changed_open_source_files(mr_manager):
+        for file_name in open_source_file_checker.changed_open_source_files(mr_manager):
             file_content = self._project_manager.file_get_content(
                 sha=mr_manager.data.sha, file=file_name)
-            file_checker = OpenSourceFileChecker(file_name=file_name, file_content=file_content)
-            for error in file_checker.file_errors():
+            file_errors = open_source_file_checker.file_errors(
+                file_name=file_name, file_content=file_content)
+            for error in file_errors:
                 has_errors = True
                 if not old_errors_info.have_error(error=error):
                     new_errors.add(error)
@@ -146,7 +136,7 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
     def _has_new_open_source_files(mr_manager) -> bool:
         changes = mr_manager.get_changes()
         new_paths = [c["new_path"] for c in changes.changes if c["new_file"] or c["renamed_file"]]
-        return any(p for p in new_paths if OpenSourceFileChecker.is_check_needed(p))
+        return any(p for p in new_paths if open_source_file_checker.is_check_needed(p))
 
     def _is_manual_check_required(self, mr_manager: MergeRequestManager) -> bool:
         if not self._is_diff_complete(mr_manager):
@@ -168,15 +158,15 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
         if not error_check_result.must_add_comment:
             return
 
-        authorized_approvers = self._get_approvers_by_changed_files(mr_manager)
-        is_author_authorized_approver = (mr_manager.data.author_name in authorized_approvers)
+        keepers = self._get_keepers_by_changed_files(mr_manager)
+        is_author_authorized_approver = (mr_manager.data.author_name in keepers)
         if not self._is_diff_complete(mr_manager):
             if is_author_authorized_approver:
                 message = robocat.comments.check_changes_manually
                 message_id = MessageId.OpenSourceHugeDiffNeedsManualCheck
             else:
                 message = robocat.comments.may_have_changes_in_open_source.format(
-                    approvers=", @".join(authorized_approvers))
+                    approvers=", @".join(keepers))
                 message_id = MessageId.OpenSourceHugeDiffCallKeeper
             mr_manager.create_thread(
                 title="Can't auto-check open source changes",
@@ -188,12 +178,13 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
         for error in error_check_result.new_errors:
             self._create_open_source_discussion(mr_manager, error)
 
-    def _create_open_source_discussion(self, mr_manager: MergeRequestManager, error: FileError):
+    def _create_open_source_discussion(
+            self, mr_manager: MergeRequestManager, error: open_source_file_checker.FileError):
         title = "Autocheck for open source changes failed"
         message_template = f"bad_open_source_{error.type}"
 
-        authorized_approvers = self._get_approvers_by_changed_files(mr_manager)
-        is_author_authorized_approver = (mr_manager.data.author_name in authorized_approvers)
+        keepers = self._get_keepers_by_changed_files(mr_manager)
+        is_author_authorized_approver = (mr_manager.data.author_name in keepers)
         if is_author_authorized_approver:
             message = robocat.comments.has_bad_changes_from_authorized_approver.format(
                 error_message=robocat.comments.__dict__[message_template].format(**error.params))
@@ -201,12 +192,12 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
         elif self._has_new_open_source_files(mr_manager):
             message = robocat.comments.has_bad_changes_in_open_source.format(
                 error_message=robocat.comments.__dict__[message_template].format(**error.params),
-                approvers=", @".join(authorized_approvers))
+                approvers=", @".join(keepers))
             message_id = MessageId.OpenSourceHasBadChangesCallKeeperMandatory
         else:
             message = robocat.comments.has_bad_changes_in_open_source_optional_approval.format(
                 error_message=robocat.comments.__dict__[message_template].format(**error.params),
-                approvers=", @".join(authorized_approvers))
+                approvers=", @".join(keepers))
             message_id = MessageId.OpenSourceHasBadChangesCallKeeperOptional
 
         discussion_created = mr_manager.create_thread(
@@ -234,11 +225,11 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
         if not error_check_result.must_add_comment:
             return
 
-        authorized_approvers = self._get_approvers_by_changed_files(mr_manager)
-        is_author_authorized_approver = (mr_manager.data.author_name in authorized_approvers)
+        keepers = self._get_keepers_by_changed_files(mr_manager)
+        is_author_authorized_approver = (mr_manager.data.author_name in keepers)
         if self._is_manual_check_required(mr_manager) and not is_author_authorized_approver:
             message = robocat.comments.has_good_changes_in_open_source.format(
-                approvers=", @".join(authorized_approvers))
+                approvers=", @".join(keepers))
             autoresolve = False
             message_id = MessageId.OpenSourceNoProblemNeedApproval
         else:
@@ -253,18 +244,7 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
             emoji=AwardEmojiManager.AUTOCHECK_OK_EMOJI,
             autoresolve=autoresolve)
 
-    def _get_approvers_by_changed_files(self, mr_manager: MergeRequestManager) -> Set[str]:
-        files = self._changed_open_source_files(mr_manager)
-        for rule in self._approve_rules:
-            for file_name in files:
-                if any([re.match(p, file_name) for p in rule.patterns]):
-                    logger.debug(f"{mr_manager}: Preferred approvers found for file {file_name!r}")
-                    return set(rule.approvers)
-
-        # Return all approvers if we can't determine who is the best match.
-        logger.debug(
-            f"{mr_manager}: No preferred approvers found, returning complete approver list.")
-        return self._get_open_source_keepers()
-
-    def _get_open_source_keepers(self) -> Set[str]:
-        return set(sum([r.approvers for r in self._approve_rules], []))
+    def _get_keepers_by_changed_files(self, mr_manager: MergeRequestManager) -> Set[str]:
+        changed_files = list(open_source_file_checker.changed_open_source_files(mr_manager))
+        return approve_rule_helpers.get_open_source_keepers_for_files(
+            files=changed_files, approve_rules=self._approve_rules)

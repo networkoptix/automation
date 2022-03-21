@@ -155,19 +155,3 @@ class NxSubmoduleCheckRule(CheckChangesMixin, BaseRule):
             message_id=message_id,
             emoji=emoji,
             autoresolve=autoresolve)
-
-    def _get_approvers_by_changed_files(self, mr_manager: MergeRequestManager) -> Set[str]:
-        files = self._changed_open_source_files(mr_manager)
-        for rule in self._approve_rules:
-            for file_name in files:
-                if any([re.match(p, file_name) for p in rule.patterns]):
-                    logger.debug(f"{mr_manager}: Preferred approvers found for file {file_name!r}")
-                    return set(rule.approvers)
-
-        # Return all approvers if we can't determine who is the best match.
-        logger.debug(
-            f"{mr_manager}: No preferred approvers found, returning complete approver list.")
-        return self._get_open_source_keepers()
-
-    def _get_open_source_keepers(self) -> Set[str]:
-        return set(sum([r.approvers for r in self._approve_rules], []))

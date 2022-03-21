@@ -18,6 +18,7 @@ import automation_tools.git
 from robocat.project_manager import ProjectManager
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.pipeline import PlayPipelineError
+from robocat.rule.commit_message_check_rule import CommitMessageCheckRule
 from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
 from robocat.rule.essential_rule import EssentialRule
 from robocat.rule.open_source_check_rule import OpenSourceCheckRule
@@ -56,6 +57,9 @@ class Bot:
         self._rule_nx_submodules_check = NxSubmoduleCheckRule(
             self._project_manager,
             **config["nx_submodule_check_rule"])
+        # For now, use the same approval rules for OpenSourceCheckRule and CommitMessageCheckRule.
+        self._rule_commit_message = CommitMessageCheckRule(
+            approve_rules=config["open_source_check_rule"]["approve_rules"])
         self._rule_essential = EssentialRule(project_keys=config["jira"].get("project_keys"))
         self._rule_open_source_check = OpenSourceCheckRule(
             project_manager=self._project_manager, **config["open_source_check_rule"])
@@ -71,11 +75,15 @@ class Bot:
         nx_submodule_check_result = self._rule_nx_submodules_check.execute(mr_manager)
         logger.debug(f"{mr_manager}: {nx_submodule_check_result}")
 
+        commit_message_check_result = self._rule_commit_message.execute(mr_manager)
+        logger.debug(f"{mr_manager}: {commit_message_check_result}")
+
         open_source_check_result = self._rule_open_source_check.execute(mr_manager)
         logger.debug(f"{mr_manager}: {open_source_check_result}")
 
         if (not nx_submodule_check_result or
                 not essential_rule_check_result or
+                not commit_message_check_result or
                 not open_source_check_result):
             return
 

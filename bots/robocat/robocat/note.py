@@ -39,6 +39,10 @@ class MessageId(Enum):
 
     FollowUpIssueNotMovedToQA = auto()
 
+    BadCommitMessage = auto()
+    BadCommitMessageByKeeper = auto()
+    CommitMessageIsOk = auto()
+
 
 class Comment(NamedTuple):
     id: MessageId

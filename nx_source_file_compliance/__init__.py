@@ -3,6 +3,7 @@ from ._source_file_compliance import (
     FileError,
     LineError,
     check_file_content,
+    check_text,
     is_check_needed)
 
 from ._generic_repo_check_config import GENERIC_REPO_CONFIG
@@ -17,6 +18,7 @@ __all__ = [
     FileError,
     LineError,
     check_file_content,
+    check_text,
     is_check_needed,
     repo_configurations,
     GENERIC_REPO_CONFIG]

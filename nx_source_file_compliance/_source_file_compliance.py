@@ -23,6 +23,9 @@ _trademarks_re = make_trademarks_re(Path(__file__).parent / 'organization_domain
 _license_words_re = re.compile(
     r'\b(copyright|gpl\b)',
     flags=re.IGNORECASE)
+_disclosure_words_re = re.compile(
+    r'protect|activat|licens|signature',
+    flags=re.IGNORECASE)
 _mpl = (
     'Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/')
 _trademark_exceptions_re = re.compile(
@@ -85,6 +88,12 @@ def _find_offensive_words(line):
             yield m
 
 
+def _find_disclosure_words(line: str):
+    for m in _disclosure_words_re.finditer(line):
+        if _is_a_morpheme(line, m.start(), m.end()):
+            yield m
+
+
 def _find_trademarks(line, consider_exceptions=True):
     for m in _trademarks_re.finditer(line):
         if consider_exceptions and _is_a_trademark_exception(line, m):
@@ -142,38 +151,34 @@ def is_check_needed(
 
 def check_file_content(path, content) -> Collection[Union[WordError, LineError, FileError]]:
 
-    def _check_mpl(line_idx, prefix, postfix=''):
+    def _check_has_mpl(line_idx, prefix, postfix=''):
         line = lines[line_idx]
         expected = prefix + _mpl + postfix
         if line != expected:
             errors.append(LineError(path, line_idx, line, expected))
 
-    def _check_words(
-            start_line_idx,
-            end_line_idx=None,
-            license_words=True,
-            consider_trademark_exceptions=True,
-            ):
-        if end_line_idx is None:
-            end_line_idx = len(lines)
-        for line_idx in range(start_line_idx, end_line_idx):
-            if license_words:
-                for m in _find_license_words(lines[line_idx]):
-                    errors.append(WordError(path, line_idx, m, 'license'))
-            for m in _find_trademarks(lines[line_idx], consider_trademark_exceptions):
-                errors.append(WordError(path, line_idx, m, 'trademark'))
-            for m in _find_offensive_words(lines[line_idx]):
-                errors.append(WordError(path, line_idx, m, 'offensive'))
-
-    def _check_empty(line_idx):
+    def _check_has_empty_line(line_idx):
         line = lines[line_idx]
         if line != '':
             errors.append(LineError(path, line_idx, line, ''))
 
-    def _check_shebang():
+    def _check_has_shebang():
         allowed_shebangs = ['#!/bin/bash', '#!/bin/bash -e']
         if lines[0] not in allowed_shebangs:
             errors.append(LineError(path, 0, lines[0], ' or '.join(allowed_shebangs)))
+
+    def _check_no_bad_words(
+            start_line_idx,
+            end_line_idx=None,
+            license_words=True,
+            consider_trademark_exceptions=True):
+        new_errors = _check_words(
+            lines, start_line_idx,
+            end_line_idx,
+            license_words,
+            consider_trademark_exceptions,
+            path)
+        errors.extend(new_errors)
 
     errors: List[Union[WordError, LineError, FileError]] = []
 
@@ -184,43 +189,80 @@ def check_file_content(path, content) -> Collection[Union[WordError, LineError, 
         name = stem
         stem, ext = os.path.splitext(name)
     if name in {'CMakeLists.txt', 'Doxyfile'} or ext in {'.cmake', '.yaml', '.yml'}:
-        _check_mpl(line_idx=0, prefix='## ')
-        _check_words(start_line_idx=1)
+        _check_has_mpl(line_idx=0, prefix='## ')
+        _check_no_bad_words(start_line_idx=1)
     elif ext == '.md':
-        _check_words(start_line_idx=0, end_line_idx=1)
-        _check_empty(line_idx=1)
-        _check_mpl(line_idx=2, prefix='// ')
+        _check_no_bad_words(start_line_idx=0, end_line_idx=1)
+        _check_has_empty_line(line_idx=1)
+        _check_has_mpl(line_idx=2, prefix='// ')
         if name == 'readme.md':
-            _check_words(start_line_idx=3, license_words=False)
+            _check_no_bad_words(start_line_idx=3, license_words=False)
         else:
-            _check_words(start_line_idx=3)
+            _check_no_bad_words(start_line_idx=3)
     elif ext in {'.h', '.cpp', '.c', '.mm', '.ts', '.js', '.txt', '.inc', '.go', '.qml'}:
-        _check_mpl(line_idx=0, prefix='// ')
-        _check_empty(line_idx=1)
+        _check_has_mpl(line_idx=0, prefix='// ')
+        _check_has_empty_line(line_idx=1)
         if ext in {'.h', '.cpp', '.inc'}:
-            _check_words(start_line_idx=2)
+            _check_no_bad_words(start_line_idx=2)
         else:
-            _check_words(start_line_idx=2)
+            _check_no_bad_words(start_line_idx=2)
     elif ext in {'.sh', '.py'} or name in {'applauncher', 'prerm', 'postinst', 'client'}:
         if ext == '.py':
-            _check_words(start_line_idx=0, end_line_idx=1)
+            _check_no_bad_words(start_line_idx=0, end_line_idx=1)
         else:
-            _check_shebang()
-        _check_empty(line_idx=1)
-        _check_mpl(line_idx=2, prefix='## ')
-        _check_words(start_line_idx=3)
+            _check_has_shebang()
+        _check_has_empty_line(line_idx=1)
+        _check_has_mpl(line_idx=2, prefix='## ')
+        _check_no_bad_words(start_line_idx=3)
     elif ext == '.bat':
-        _check_mpl(line_idx=0, prefix=':: ')
-        _check_words(start_line_idx=1)
+        _check_has_mpl(line_idx=0, prefix=':: ')
+        _check_no_bad_words(start_line_idx=1)
     elif ext == '.applescript':
-        _check_mpl(line_idx=0, prefix='-- ')
-        _check_empty(line_idx=1)
-        _check_words(start_line_idx=2)
+        _check_has_mpl(line_idx=0, prefix='-- ')
+        _check_has_empty_line(line_idx=1)
+        _check_no_bad_words(start_line_idx=2)
     elif ext == '.html':
-        _check_mpl(line_idx=0, prefix='<!-- ', postfix=' -->')
-        _check_empty(line_idx=1)
-        _check_words(start_line_idx=2)
+        _check_has_mpl(line_idx=0, prefix='<!-- ', postfix=' -->')
+        _check_has_empty_line(line_idx=1)
+        _check_no_bad_words(start_line_idx=2)
     else:
         errors.append(FileError(path))
 
     return errors
+
+
+def _check_words(
+        lines: List[str],
+        start_line_idx: int,
+        end_line_idx: int = None,
+        license_words: bool = True,
+        disclosure_words: bool = False,
+        consider_trademark_exceptions: bool = True,
+        path: Path = None) -> List[WordError]:
+    if end_line_idx is None:
+        end_line_idx = len(lines)
+    errors = []
+    for line_idx in range(start_line_idx, end_line_idx):
+        if license_words:
+            for m in _find_license_words(lines[line_idx]):
+                errors.append(WordError(path, line_idx, m, 'license'))
+        if disclosure_words:
+            for m in _find_disclosure_words(lines[line_idx]):
+                errors.append(WordError(path, line_idx, m, 'implementation disclosure'))
+        for m in _find_trademarks(lines[line_idx], consider_trademark_exceptions):
+            errors.append(WordError(path, line_idx, m, 'trademark'))
+        for m in _find_offensive_words(lines[line_idx]):
+            errors.append(WordError(path, line_idx, m, 'offensive'))
+
+    return errors
+
+
+def check_text(
+        text: str,
+        license_words: bool = True,
+        disclosure_words: bool = True) -> Collection[WordError]:
+    return _check_words(
+        text.splitlines(),
+        start_line_idx=0,
+        license_words=license_words,
+        disclosure_words=disclosure_words)
