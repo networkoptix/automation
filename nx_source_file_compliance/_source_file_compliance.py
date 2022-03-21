@@ -173,11 +173,12 @@ def check_file_content(path, content) -> Collection[Union[WordError, LineError, 
             license_words=True,
             consider_trademark_exceptions=True):
         new_errors = _check_words(
-            lines, start_line_idx,
-            end_line_idx,
-            license_words,
-            consider_trademark_exceptions,
-            path)
+            lines=lines,
+            start_line_idx=start_line_idx,
+            end_line_idx=end_line_idx,
+            license_words=license_words,
+            consider_trademark_exceptions=consider_trademark_exceptions,
+            path=path)
         errors.extend(new_errors)
 
     errors: List[Union[WordError, LineError, FileError]] = []
@@ -262,7 +263,7 @@ def check_text(
         license_words: bool = True,
         disclosure_words: bool = True) -> Collection[WordError]:
     return _check_words(
-        text.splitlines(),
+        lines=text.splitlines(),
         start_line_idx=0,
         license_words=license_words,
         disclosure_words=disclosure_words)
