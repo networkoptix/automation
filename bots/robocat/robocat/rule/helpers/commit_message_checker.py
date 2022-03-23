@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Set, Tuple
 
 from robocat.rule.helpers.statefull_checker_helpers import CheckError
 import source_file_compliance
@@ -8,6 +8,9 @@ import source_file_compliance
 @dataclass(frozen=True)
 class CommitMessageError(CheckError):
     raw_text: str = ""
+
+
+FindErrorsResult = Tuple[bool, Set[CommitMessageError]]
 
 
 def commit_message_errors(commit_message: str) -> List[CheckError]:

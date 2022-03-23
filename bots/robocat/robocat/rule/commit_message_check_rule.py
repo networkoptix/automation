@@ -9,7 +9,6 @@ from robocat.note import MessageId
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 import robocat.rule.helpers.approve_rule_helpers as approve_rule_helpers
 import robocat.rule.helpers.commit_message_checker as commit_message_checker
-from robocat.rule.helpers.commit_message_checker import CommitMessageError
 import robocat.rule.helpers.open_source_file_checker as open_source_file_checker
 from robocat.rule.helpers.statefull_checker_helpers import (
     CheckChangesMixin,
@@ -28,6 +27,8 @@ class CommitMessageCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum)
 
 
 class CommitMessageStoredCheckResults(StoredCheckResults):
+    CheckErrorClass = commit_message_checker.CommitMessageError
+
     ERROR_MESSAGE_IDS = {
         MessageId.BadCommitMessageByKeeper,
         MessageId.BadCommitMessage,
@@ -90,12 +91,13 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
     def _find_errors(
             self,
             old_errors_info: StoredCheckResults,
-            mr_manager: MergeRequestManager) -> Tuple[bool, Set[CommitMessageError]]:
+            mr_manager: MergeRequestManager) -> commit_message_checker.FindErrorsResult:
         has_errors = False
         new_errors = set()
 
         commit_message_errors = commit_message_checker.commit_message_errors(
             mr_manager.last_commit_message())
+
         for error in commit_message_errors:
             has_errors = True
             if not old_errors_info.have_error(error=error):
@@ -111,7 +113,9 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
             self._create_commit_message_discussion(mr_manager, error)
 
     def _create_commit_message_discussion(
-            self, mr_manager: MergeRequestManager, error: CommitMessageError):
+            self,
+            mr_manager: MergeRequestManager,
+            error: commit_message_checker.CommitMessageError):
         title = "Commit message auto-check failed"
 
         keepers = self._get_keepers_by_changed_files(mr_manager)
