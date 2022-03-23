@@ -48,7 +48,7 @@ checkers:
         projects: *standard_projects
     no_related_commit:
         repo: *vms_repo
-        related_project_id: 1
+        related_project_id: 2
         projects:
             - CLOUD
 
