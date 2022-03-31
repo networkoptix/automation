@@ -5,12 +5,24 @@ include:
 - project: 'dev/ci'
   file: 'pipelines/infra-templates.yml'
 
+.deploy_secrets:
+  secrets:
+    KUBECONFIG: !reference [.k8s.deploy.template, secrets, KUBECONFIG]
+    JIRA_PASSWORD:
+      vault: jira/service@networkoptix.com/@apptokens
+      file: false
+    SSH_PRIVATE_KEY_FILE:
+      vault: gitlab/prod/workflow-robocat-ssh-private-key@apptokens
+    GITLAB_API_TOKEN:
+      vault: gitlab/prodworkflow-police-app-token@apptokens
+      file: false
+
 .set_common_k8_values:
   script:
   - 'echo "gitSshKey: |" > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - 'vault kv get --field="workflow-robocat-ssh-private-key" "apptokens/gitlab/prod"
+  - 'cat "${SSH_PRIVATE_KEY_FILE}"
       | sed "s/^/  /" >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - 'echo "jiraPassword: $(vault kv get --field="service@networkoptix.com" "apptokens/jira")"
+  - 'echo "jiraPassword: "${JIRA_PASSWORD}"
      >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - 'echo "repositoryUrl: git@${CI_SERVER_HOST}:dev/nx.git"
      >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
@@ -167,6 +179,7 @@ k8s:workflow_police:deploy:
     DOCKER_DIR: "bots/workflow_police"
     HELM_CHART_DIR: "$DOCKER_DIR/chart"
     PRODUCT: "workflow-police"
+  secrets: !reference [.deploy_secrets, secrets]
   script:
   - !reference [.set_common_k8_values, script]
   - 'echo "gitlabToken: $(vault kv get --field="workflow-police-app-token" "apptokens/gitlab/prod")"
@@ -196,9 +209,10 @@ k8s:robocat:deploy:
     DOCKER_DIR: "bots/robocat"
     HELM_CHART_DIR: "$DOCKER_DIR/chart"
     PRODUCT: "workflow-police-robocat"
+  secrets: !reference [.deploy_secrets, secrets]
   script:
   - !reference [.set_common_k8_values, script]
-  - 'echo "gitlabToken: $(vault kv get --field="workflow-police-app-token" "apptokens/gitlab/prod")"
+  - 'echo "gitlabToken: ${GITLAB_API_TOKEN}"
        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - 'echo "logLevel: ${ROBOCAT_LOG_LEVEL}"
        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
