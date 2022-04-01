@@ -22,7 +22,7 @@ include:
   - 'echo "gitSshKey: |" > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - 'cat "${SSH_PRIVATE_KEY_FILE}"
       | sed "s/^/  /" >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - 'echo "jiraPassword: "${JIRA_PASSWORD}"
+  - 'echo "jiraPassword: ${JIRA_PASSWORD}"
      >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - 'echo "repositoryUrl: git@${CI_SERVER_HOST}:dev/nx.git"
      >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
