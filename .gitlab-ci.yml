@@ -8,21 +8,19 @@ include:
 .deploy_secrets:
   secrets:
     KUBECONFIG: !reference [.k8s.deploy.template, secrets, KUBECONFIG]
-    JIRA_PASSWORD:
+    JIRA_PASSWORD_FILE:
       vault: jira/service@networkoptix.com/@apptokens
-      file: false
     SSH_PRIVATE_KEY_FILE:
       vault: gitlab/prod/workflow-robocat-ssh-private-key@apptokens
-    GITLAB_API_TOKEN:
+    GITLAB_API_TOKEN_FILE:
       vault: gitlab/prodworkflow-police-app-token@apptokens
-      file: false
 
 .set_common_k8_values:
   script:
   - 'echo "gitSshKey: |" > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - 'cat "${SSH_PRIVATE_KEY_FILE}"
       | sed "s/^/  /" >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - 'echo "jiraPassword: ${JIRA_PASSWORD}"
+  - 'echo "jiraPassword: $(cat ${JIRA_PASSWORD_FILE})"
      >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - 'echo "repositoryUrl: git@${CI_SERVER_HOST}:dev/nx.git"
      >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
@@ -212,7 +210,7 @@ k8s:robocat:deploy:
   secrets: !reference [.deploy_secrets, secrets]
   script:
   - !reference [.set_common_k8_values, script]
-  - 'echo "gitlabToken: ${GITLAB_API_TOKEN}"
+  - 'echo "gitlabToken: $(cat ${GITLAB_API_TOKEN_FILE})"
        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - 'echo "logLevel: ${ROBOCAT_LOG_LEVEL}"
        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
