@@ -9,11 +9,11 @@ include:
   secrets:
     KUBECONFIG: !reference [.k8s.deploy.template, secrets, KUBECONFIG]
     JIRA_PASSWORD_FILE:
-      vault: jira/service@networkoptix.com/@apptokens
+      vault: jira/service@networkoptix.com@apptokens
     SSH_PRIVATE_KEY_FILE:
       vault: gitlab/prod/workflow-robocat-ssh-private-key@apptokens
     GITLAB_API_TOKEN_FILE:
-      vault: gitlab/prodworkflow-police-app-token@apptokens
+      vault: gitlab/prod/workflow-police-app-token@apptokens
 
 .set_common_k8_values:
   script:
@@ -28,6 +28,8 @@ include:
   - 'echo "gitlabUrl: ${CI_SERVER_URL}" >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - 'echo "repositoryServer: ${CI_SERVER_HOST}"
      >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
+  - 'echo "gitlabToken: $(cat ${GITLAB_API_TOKEN_FILE})"
+       >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
 
 # Remove pod to apply changes even if helm metadata is unchanged
 .stop_k8_containers:
@@ -180,8 +182,6 @@ k8s:workflow_police:deploy:
   secrets: !reference [.deploy_secrets, secrets]
   script:
   - !reference [.set_common_k8_values, script]
-  - 'echo "gitlabToken: $(vault kv get --field="workflow-police-app-token" "apptokens/gitlab/prod")"
-       >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - 'echo "logLevel: ${WORKFLOW_POLICE_LOG_LEVEL}"
        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - !reference [.stop_k8_containers, script]
@@ -210,8 +210,6 @@ k8s:robocat:deploy:
   secrets: !reference [.deploy_secrets, secrets]
   script:
   - !reference [.set_common_k8_values, script]
-  - 'echo "gitlabToken: $(cat ${GITLAB_API_TOKEN_FILE})"
-       >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - 'echo "logLevel: ${ROBOCAT_LOG_LEVEL}"
        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - !reference [.stop_k8_containers, script]
