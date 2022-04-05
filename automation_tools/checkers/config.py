@@ -13,7 +13,6 @@ ALLOWED_VERSIONS_SETS = {
         set(['21.2', 'master']),
         set(['21.2']),
         set(['22.1', 'master']),
-        set(['22.1']),
         set(['Future']),
     ],
 }
