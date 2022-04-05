@@ -76,7 +76,7 @@ class TestOpenSourceRule:
                 }],
                 "blocking_discussions_resolved": True,
             },
-            commit_message_rule().ExecutionResult.commit_message_not_ok,
+            CommitMessageCheckRule.ExecutionResult.commit_message_not_ok,
             MessageId.BadCommitMessage,
         ),
         # Same as the previous but the author is an open source keeper.
@@ -91,7 +91,7 @@ class TestOpenSourceRule:
                 "author": {"username": OPEN_SOURCE_APPROVER_COMMON},
                 "blocking_discussions_resolved": True,
             },
-            commit_message_rule().ExecutionResult.merge_authorized,
+            CommitMessageCheckRule.ExecutionResult.merge_authorized,
             MessageId.BadCommitMessageByKeeper,
         ),
         # Same as the first case but some of the reviewers are open source keepers.
@@ -106,7 +106,7 @@ class TestOpenSourceRule:
                 "reviewers": [{"username": OPEN_SOURCE_APPROVER_COMMON_2}],
                 "blocking_discussions_resolved": True,
             },
-            commit_message_rule().ExecutionResult.commit_message_not_ok,
+            CommitMessageCheckRule.ExecutionResult.commit_message_not_ok,
             MessageId.BadCommitMessage,
         ),
     ])

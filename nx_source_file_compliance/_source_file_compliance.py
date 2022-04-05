@@ -1,7 +1,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Collection, List, Union
+from typing import Collection, List, NamedTuple, Union
 
 from ._make_trademarks_re import make_trademarks_re
 from ._generic_repo_check_config import RepoCheckConfig
@@ -11,10 +11,7 @@ _boundary_re = re.compile(
     r'(?<=[A-Z])(?=[a-z])|'
     r'(?<=_)|'
     r'\b')
-_case_re = re.compile(
-    r'[A-Z][a-z]+|'
-    r'[a-z]+|'
-    r'[A-Z]+')
+_case_re = re.compile(r'[A-Z]?(?:[a-z_]+\b)|(?:[A-Z_]+\b)')
 _offensive_re = re.compile(
     r'crazy|awful|stolen|shit|stupid|silly|ugly|hack|blya|fuck|porn|huy|huj|hui|zheppa|wtf|'
     r'(?<!s)hell(?!o)|mess(?!age|aging)',
@@ -39,13 +36,22 @@ _license_words_exceptions_re = re.compile(
     r'nx_copyright \"Copyright \(c\)|nx_copyright_owner \"Network Optix\"')
 
 
+class WordSearchResult(NamedTuple):
+    stem_start: str
+    stem: str
+    word: str
+
+
 class WordError:
 
-    def __init__(self, path, line_idx, match, reason):
+    def __init__(self, path: str, line_idx: int, search_result: WordSearchResult, reason: str):
         self.path = path
         self.line = line_idx + 1
-        self.col = match.start() + 1
-        self.word = match.group()
+        self.col = search_result.stem_start + 1
+        if search_result.word != search_result.stem:
+            self.word = f"{search_result.word} ({search_result.stem})"
+        else:
+            self.word = search_result.stem
         self.reason = reason
 
     def __repr__(self):
@@ -73,25 +79,28 @@ class FileError:
         return f"{self.path}: unknown file type"
 
 
-def _is_a_morpheme(line, start, end):
-    """Tell if a substring is a meaningful part of a word"""
-    # The full string is necessary to check for boundary based on letter case.
-    case_ok = _case_re.fullmatch(line, start, end) is not None
-    is_prefix = _boundary_re.match(line, start) is not None
-    is_suffix = _boundary_re.match(line, end) is not None
-    return case_ok and (is_prefix or is_suffix)
+def _get_word_by_substring(line: str, start: int, end: int) -> str:
+    """Check if a substring is a meaningful part of a word and return the whole word"""
+    # Check if the substring is in one case except maybe the first letter which can be capitalized.
+    if not _case_re.match(line, start, end):
+        return ""
+    if not _boundary_re.match(line, start) and not _boundary_re.match(line, end):
+        return ""
+    full_word_start = start - m.start() if (m := re.search(r"\W", line[:start][::-1])) else 0
+    full_word_end = end + m.start() if (m := re.search(r"\W", line[end:])) else len(line)
+    return line[full_word_start:full_word_end]
 
 
 def _find_offensive_words(line):
     for m in _offensive_re.finditer(line):
-        if _is_a_morpheme(line, m.start(), m.end()):
-            yield m
+        if full_word := _get_word_by_substring(line, m.start(), m.end()):
+            yield WordSearchResult(m.start(), m.group(), full_word)
 
 
 def _find_disclosure_words(line: str):
     for m in _disclosure_words_re.finditer(line):
-        if _is_a_morpheme(line, m.start(), m.end()):
-            yield m
+        if full_word := _get_word_by_substring(line, m.start(), m.end()):
+            yield WordSearchResult(m.start(), m.group(), full_word)
 
 
 def _find_trademarks(line, consider_exceptions=True):
@@ -104,9 +113,9 @@ def _find_trademarks(line, consider_exceptions=True):
         # Can't use _is_a_morpheme() for words like 'InParas', 'AgileVision', 'IncoreSoft' etc.
         # In case if match is a full word just yielding it
         elif any([words == [elem] for elem in line.split(' ')]):
-            yield m
-        elif _is_a_morpheme(line, m.start(), m.end()):
-            yield m
+            yield WordSearchResult(m.start(), m.group(), m.group())
+        elif full_word := _get_word_by_substring(line, m.start(), m.end()):
+            yield WordSearchResult(m.start(), m.group(), full_word)
 
 
 def _is_a_trademark_exception(line, match):
@@ -119,7 +128,7 @@ def _is_a_trademark_exception(line, match):
 def _find_license_words(line):
     for m in _license_words_re.finditer(line):
         if not _is_a_license_word_exception(line, m):
-            yield m
+            yield WordSearchResult(m.start(), m.group(), m.group())
 
 
 def _is_a_license_word_exception(line, match):
@@ -245,15 +254,19 @@ def _check_words(
     errors = []
     for line_idx in range(start_line_idx, end_line_idx):
         if license_words:
-            for m in _find_license_words(lines[line_idx]):
-                errors.append(WordError(path, line_idx, m, 'license'))
+            for search_result in _find_license_words(lines[line_idx]):
+                errors.append(WordError(path, line_idx, search_result, 'license'))
         if disclosure_words:
-            for m in _find_disclosure_words(lines[line_idx]):
-                errors.append(WordError(path, line_idx, m, 'implementation disclosure'))
-        for m in _find_trademarks(lines[line_idx], consider_trademark_exceptions):
-            errors.append(WordError(path, line_idx, m, 'trademark'))
-        for m in _find_offensive_words(lines[line_idx]):
-            errors.append(WordError(path, line_idx, m, 'offensive'))
+            for word_search_result in _find_disclosure_words(lines[line_idx]):
+                errors.append(WordError(
+                    path,
+                    line_idx,
+                    word_search_result,
+                    'implementation disclosure'))
+        for word_search_result in _find_trademarks(lines[line_idx], consider_trademark_exceptions):
+            errors.append(WordError(path, line_idx, word_search_result, 'trademark'))
+        for word_search_result in _find_offensive_words(lines[line_idx]):
+            errors.append(WordError(path, line_idx, word_search_result, 'offensive'))
 
     return errors
 
