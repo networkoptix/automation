@@ -9,4 +9,4 @@ setuptools.setup(
     package_data={
         "": ["organization_domains.txt"],
     },
-    version='2.2.1')
+    version='2.2.2')
