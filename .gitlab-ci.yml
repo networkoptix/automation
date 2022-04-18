@@ -73,6 +73,8 @@ pep8:
 robocat:test:
   image: python:3.8
   stage: test
+  tags:
+  - service
   variables:
     ROBOCAT_DIR: bots/robocat
     PYTHONPATH: .
@@ -92,6 +94,8 @@ robocat:test:
 workflow_police:test:
   image: python:3.8
   stage: test
+  tags:
+  - service
   variables:
     POLICE_DIR: bots/workflow_police
     PYTHONPATH: .
@@ -111,6 +115,8 @@ workflow_police:test:
 source_files_compliance:test:
   image: python:3.8
   stage: test
+  tags:
+  - service
   variables:
     PYTHONPATH: .
   script:

@@ -14,7 +14,7 @@ standard_projects: &standard_projects
 
 vms_repo: &vms_repo
     path: /tmp/nx
-    url: "git@gitlab.lan.hdw.mx:dev/nx.git"
+    url: "git@gitlab.nxvms.dev:dev/nx.git"
 
 checkers:
     ignore_by_project:
@@ -56,7 +56,7 @@ polling_period_min: 5
 last_check_file: /tmp/last_check
 
 gitlab:
-    url: https://gitlab.lan.hdw.mx/
+    url: https://gitlab.nxvms.dev/
     private_token: <PRIVATE_TOKEN>
     api_version: "4"
     timeout: 20

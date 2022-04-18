@@ -44,7 +44,7 @@ class Jira:
             if versions:
                 fixVersions.append(versions[0])
 
-        gitlab_host_url = os.getenv("CI_SERVER_URL", "https://gitlab.lan.hdw.mx")
+        gitlab_host_url = os.getenv("CI_SERVER_URL", "https://gitlab.nxvms.dev")
         remoteLinks = [
             RemoteLink(f"{gitlab_host_url}/dev/nx/-/merge_requests/{mr_id}")
             for mr_id in (merge_requests or [])]

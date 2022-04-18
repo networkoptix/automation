@@ -101,7 +101,7 @@ def main():
         "config_file",
         help=(
             "Yaml file with configuration options, example: "
-            "https://gitlab.lan.hdw.mx/dev/Automation/-/blob/master/bots/workflow_police/"
+            "https://gitlab.nxvms.dev/dev/Automation/-/blob/master/bots/workflow_police/"
             'config.test.yaml. This parameter is mandatory.'))
     parser.add_argument(
         "--days", type=int, default=45,

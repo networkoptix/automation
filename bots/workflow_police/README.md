@@ -11,7 +11,7 @@ Releases should be mapped to repository permanent branches at https://networkopt
 
 # Parameters
 - config_file: yaml file with configuration options, example (is used for unit tests):
-https://gitlab.lan.hdw.mx/dev/Automation/-/blob/master/bots/workflow_police/config.test.yaml
+https://gitlab.nxvms.dev/dev/Automation/-/blob/master/bots/workflow_police/config.test.yaml
 - --log-level: {CRITICAL,FATAL,ERROR,WARN,WARNING,INFO,DEBUG,NOTSET} level for logging,
 default INFO
 

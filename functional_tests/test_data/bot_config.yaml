@@ -13,7 +13,7 @@ jira:
 
 repo:
     path: /var/workflow_robocat/testrepo
-    url: "git@gitlab.lan.hdw.mx:dev-functests/testrepo.git"
+    url: "git@gitlab.nxvms.dev:dev-functests/testrepo.git"
 
 # Configuration for "open source check" rule.
 open_source_check_rule:

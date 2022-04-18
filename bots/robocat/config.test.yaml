@@ -13,7 +13,7 @@ jira:
 
 repo:
     path: /var/workflow_robocat/nx
-    url: "git@gitlab.lan.hdw.mx:dev/nx.git"
+    url: "git@gitlab.nxvms.dev:dev/nx.git"
 
 # Configuration for checking open-source part of the project.
 open_source_check_rule:

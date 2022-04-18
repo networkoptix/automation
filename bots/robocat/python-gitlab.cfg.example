@@ -4,7 +4,7 @@ ssl_verify = true
 timeout = 20
 
 [nx_gitlab]
-url = https://gitlab.lan.hdw.mx/
+url = https://gitlab.nxvms.dev/
 private_token = TOKEN_HERE
 api_version = 4
 
