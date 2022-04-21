@@ -49,14 +49,16 @@ class WordError:
         self.path = path
         self.line = line_idx + 1
         self.col = search_result.stem_start + 1
-        if search_result.word != search_result.stem:
-            self.word = f"{search_result.word} ({search_result.stem})"
-        else:
-            self.word = search_result.stem
+        self.word = search_result.word
+        self.stem = search_result.stem
         self.reason = reason
 
     def __repr__(self):
-        return f"{self.path}:{self.line}:{self.col}: {self.reason} word: \"{self.word}\""
+        if self.stem != self.word:
+            quoted_word = f'`{self.word}` (stem `{self.stem}`)'
+        else:
+            quoted_word = '`{self.word}`'
+        return f"{self.path}:{self.line}:{self.col}: {self.reason} word: {quoted_word}"
 
 
 class LineError:

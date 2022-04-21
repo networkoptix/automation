@@ -26,6 +26,7 @@ def file_errors(file_name: str, file_content: str) -> List[FileError]:
             error_type = f"{raw_error.reason}_word"
             error_params = {
                 "word": raw_error.word,
+                "stem": raw_error.stem,
                 "position": f"{raw_error.path!s}:{raw_error.line}",
             }
         elif raw_error_type == source_file_compliance.LineError:

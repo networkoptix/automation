@@ -99,11 +99,11 @@ expected:
 `{expected}`
 """
 
-bad_open_source_license_word = "License word at {position}: **{word}**"
+bad_open_source_license_word = "License word at line {position}: **`{word}`** (stem **`{stem}`**)"
 
-bad_open_source_trademark_word = "Trademark at {position}: **{word}**"
+bad_open_source_trademark_word = "Trademark at line {position}: **`{word}`** (stem **`{stem}`**)"
 
-bad_open_source_offensive_word = "Bad word at {position}: **{word}**"
+bad_open_source_offensive_word = "Bad word at line {position}: **`{word}`** (stem **`{stem}`**)"
 
 bad_open_source_file_type = "Unknown file type: **{file}**"
 
