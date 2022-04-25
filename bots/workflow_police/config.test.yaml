@@ -28,7 +28,9 @@ checkers:
     ignore_by_type:
         projects: *standard_projects
     ignore_fixed:
-        projects: *standard_projects
+        projects:
+            - *standard_projects
+            - CLOUD
     ignore_by_version:
         projects:
             - CLOUD
