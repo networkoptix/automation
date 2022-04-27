@@ -164,13 +164,13 @@ def is_check_needed(
 def check_file_content(path, content) -> Collection[Union[WordError, LineError, FileError]]:
 
     def _check_has_mpl(line_idx, prefix, postfix=''):
-        line = lines[line_idx]
+        line = lines[line_idx] if len(lines) > line_idx else None
         expected = prefix + _mpl + postfix
         if line != expected:
             errors.append(LineError(path, line_idx, line, expected))
 
     def _check_has_empty_line(line_idx):
-        line = lines[line_idx]
+        line = lines[line_idx] if len(lines) > line_idx else None
         if line != '':
             errors.append(LineError(path, line_idx, line, ''))
 
@@ -252,7 +252,9 @@ def _check_words(
         disclosure_words: bool = False,
         consider_trademark_exceptions: bool = True,
         path: Path = None) -> List[WordError]:
-    if end_line_idx is None:
+    if start_line_idx >= len(lines):
+        return []
+    if end_line_idx is None or end_line_idx > len(lines):
         end_line_idx = len(lines)
     errors = []
     for line_idx in range(start_line_idx, end_line_idx):
