@@ -39,7 +39,9 @@ class NxSubmoduleStoredCheckResults(StoredCheckResults):
     UNCHECKABLE_MESSAGE_IDS = {
         MessageId.NxSubmoduleCheckHugeDiffUncheckable,
     }
-    NEEDS_MANUAL_CHECK_MESSAGE_IDS = {}
+    NEEDS_MANUAL_CHECK_MESSAGE_IDS = {
+         MessageId.NxSubmoduleCheckHugeDiffUncheckable,
+    }
 
 
 class NxSubmoduleCheckRule(CheckChangesMixin, BaseRule):

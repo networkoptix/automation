@@ -20,7 +20,9 @@ class AwardEmojiManager():
     FOLLOWUP_MERGE_REQUEST_EMOJI = "fast_forward"
     CHERRY_PICK_EMOJI = "cherries"
     UNFINISHED_PROCESSING_EMOJI = "point_up"
+    # TODO: Remove this constant when the check for a "huge diff" is eliminated.
     AUTOCHECK_IMPOSSIBLE_EMOJI = "raised_back_of_hand"
+    NEED_MANUAL_CHECK_EMOJI = "raised_back_of_hand"
     BAD_ISSUE_EMOJI = "beetle"
     LOCAL_SQUASH_PROBLEMS_EMOJI = "warning"
     NOTIFICATION_EMOJI = "bell"

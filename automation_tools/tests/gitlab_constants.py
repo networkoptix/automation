@@ -25,6 +25,8 @@ FILE_COMMITS_SHA = {
     "opensource_unknown_file": "107",
     "good_opensource_file": "108",
     "nx_submodule_changes_base": "109",
+    "opensource_bad_new_file": "110",
+    "opensource_deleted_new_file": "111",
 }
 CONFLICTING_COMMIT_SHA = "1001"
 BAD_OPENSOURCE_COMMIT = {

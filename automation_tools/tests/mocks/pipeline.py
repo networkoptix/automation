@@ -7,6 +7,7 @@ from automation_tools.tests.mocks.gitlab import GitlabManagerMock
 @dataclass
 class JobMock:
     pipeline: Any
+    name: str = ""
     id: int = 0
     status: str = "manual"
 

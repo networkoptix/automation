@@ -10,7 +10,12 @@ import gitlab
 
 import robocat.comments
 from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.pipeline import Pipeline, PipelineStatus, PlayPipelineError, RunPipelineReason
+from robocat.pipeline import (
+    Pipeline,
+    PipelineStatus,
+    PlayPipelineError,
+    RunPipelineReason,
+    JobStatus)
 from robocat.action_reasons import WaitReason, ReturnToDevelopmentReason
 from robocat.merge_request import MergeRequest
 from robocat.note import Comment, MessageId, Note
@@ -620,3 +625,11 @@ class MergeRequestManager:
           message,
           emoji=AwardEmojiManager.ISSUE_NOT_MOVED_TO_QA_EMOJI,
           message_id=MessageId.FollowUpIssueNotMovedToQA)
+
+    def last_pipeline_check_job_status(self, job_name: str) -> Optional[JobStatus]:
+        pipeline = self._get_last_pipeline(include_skipped=True)
+        for j in pipeline.jobs():
+            if j.name != job_name:
+                continue
+            return JobStatus(j.status)
+        return None

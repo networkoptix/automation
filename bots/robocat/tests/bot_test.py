@@ -21,13 +21,21 @@ class TestBot:
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [BAD_OPENSOURCE_COMMIT],
-            "pipelines_list": [(BAD_OPENSOURCE_COMMIT["sha"], "success")]
+            "pipelines_list": [(
+                BAD_OPENSOURCE_COMMIT["sha"],
+                "success",
+                [("open-source:check", "failed"), ("new-open-source-files:check", "success")],
+            )],
         }),
         ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [GOOD_README_COMMIT_NEW_FILE],
-            "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")]
+            "pipelines_list": [(
+                GOOD_README_COMMIT_NEW_FILE["sha"],
+                "success",
+                [("open-source:check", "success"), ("new-open-source-files:check", "failed")],
+            )],
         }),
     ])
     def test_autoreturn_to_develop(self, bot, mr, mr_manager):
@@ -56,7 +64,7 @@ class TestBot:
         assert emojis_before == emojis_after
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
-        # One commit.
+        # One commit, no changes in open-source.
         ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"]}], {
             "title": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[0],
             "description": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[1],
@@ -65,6 +73,21 @@ class TestBot:
             "commits_list": [GOOD_README_COMMIT_NEW_FILE],
             "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
+            "squash": False
+        }),
+        # One commit, good changes in open-source.
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"]}], {
+            "title": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[0],
+            "description": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[1],
+            "blocking_discussions_resolved": True,
+            "needed_approvers_number": 0,
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
+            "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
+            "pipelines_list": [(
+                GOOD_README_COMMIT_NEW_FILE["sha"],
+                "success",
+                [("open-source:check", "success"), ("new-open-source-files:check", "success")],
+            )],
             "squash": False
         }),
         # One commit, "Closes <issue_key>" auto-added.

@@ -93,6 +93,6 @@ class EssentialRule(BaseRule):
             mr_manager.return_to_development(ReturnToDevelopmentReason.failed_pipeline)
             return self.ExecutionResult.pipeline_failed
 
-        assert last_pipeline_status == PipelineStatus.succeded, "Unexpected pipeline status"
+        assert last_pipeline_status == PipelineStatus.succeeded, "Unexpected pipeline status"
 
         return self.ExecutionResult.essential_rule_ok

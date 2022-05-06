@@ -9,7 +9,7 @@ from gitlab.exceptions import GitlabMRClosedError
 
 from automation_tools.tests.mocks.git_mocks import BOT_USERNAME
 from automation_tools.tests.mocks.gitlab import GitlabManagerMock
-from automation_tools.tests.mocks.pipeline import PipelineMock
+from automation_tools.tests.mocks.pipeline import PipelineMock, JobMock
 from automation_tools.tests.mocks.commit import CommitMock
 from automation_tools.tests.gitlab_constants import (
     DEFAULT_COMMIT,
@@ -249,6 +249,10 @@ class MergeRequestMock:
 
         for p_id, p_data in enumerate(self.pipelines_list):
             pipeline = PipelineMock(project=self.project, id=p_id, sha=p_data[0], status=p_data[1])
+            if len(p_data) > 2:  # Mock pipeline with jobs.
+                for job_data in p_data[2]:
+                    self.project.jobs.add_mock_job(
+                        JobMock(pipeline=pipeline, name=job_data[0], status=job_data[1]))
             self.project.pipelines.add_mock_pipeline(pipeline)
 
         for commit_data in self.commits_list:
@@ -281,6 +285,18 @@ class MergeRequestMock:
     def add_mock_commit(self, commit_data: dict):
         self.commits_list.append(commit_data)
         self._register_commit(commit_data)
+
+    def add_mock_pipeline(self, pipeline_data: dict):
+        new_pipeline_id = len(self.project.pipelines.list())
+        pipeline = PipelineMock(
+            project=self.project,
+            id=new_pipeline_id,
+            sha=pipeline_data.get("sha", self.sha),
+            status=pipeline_data.get("status", "success"))
+        for job_data in pipeline_data["jobs"]:
+            self.project.jobs.add_mock_job(
+                JobMock(pipeline=pipeline, name=job_data[0], status=job_data[1]))
+        self.project.pipelines.add_mock_pipeline(pipeline)
 
     # Gitlab library merge request interface implementation.
     @property

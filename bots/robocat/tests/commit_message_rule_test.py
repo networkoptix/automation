@@ -11,11 +11,12 @@ from automation_tools.tests.gitlab_constants import (
     OPEN_SOURCE_APPROVER_COMMON,
     OPEN_SOURCE_APPROVER_COMMON_2,
     OPEN_SOURCE_APPROVER_CLIENT,
-    BAD_README_RAW_DATA)
+    BAD_README_RAW_DATA,
+    BAD_OPENSOURCE_COMMIT)
 from tests.fixtures import *
 
 
-class TestOpenSourceRule:
+class TestCommitMessageRule:
     @pytest.mark.parametrize("mr_state", [
         # MR without open source files.
         {
@@ -36,16 +37,41 @@ class TestOpenSourceRule:
         {
             "commits_list": [GOOD_README_COMMIT_NEW_FILE],
             "blocking_discussions_resolved": True,
+            "pipelines_list": [(
+                GOOD_README_COMMIT_NEW_FILE["sha"],
+                "success",
+                [("open-source:check", "success"), ("new-open-source-files:check", "failed")],
+            )],
         },
-        # Simple Merge Request containing a changed open source file.
+        # Simple Merge Request containing a good changed open source file.
         {
             "commits_list": [GOOD_README_COMMIT_CHANGED_FILE],
             "blocking_discussions_resolved": True,
+            "pipelines_list": [(
+                GOOD_README_COMMIT_CHANGED_FILE["sha"],
+                "success",
+                [("open-source:check", "success"), ("new-open-source-files:check", "success")],
+            )],
+        },
+        # Simple Merge Request containing a bad changed open source file.
+        {
+            "commits_list": [BAD_OPENSOURCE_COMMIT],
+            "blocking_discussions_resolved": True,
+            "pipelines_list": [(
+                BAD_OPENSOURCE_COMMIT["sha"],
+                "success",
+                [("open-source:check", "failed"), ("new-open-source-files:check", "success")],
+            )],
         },
         # Simple Merge Request containing a deleted open source file.
         {
             "commits_list": [GOOD_README_COMMIT_DELETED_FILE],
             "blocking_discussions_resolved": True,
+            "pipelines_list": [(
+                GOOD_README_COMMIT_DELETED_FILE["sha"],
+                "success",
+                [("open-source:check", "success"), ("new-open-source-files:check", "success")],
+            )],
         },
     ])
     def test_commit_message_is_ok(self, commit_message_rule, mr, mr_manager):
@@ -75,6 +101,11 @@ class TestOpenSourceRule:
                     "files": GOOD_README_COMMIT_NEW_FILE["files"],
                 }],
                 "blocking_discussions_resolved": True,
+                "pipelines_list": [(
+                    GOOD_README_COMMIT_NEW_FILE["sha"],
+                    "success",
+                    [("open-source:check", "success"), ("new-open-source-files:check", "failed")],
+                )],
             },
             CommitMessageCheckRule.ExecutionResult.commit_message_not_ok,
             MessageId.BadCommitMessage,
@@ -90,6 +121,11 @@ class TestOpenSourceRule:
                 }],
                 "author": {"username": OPEN_SOURCE_APPROVER_COMMON},
                 "blocking_discussions_resolved": True,
+                "pipelines_list": [(
+                    GOOD_README_COMMIT_NEW_FILE["sha"],
+                    "success",
+                    [("open-source:check", "success"), ("new-open-source-files:check", "failed")],
+                )],
             },
             CommitMessageCheckRule.ExecutionResult.merge_authorized,
             MessageId.BadCommitMessageByKeeper,
@@ -105,6 +141,11 @@ class TestOpenSourceRule:
                 }],
                 "reviewers": [{"username": OPEN_SOURCE_APPROVER_COMMON_2}],
                 "blocking_discussions_resolved": True,
+                "pipelines_list": [(
+                    GOOD_README_COMMIT_NEW_FILE["sha"],
+                    "success",
+                    [("open-source:check", "success"), ("new-open-source-files:check", "failed")],
+                )],
             },
             CommitMessageCheckRule.ExecutionResult.commit_message_not_ok,
             MessageId.BadCommitMessage,

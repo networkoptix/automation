@@ -4,12 +4,11 @@ from typing import Dict, List, Set, Tuple
 from dataclasses import asdict
 from enum import Enum
 
-from robocat.merge_request_manager import MergeRequestManager, ApprovalRequirements
+from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 import robocat.rule.helpers.approve_rule_helpers as approve_rule_helpers
 import robocat.rule.helpers.commit_message_checker as commit_message_checker
-import robocat.rule.helpers.open_source_file_checker as open_source_file_checker
 from robocat.rule.helpers.statefull_checker_helpers import (
     CheckChangesMixin,
     ErrorCheckResult,
@@ -36,6 +35,8 @@ class CommitMessageStoredCheckResults(StoredCheckResults):
     OK_MESSAGE_IDS = {
         MessageId.CommitMessageIsOk,
     }
+    UNCHECKABLE_MESSAGE_IDS = set()
+    NEEDS_MANUAL_CHECK_MESSAGE_IDS = set()
 
 
 class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
@@ -64,29 +65,32 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
         if preliminary_check_result != self.ExecutionResult.preliminary_check_passed:
             return preliminary_check_result
 
-        has_changed_open_source_files = any(
-            open_source_file_checker.affected_open_source_files(mr_manager))
-        if self._is_diff_complete(mr_manager) and not has_changed_open_source_files:
+        if not self._has_changes_in_open_source(mr_manager):
             return self.ExecutionResult.not_applicable
 
         error_check_result = self._do_error_check(
             mr_manager=mr_manager, check_results_class=CommitMessageStoredCheckResults)
 
-        keepers = approve_rule_helpers.get_all_open_source_keepers(self._approve_rules)
-        logger.debug(f"{mr_manager}: Authorized approvers are {keepers!r}")
-        approval_requirements = ApprovalRequirements(authorized_approvers=keepers)
-
         if error_check_result.has_errors:
             self._ensure_problem_comments(mr_manager, error_check_result)
+            approval_requirements = approve_rule_helpers.get_approval_requirements(
+                approve_rules=self._approve_rules, mr_manager=mr_manager)
             if mr_manager.satisfies_approval_requirements(approval_requirements):
                 return self.ExecutionResult.merge_authorized
-            preferred_approvers = self._get_keepers_by_changed_files(mr_manager)
+            preferred_approvers = approve_rule_helpers.get_keepers(
+                approve_rules=self._approve_rules, mr_manager=mr_manager, for_affected_files=True)
             if mr_manager.ensure_authorized_approvers(preferred_approvers):
                 logger.debug(f"{mr_manager}: Preferred approvers assigned to MR.")
             return self.ExecutionResult.commit_message_not_ok
 
         self._ensure_problems_not_found_comment(mr_manager, error_check_result)
         return self.ExecutionResult.commit_message_is_ok
+
+    def _has_changes_in_open_source(self, mr_manager: MergeRequestManager) -> bool:
+        # We rely on the pipeline check here: if the job for open-source check is not created
+        # we assume that there are no changes in the open-source part of the project.
+        open_source_check_result = mr_manager.last_pipeline_check_job_status("open-source:check")
+        return open_source_check_result is not None
 
     def _find_errors(
             self,
@@ -118,13 +122,13 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
             error: commit_message_checker.CommitMessageError):
         title = "Commit message auto-check failed"
 
-        keepers = self._get_keepers_by_changed_files(mr_manager)
-        is_author_authorized_approver = (mr_manager.data.author_name in keepers)
-        if is_author_authorized_approver:
+        if approve_rule_helpers.is_mr_author_keeper(self._approve_rules, mr_manager):
             message = robocat.comments.bad_commit_message_from_authorized_approver.format(
                 error_message=error.raw_text)
             message_id = MessageId.BadCommitMessageByKeeper
         else:
+            keepers = approve_rule_helpers.get_keepers(
+                approve_rules=self._approve_rules, mr_manager=mr_manager, for_affected_files=True)
             message = robocat.comments.bad_commit_message.format(
                 error_message=error.raw_text,
                 approvers=", @".join(keepers))
@@ -148,8 +152,3 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
             message_id=MessageId.CommitMessageIsOk,
             emoji=AwardEmojiManager.AUTOCHECK_OK_EMOJI,
             autoresolve=True)
-
-    def _get_keepers_by_changed_files(self, mr_manager: MergeRequestManager) -> Set[str]:
-        changed_files = list(open_source_file_checker.affected_open_source_files(mr_manager))
-        return approve_rule_helpers.get_open_source_keepers_for_files(
-            files=changed_files, approve_rules=self._approve_rules)

@@ -39,33 +39,29 @@ continue the merge process.
 conflicts_message = f"""Merge Request returned to development.
 Please, do manual rebase and [mark as Ready]({_mark_as_ready_url}) to continue merging process."""
 
-has_good_changes_in_open_source = """No problems were revealed by the auto-check. This merge
-request contains new or renamed files in the open source part of the project, so it **must be
-approved** by one of: @{approvers}.
+has_new_files_in_open_source = """This merge request contains new or renamed files in the
+open-source part of the project, so it **must be approved** by one of: @{approvers}.
 """
 
-has_unimportant_changes_in_open_source = """This merge request contains changes in the open source
-part of the project. No problems were revealed by the auto-check.
+has_good_changes_in_open_source = """This merge request contains changes in the open-source part of
+the project. No problems were revealed by the auto-check.
 """
 
-may_have_changes_in_open_source = """Unable to check whether this merge request contains
-changes in the open source part of the project due to the huge amount of changes (gitlab
-limitation), so it **must be approved** by one of: @{approvers}.
+has_bad_changes_in_open_source = """
+Auto-check of this merge request has failed. Full report about the problems can be seen in the
+output of the **open-source:check** job or as the **open-source-check-report** artifact. Fix all
+the issues, or ask one of @{approvers} to approve this merge request. Otherwise, this merge request
+**will not be merged**.
 """
 
-check_changes_manually = """Unable to check whether this merge request contains changes in the open
-source part of the project due to the huge amount of changes (gitlab limitation). Please, check it
-manually for dangerous changes.
+has_bad_changes_and_new_files_in_open_source = """
+Auto-check of this merge request has failed. Full report about the problems can be seen in the
+output of the **open-source:check** job or as the **open-source-check-report** artifact. Also, it
+contains new or renamed files in the open-source part of the project, so it must be approved by one
+of: @{approvers}.
 """
 
-has_bad_changes_in_open_source_optional_approval = """{error_message}
-
-Auto-check of this merge request has failed. Fix all the issues, or ask one of @{approvers} to
-approve this merge request. Otherwise, this merge request **will not be merged**.
-"""
-
-has_bad_changes_from_authorized_approver = """{error_message}
-
+has_bad_changes_from_authorized_approver = """
 Auto-check of this merge request has failed. Please, check carefully all the issues and fix them if
 needed.
 """
@@ -83,29 +79,6 @@ needed.
 """
 
 commit_message_is_ok = "Commit message is ok."
-
-has_bad_changes_in_open_source = """{error_message}
-
-Auto-check of this Merge Request has failed. Also, it contains new or renamed files in the
-open-source part of the project, so it must be approved by one of: @{approvers}.
-"""
-
-bad_open_source_line = """Check failed at {position}: line is
-
-`{actual}`
-
-expected:
-
-`{expected}`
-"""
-
-bad_open_source_license_word = "License word at line {position}: **`{word}`** (stem **`{stem}`**)"
-
-bad_open_source_trademark_word = "Trademark at line {position}: **`{word}`** (stem **`{stem}`**)"
-
-bad_open_source_offensive_word = "Bad word at line {position}: **`{word}`** (stem **`{stem}`**)"
-
-bad_open_source_file_type = "Unknown file type: **{file}**"
 
 failed_pipeline_message = f"""Merge Request returned to development.
 Please, fix the errors and [mark as Ready]({_mark_as_ready_url}) to continue merging process.\n

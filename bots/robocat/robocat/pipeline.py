@@ -1,6 +1,8 @@
 import enum
 import logging
-import gitlab
+from typing import List
+
+import gitlab.v4.objects
 
 logger = logging.getLogger(__name__)
 
@@ -8,7 +10,7 @@ logger = logging.getLogger(__name__)
 class PipelineStatus(enum.Enum):
     skipped = enum.auto()
     running = enum.auto()
-    succeded = enum.auto()
+    succeeded = enum.auto()
     failed = enum.auto()
 
 
@@ -18,6 +20,29 @@ class RunPipelineReason(enum.Enum):
     mr_rebased = "checking if rebase fixed previous fails"
     mr_updated = "checking new MR state"
     requested_by_user = "CI check requested by the user"
+
+
+class JobStatus(enum.Enum):
+    running = enum.auto()
+    succeeded = enum.auto()
+    failed = enum.auto()
+    other = enum.auto()
+
+
+class Job:
+    def __init__(self, raw_job: gitlab.v4.objects):
+        self.name = raw_job.name
+        self.status = self._job_status_from_string(raw_job.status)
+
+    @staticmethod
+    def _job_status_from_string(raw_status: str) -> JobStatus:
+        if raw_status == "success":
+            return JobStatus.succeeded
+        if raw_status == "running":
+            return JobStatus.running
+        if raw_status == "failed":
+            return JobStatus.failed
+        return JobStatus.other
 
 
 class PlayPipelineError(RuntimeError):
@@ -60,10 +85,13 @@ class Pipeline:
             return PipelineStatus.running
 
         if status == "success":
-            return PipelineStatus.succeded
+            return PipelineStatus.succeeded
 
         assert status == "failed", f"Unexpected status {status}"
         return PipelineStatus.failed
+
+    def jobs(self) -> List[Job]:
+        return [Job(j) for j in self._get_all_jobs()]
 
     def play(self):
         if self._gitlab_pipeline.status != "manual":

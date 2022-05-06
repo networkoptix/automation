@@ -12,8 +12,6 @@ class MessageId(Enum):
         return name
 
     Initial = auto()
-    OpenSourceHugeDiffNeedsManualCheck = auto()
-    OpenSourceHugeDiffCallKeeper = auto()
     OpenSourceHasBadChangesFromKeeper = auto()
     OpenSourceHasBadChangesCallKeeperMandatory = auto()
     OpenSourceHasBadChangesCallKeeperOptional = auto()
