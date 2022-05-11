@@ -69,9 +69,9 @@ class TestWorkflowCheckRule:
         }),
         # Merge request is attached to one good Jira Issue (2)
         ([{
-            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]
         }, {
-            "key": "VMS-667", "branches": ["master", "vms_4.2_patch"]
+            "key": "VMS-667", "branches": ["master", "vms_5.0_patch"]
         }], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Also fix VMS-667",
             "commits_list": [{
@@ -82,9 +82,9 @@ class TestWorkflowCheckRule:
         }),
         # Merge request is attached to two good Jira Issue.
         ([{
-            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]
         }, {
-            "key": "VMS-667", "branches": ["master", "vms_4.2_patch"]
+            "key": "VMS-667", "branches": ["master", "vms_5.0_patch"]
         }], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}, VMS-667: Multiple Jira Issues",
             "commits_list": [{
@@ -131,7 +131,7 @@ class TestWorkflowCheckRule:
             "branches": ["vms_4.2"],
             "labels": [automation_tools.checkers.config.IGNORE_LABEL]
         }, {
-            "key": "VMS-667", "branches": ["master", "vms_4.2", "vms_4.2_patch"]
+            "key": "VMS-667", "branches": ["master", "vms_5.0", "vms_5.0_patch"]
         }], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}, VMS-667: Multiple Jira Issues",
             "commits_list": [{
@@ -147,8 +147,8 @@ class TestWorkflowCheckRule:
         # Merge Request is attached to good Jira Issues from different projects with different
         # fixVersions.
         ([
-            {"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0"]},
-            {"key": "VMS-667", "branches": ["master", "vms_5.0"]},
+            {"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]},
+            {"key": "VMS-667", "branches": ["master", "vms_5.0_patch"]},
             {"key": "CB-1", "branches": ["master", "cloud_backend_20.1"]},
         ], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}, VMS-667, CB-1: Multiple Jira Issues",
@@ -168,7 +168,7 @@ class TestWorkflowCheckRule:
         }),
         # Different commit message and title for squashed Merge Request with one commit.
         ([{
-            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]
         }], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Merge request title",
             "commits_list": [{
@@ -226,7 +226,7 @@ class TestWorkflowCheckRule:
         }),
         # One of the commit messages doesn't commit Jira Issue reference in squashed MR.
         ([{
-            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]
         }], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Merge request title",
             "commits_list": [{
@@ -310,8 +310,8 @@ class TestWorkflowCheckRule:
         }),
         # Merge Request is attached to good Jira Issues with different fixVersions.
         ([
-            {"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0", "vms_4.2_patch"]},
-            {"key": "VMS-667", "branches": ["master", "vms_5.0"]},
+            {"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0", "vms_5.0_patch"]},
+            {"key": "VMS-667", "branches": ["master", "vms_5.0_patch"]},
         ], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}, VMS-667: Multiple Jira Issues"
         }),
@@ -360,16 +360,16 @@ class TestWorkflowCheckRule:
         # No commit for one of the Jira Issues in the Merge Request title for non-squashed Merge
         # Request.
         ([{
-            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]
         }, {
-            "key": "VMS-667", "branches": ["master", "vms_4.2_patch"]
+            "key": "VMS-667", "branches": ["master", "vms_5.0_patch"]
         }], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}, VMS-667: Multiple Jira Issues",
             "squash": False,
         }),
         # Different commit message and title for non-squashed Merge Request with one commit.
         ([{
-            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]
         }], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Merge request title",
             "commits_list": [{
@@ -381,7 +381,7 @@ class TestWorkflowCheckRule:
         }),
         # Squashed follow-up with parethesis in the begining of the title.
         ([{
-            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]
         }], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: (master->vms_5.0) Merge request title",
             "commits_list": [{
@@ -393,7 +393,7 @@ class TestWorkflowCheckRule:
             "squash": True,
         }),
         ([{
-            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]
         }], {
             "title": f"(master->vms_5.0) Merge request title",
             "commits_list": [{
@@ -407,7 +407,7 @@ class TestWorkflowCheckRule:
         }),
         # One of the commit messages doesn't commit Jira Issue reference in non-squashed MR.
         ([{
-            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.2_patch"]
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]
         }], {
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Merge request title",
             "commits_list": [{

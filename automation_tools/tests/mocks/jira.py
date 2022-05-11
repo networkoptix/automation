@@ -64,13 +64,10 @@ class Jira:
     def project_versions(project: str):
         return {
             "VMS": [
-                Version("4.0", "<vms_4.0_release>"),
-                Version("4.0_patch", "<vms_4.0> 4.0 Monthly patches"),
-                Version("4.1", "<vms_4.1_release> Minor release with Health Monitoring"),
-                Version("4.1_patch", "<vms_4.1> 4.1 Monthly patches"),
                 Version("4.2", "<vms_4.2> Major release with plugins"),
                 Version("4.2_patch", "<vms_4.2_patch> 4.2 Monthly patches"),
                 Version("5.0", "<vms_5.0> 5.0 Release"),
+                Version("5.0_patch", "<vms_5.0_patch> 5.2 Monthly patches"),
                 Version("master", "<master> Major release with a lot of tech debt")
             ],
             "MOBILE": [
@@ -88,6 +85,7 @@ class Jira:
                 Version("21.1", ""),
                 Version("master", "<master>"),
                 Version("5.0", "<vms_5.0>"),
+                Version("5.0_patch", "<vms_5.0_patch>"),
             ],
         }.get(project, {})
 

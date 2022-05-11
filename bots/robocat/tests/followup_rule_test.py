@@ -23,11 +23,11 @@ from tests.fixtures import *
 class TestFollowupRule:
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Don't create follow-up merge request for opened merge request.
-        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.1"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]}], {
             "state": "opened",
         }),
         # Don't create follow-up merge request for follow-up merge requests.
-        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.1"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]}], {
             "state": "merged",
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI]
@@ -39,7 +39,7 @@ class TestFollowupRule:
 
         project_remote = project.namespace["full_path"]
         repo_accessor.create_branch(
-            target_remote=project_remote, new_branch="vms_4.1", source_branch="master")
+            target_remote=project_remote, new_branch="vms_5.0_patch", source_branch="master")
         for c in mr.commits_list:
             repo_accessor.repo.add_mock_commit(c["sha"], c["message"])
         repo_accessor.repo.remotes[project_remote].mock_attach_gitlab_project(project)
@@ -65,7 +65,7 @@ class TestFollowupRule:
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Fail to create follow-up merge request if the target branch already exists.
-        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.1"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]}], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
@@ -76,7 +76,7 @@ class TestFollowupRule:
         # target branches already exists and is opened.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
+            "branches": ["master", "vms_5.0_patch"],
             "merge_requests": [MERGED_TO_4_1_MERGE_REQUESTS["opened"]["iid"]]
         }], {
             "state": "merged",
@@ -89,9 +89,10 @@ class TestFollowupRule:
     def test_failed_create_followup(self, project, followup_rule, mr, mr_manager, jira):
         # Init project state. TODO: Move project state to parameters.
         MergeRequestMock(
-            project=project, source_branch="feature_vms_4.1",
+            project=project, source_branch="feature_vms_5.0_patch",
             **MERGED_TO_4_1_MERGE_REQUESTS["opened"])
-        project.branches.create({"branch": "existing_branch_vms_4.1", "ref": "vms_4.1"})
+        project.branches.create(
+            {"branch": "existing_branch_vms_5.0_patch", "ref": "vms_5.0_patch"})
 
         assert not followup_rule.execute(mr_manager)
 
@@ -110,21 +111,21 @@ class TestFollowupRule:
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Squashed merge request (issue detection from the title).
-        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.1"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]}], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "master",
         }),
         # Three target branches.
-        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.1", "vms_4.2"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch", "vms_4.2"]}], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "master",
         }),
         # More than one commit.
-        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.1"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]}], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "description": f"blah blah blah Closes {DEFAULT_JIRA_ISSUE_KEY}",
@@ -134,20 +135,22 @@ class TestFollowupRule:
             ]
         }),
         # Conflicting merge request.
-        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.1"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]}], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "squash_commit_sha": CONFLICTING_COMMIT_SHA,
-            "target_branch": "master",  # "vms_4.1" is a branch to create follow-up merge request.
+            # "vms_5.0_patch" is a branch to create follow-up merge request.
+            "target_branch": "master",
             "source_branch": "feature",
             "commits_list": [{"sha": CONFLICTING_COMMIT_SHA, "message": "message 1"}],
         }),
         # More than one commit, one is conflicting.
-        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.1"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]}], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "description": f"blah blah blah Closes {DEFAULT_JIRA_ISSUE_KEY}",
-            "target_branch": "master",  # "vms_4.1" is a branch to create follow-up merge request.
+            # "vms_5.0_patch" is a branch to create follow-up merge request.
+            "target_branch": "master",
             "source_branch": "feature",
             "commits_list": [
                 {"sha": "a24", "message": "message 1"},
@@ -157,7 +160,7 @@ class TestFollowupRule:
         # Has opened merge requests to follow-up branches.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
+            "branches": ["master", "vms_5.0_patch"],
             "merge_requests": [MERGED_TO_4_1_MERGE_REQUESTS["opened"]["iid"]],
         }], {
             "state": "merged",
@@ -168,7 +171,7 @@ class TestFollowupRule:
         # Has merged merge requests to follow-up branches.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
+            "branches": ["master", "vms_5.0_patch"],
             "merge_requests": [MERGED_TO_4_1_MERGE_REQUESTS["merged"]["iid"]]
         }], {
             "state": "merged",
@@ -177,7 +180,7 @@ class TestFollowupRule:
             "target_branch": "master",
         }),
         # Merge request from the different project.
-        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_4.1"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]}], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
@@ -190,7 +193,7 @@ class TestFollowupRule:
 
         MergeRequestMock(project=project, **MERGED_TO_4_1_MERGE_REQUESTS["opened"])
         MergeRequestMock(project=project, **MERGED_TO_4_1_MERGE_REQUESTS["merged"])
-        project.branches.create({"branch": "existing_branch_vms_4.1"})
+        project.branches.create({"branch": "existing_branch_vms_5.0_patch"})
 
         # Set the source project for the MR. If it is not default project, create it.
 
@@ -205,7 +208,7 @@ class TestFollowupRule:
 
         project_remote = project.namespace["full_path"]
         repo_accessor.create_branch(
-            target_remote=project_remote, new_branch="vms_4.1", source_branch="master")
+            target_remote=project_remote, new_branch="vms_5.0_patch", source_branch="master")
         repo_accessor.create_branch(
             target_remote=project_remote, new_branch="vms_4.2", source_branch="master")
         for c in mr.commits_list:
@@ -232,19 +235,20 @@ class TestFollowupRule:
         assert follow_up_created_comment_token in mr.mock_comments()[0]
 
         source_project_branches = [b.name for b in source_project.branches.list()]
-        assert f"{mr.source_branch}_vms_4.1" in source_project_branches, (
-            f"New branch {mr.source_branch}_vms_4.1 is not created: {source_project_branches}")
+        assert f"{mr.source_branch}_vms_5.0_patch" in source_project_branches, (
+            f"New branch {mr.source_branch}_vms_5.0_patch is not created: "
+            f"{source_project_branches}")
 
         if project != source_project:
             project_branches = [b.name for b in project.branches.branches]
-            assert f"{mr.source_branch}_vms_4.1" not in project_branches, (
-                f"Branch {mr.source_branch}_vms_4.1 created in the wrong project")
+            assert f"{mr.source_branch}_vms_5.0_patch" not in project_branches, (
+                f"Branch {mr.source_branch}_vms_5.0_patch created in the wrong project")
 
         mrs = project.mergerequests.list()
         assert len(mrs) == before_mergrequests_count + len(issue.fields.fixVersions) - 1
 
         new_mr = sorted(mrs, key=lambda mr: mr.iid)[-1]
-        assert re.match(rf"({DEFAULT_JIRA_ISSUE_KEY}: )?\(master->vms_4\.(1|2)\) ", new_mr.title)
+        assert re.match(rf"({DEFAULT_JIRA_ISSUE_KEY}: )?\(master->vms_(5|4)\..+?\) ", new_mr.title)
 
         emojis = new_mr.awardemojis.list()
         assert any(
@@ -270,7 +274,7 @@ class TestFollowupRule:
         # Squashed merge request (issue detection from the title).
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
+            "branches": ["master", "vms_5.0_patch"],
             "state": "In Review"
         }], {
             "state": "merged",
@@ -284,7 +288,7 @@ class TestFollowupRule:
 
         project_remote = project.namespace["full_path"]
         repo_accessor.create_branch(
-            target_remote=project_remote, new_branch="vms_4.1", source_branch="master")
+            target_remote=project_remote, new_branch="vms_5.0_patch", source_branch="master")
         for c in mr.commits_list:
             repo_accessor.repo.add_mock_commit(c["sha"], c["message"])
         repo_accessor.repo.remotes[project_remote].mock_attach_gitlab_project(project)
@@ -308,7 +312,7 @@ class TestFollowupRule:
         # issue is in "good" state.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
+            "branches": ["master", "vms_5.0_patch"],
             "merge_requests": [MERGED_TO_4_1_MERGE_REQUESTS["opened"]["iid"]],
             "state": "In Review",
         }], {
@@ -322,7 +326,7 @@ class TestFollowupRule:
         # request just merged, issue is in "good" state.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1", "vms_4.2"],
+            "branches": ["master", "vms_5.0_patch", "vms_4.2"],
             "merge_requests": [
                 MERGED_TO_4_1_MERGE_REQUESTS["opened"]["iid"],
                 MERGED_TO_4_2_MERGE_REQUESTS["merged"]["iid"]
@@ -359,7 +363,7 @@ class TestFollowupRule:
         # but the Issue has "Open" status.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
+            "branches": ["master", "vms_5.0_patch"],
             "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
             "state": "Open",
         }], {
@@ -367,7 +371,7 @@ class TestFollowupRule:
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
-            "target_branch": "vms_4.1",
+            "target_branch": "vms_5.0_patch",
         }),
     ])
     def test_bad_jira_issue_status(self, project, followup_rule, mr, mr_manager, jira):
@@ -394,7 +398,7 @@ class TestFollowupRule:
         # merged, but the Issue has "In progress" status.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
+            "branches": ["master", "vms_5.0_patch"],
             "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
             "state": "In progress",
         }], {
@@ -402,7 +406,7 @@ class TestFollowupRule:
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
-            "target_branch": "vms_4.1",
+            "target_branch": "vms_5.0_patch",
         }),
     ])
     def test_in_progress_jira_issue(self, project, followup_rule, mr, mr_manager, jira):
@@ -432,7 +436,7 @@ class TestFollowupRule:
         # merged, but the Issue has "Closed" status.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
+            "branches": ["master", "vms_5.0_patch"],
             "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
             "state": "Closed",
         }], {
@@ -440,12 +444,12 @@ class TestFollowupRule:
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
-            "target_branch": "vms_4.1",
+            "target_branch": "vms_5.0_patch",
         }),
         # The same as previous, but the Issue has "Waiting for QA" status.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
+            "branches": ["master", "vms_5.0_patch"],
             "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
             "state": "Waiting for QA",
         }], {
@@ -453,7 +457,7 @@ class TestFollowupRule:
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
-            "target_branch": "vms_4.1",
+            "target_branch": "vms_5.0_patch",
         }),
     ])
     def test_finalized_jira_issue(self, project, followup_rule, mr, mr_manager, jira):
@@ -481,7 +485,7 @@ class TestFollowupRule:
         # merged, the Issue has type "Internal" and is in a "good" state.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
+            "branches": ["master", "vms_5.0_patch"],
             "merge_requests": [
                 MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"],
                 MERGED_TO_4_1_MERGE_REQUESTS["merged"]["iid"]
@@ -492,13 +496,13 @@ class TestFollowupRule:
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
-            "target_branch": "vms_4.1",
+            "target_branch": "vms_5.0_patch",
         }, "Closed"),
         # Has merged Merge Requests for all Issue branches, the follow-up Merge Request just
         # merged, the Issue has type "Internal" and is in a "good" state.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
+            "branches": ["master", "vms_5.0_patch"],
             "merge_requests": [
                 MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"],
                 MERGED_TO_4_1_MERGE_REQUESTS["merged"]["iid"]
@@ -510,12 +514,12 @@ class TestFollowupRule:
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
-            "target_branch": "vms_4.1",
+            "target_branch": "vms_5.0_patch",
         }, "Waiting for QA"),
         # The same that the previous case, but the Jira Issue has status "Ready to Merge".
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
+            "branches": ["master", "vms_5.0_patch"],
             "merge_requests": [
                 MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"],
                 MERGED_TO_4_1_MERGE_REQUESTS["merged"]["iid"]
@@ -527,12 +531,12 @@ class TestFollowupRule:
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
-            "target_branch": "vms_4.1",
+            "target_branch": "vms_5.0_patch",
         }, "Waiting for QA"),
         # The same that the first case, but the Jira Issue has three branches.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1", "vms_4.2"],
+            "branches": ["master", "vms_5.0_patch", "vms_4.2"],
             "merge_requests": [
                 MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"],
                 MERGED_TO_4_1_MERGE_REQUESTS["merged"]["iid"],
@@ -544,7 +548,7 @@ class TestFollowupRule:
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
-            "target_branch": "vms_4.1",
+            "target_branch": "vms_5.0_patch",
         }, "Closed"),
         # The same that the first but for the different Jira project.
         ([{
@@ -583,7 +587,7 @@ class TestFollowupRule:
         # issue is in "good" state, follow-up state detection from description.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
+            "branches": ["master", "vms_5.0_patch"],
             "merge_requests": [
                 MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"],
                 MERGED_TO_4_1_MERGE_REQUESTS["merged"]["iid"]
@@ -596,13 +600,13 @@ class TestFollowupRule:
                 "Blah blah blah\n"
                 "(cherry picked from commit ca374322a8ce3f481d5d472ba27a394a69ffacea)"),
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
-            "target_branch": "vms_4.1",
+            "target_branch": "vms_5.0_patch",
         }, "Closed"),
         # The same as the previous, but performing a follow-up state detection from the commit
         # messages.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
-            "branches": ["master", "vms_4.1"],
+            "branches": ["master", "vms_5.0_patch"],
             "merge_requests": [
                 MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"],
                 MERGED_TO_4_1_MERGE_REQUESTS["merged"]["iid"]
@@ -612,7 +616,7 @@ class TestFollowupRule:
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
-            "target_branch": "vms_4.1",
+            "target_branch": "vms_5.0_patch",
             "commits_list": [{
                 "sha": "a26",
                 "message": (
@@ -624,13 +628,13 @@ class TestFollowupRule:
         ([
             {
                 "key": DEFAULT_JIRA_ISSUE_KEY,
-                "branches": ["master", "vms_4.1"],
+                "branches": ["master", "vms_5.0_patch"],
                 "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
                 "state": "In Review",
             },
             {
                 "key": "VMS-667",
-                "branches": ["master", "vms_4.1"],
+                "branches": ["master", "vms_5.0_patch"],
                 "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
                 "state": "In Review",
             },
@@ -639,7 +643,7 @@ class TestFollowupRule:
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}, VMS-667: Test mr",
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
-            "target_branch": "vms_4.1",
+            "target_branch": "vms_5.0_patch",
         }, "Closed"),
         # No unmerged branches in the Jira Issue, the primary Merge Request was just merged, the
         # Issue is in a "good" state.

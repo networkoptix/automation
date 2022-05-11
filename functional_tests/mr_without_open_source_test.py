@@ -160,7 +160,7 @@ class TestNoOpenSource:
         helpers.repo.create_and_push_commit(
             repo, branch_name=branch,
             updated_files=["vms/file_4_1.cpp"],
-            message=f"{issue_keys}: Test commit 4.1 ({branch})",
+            message=f"{issue_keys}: Test commit 5.0_patch ({branch})",
             wait_after_push=False)
         (Path(repo.working_dir) / "vms/file_4_2.cpp").write_text(branch)
         helpers.repo.create_and_push_commit(
