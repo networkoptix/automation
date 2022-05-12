@@ -29,10 +29,11 @@ class Gitlab:
     def _get_user_info_by_username(self, user_name: str):
         try:
             users = self._raw_gitlab_object.users.list(search=user_name)
-            assert len(users) == 1, f"More than one user with username {user_name!r} is found."
-            return users[0]
-        except IndexError as e:
-            raise RuntimeError(f"Invalid username: {user_name}") from e
+            if len(users) > 1:
+                logger.debug(f'More than one user with username "{user_name}" is found.')
+            return next(u for u in users if u.state == "active")
+        except StopIteration as e:
+            raise RuntimeError(f'Active user with username "{user_name}" is not found') from e
 
     def create_detached_pipeline(self, project_id: int, mr_id: int) -> Gitlab:
         url = f"/projects/{project_id}/merge_requests/{mr_id}/pipelines"

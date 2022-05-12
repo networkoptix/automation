@@ -12,6 +12,7 @@ class UserMock:
     name: str = BOT_NAME
     username: str = BOT_USERNAME
     email: str = BOT_EMAIL
+    state: str = "active"
 
     @dataclass
     class Impersonationtoken:
