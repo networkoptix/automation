@@ -6,9 +6,11 @@ from automation_tools.tests.mocks.git_mocks import RemoteMock
 from robocat.award_emoji_manager import AwardEmojiManager
 from automation_tools.tests.gitlab_constants import (
     DEFAULT_COMMIT,
+    DEFAULT_NXLIB_COMMIT,
     DEFAULT_PROJECT_ID,
     FORK_PROJECT_ID,
     DEFAULT_JIRA_ISSUE_KEY,
+    NXLIB_JIRA_ISSUE_KEY,
     CONFLICTING_COMMIT_SHA,
     MERGED_TO_MASTER_MERGE_REQUESTS,
     MERGED_TO_4_1_MERGE_REQUESTS,
@@ -408,8 +410,22 @@ class TestFollowupRule:
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "vms_5.0_patch",
         }),
+        # The same that the previous but for the project with the custom status config.
+        ([{
+            "key": NXLIB_JIRA_ISSUE_KEY,
+            "branches": ["master", "vms_5.0_patch"],
+            "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
+            "state": "IN PROGRESS",
+        }], {
+            "state": "merged",
+            "title": f"{NXLIB_JIRA_ISSUE_KEY}: Test mr",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash_commit_sha": DEFAULT_NXLIB_COMMIT["sha"],
+            "target_branch": "vms_5.0_patch",
+        }),
     ])
-    def test_in_progress_jira_issue(self, project, followup_rule, mr, mr_manager, jira):
+    def test_in_progress_jira_issue(
+            self, project, followup_rule, mr, mr_manager, jira, jira_issues):
         # Init the Project state.
         # TODO: Move the Project state to parameters.
         MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS["merged"])
@@ -417,7 +433,7 @@ class TestFollowupRule:
         MergeRequestMock(project=project, **MERGED_TO_4_2_MERGE_REQUESTS["merged"])
 
         mr_count_before = len(project.mergerequests.list())
-        issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
+        issue = jira._jira.issue(jira_issues[0]["key"])
         issue_state_before = issue.fields.status.name
 
         assert followup_rule.execute(mr_manager)
@@ -427,7 +443,7 @@ class TestFollowupRule:
         assert comments[0].startswith(f"### :{AwardEmojiManager.ISSUE_NOT_MOVED_TO_QA_EMOJI}:"), (
             f"Commenti s: {comments[0]}.")
 
-        issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
+        issue = jira._jira.issue(jira_issues[0]["key"])
         assert issue.fields.status.name == issue_state_before
         assert len(issue.fields.comment.comments) == 0
 
@@ -459,8 +475,21 @@ class TestFollowupRule:
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "vms_5.0_patch",
         }),
+        # The same as the first, but for the project with the custom status config.
+        ([{
+            "key": NXLIB_JIRA_ISSUE_KEY,
+            "branches": ["master", "vms_5.0_patch"],
+            "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
+            "state": "DONE",
+        }], {
+            "state": "merged",
+            "title": f"{NXLIB_JIRA_ISSUE_KEY}: Test mr",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash_commit_sha": DEFAULT_NXLIB_COMMIT["sha"],
+            "target_branch": "vms_5.0_patch",
+        }),
     ])
-    def test_finalized_jira_issue(self, project, followup_rule, mr, mr_manager, jira):
+    def test_finalized_jira_issue(self, project, followup_rule, mr, mr_manager, jira, jira_issues):
         # Init the Project state.
         # TODO: Move the Project state to parameters.
         MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS["merged"])
@@ -468,14 +497,14 @@ class TestFollowupRule:
         MergeRequestMock(project=project, **MERGED_TO_4_2_MERGE_REQUESTS["merged"])
 
         mr_count_before = len(project.mergerequests.list())
-        issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
+        issue = jira._jira.issue(jira_issues[0]["key"])
         issue_state_before = issue.fields.status.name
 
         assert followup_rule.execute(mr_manager)
         assert len(project.mergerequests.list()) == mr_count_before
         assert len(mr.mock_comments()) == 0
 
-        issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
+        issue = jira._jira.issue(jira_issues[0]["key"])
         assert issue.fields.status.name == issue_state_before
         assert len(issue.fields.comment.comments) == 1
         assert 'workflow violation ' in issue.fields.comment.comments[0].body
@@ -582,7 +611,21 @@ class TestFollowupRule:
             "squash_commit_sha": MERGED_TO_MASTER_MERGE_REQUESTS_CB["merged"]["iid"],
             "target_branch": "cloud_backend_20.1",
         }, "Closed"),
-
+        # Jira Project with the custom status config.
+        ([{
+            "key": "NXLIB-666",
+            "branches": ["master"],
+            "merge_requests": [
+                MERGED_TO_MASTER_MERGE_REQUESTS_CB["merged"]["iid"],
+            ],
+            "state": "IN REVIEW",
+        }], {
+            "state": "merged",
+            "title": "NXLIB-666: Test mr",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash_commit_sha": MERGED_TO_MASTER_MERGE_REQUESTS_CB["merged"]["iid"],
+            "target_branch": "master",
+        }, "DONE"),
         # Has merged merge requests for all issue branches, follow-up merge request just merged,
         # issue is in "good" state, follow-up state detection from description.
         ([{
@@ -652,7 +695,28 @@ class TestFollowupRule:
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "master",
-        }, "Closed")
+        }, "Closed"),
+        # Closes Issues in different Projects.
+        ([
+            {
+                "key": DEFAULT_JIRA_ISSUE_KEY,
+                "branches": ["master", "vms_5.0_patch"],
+                "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
+                "state": "In Review",
+            },
+            {
+                "key": NXLIB_JIRA_ISSUE_KEY,
+                "branches": ["master", "vms_5.0_patch"],
+                "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
+                "state": "IN REVIEW",
+            },
+        ], {
+            "state": "merged",
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}, {NXLIB_JIRA_ISSUE_KEY}: Test mr",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash_commit_sha": DEFAULT_COMMIT["sha"],
+            "target_branch": "vms_5.0_patch",
+        }, "Closed"),
     ])
     def test_finalize_jira_issue(
             self, project, followup_rule, mr, mr_manager, jira_issues, jira, expected_status):
@@ -674,5 +738,8 @@ class TestFollowupRule:
         issue = jira._jira.issue(jira_issues[0]["key"])
         assert issue.fields.status.name == expected_status
         assert len(issue.fields.comment.comments) == 1
-        expected_transition = "closed" if expected_status == "Closed" else "moved to QA"
+        if expected_status in ["Closed", "DONE"]:
+            expected_transition = "closed"
+        else:
+            expected_transition = "moved to QA"
         assert issue.fields.comment.comments[0].body.startswith(f"Issue {expected_transition}")

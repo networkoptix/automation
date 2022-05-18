@@ -5,9 +5,16 @@ from automation_tools.tests.mocks.git_mocks import BOT_EMAIL, BOT_NAME, BOT_USER
 
 BOT_USERID = 100
 DEFAULT_JIRA_ISSUE_KEY = "VMS-666"
+NXLIB_JIRA_ISSUE_KEY = "NXLIB-666"
 DEFAULT_COMMIT = {
     "sha": "11",
     "message":  f"{DEFAULT_JIRA_ISSUE_KEY}: msg1",
+    "diffs": [],
+    "files": {},
+}
+DEFAULT_NXLIB_COMMIT = {
+    "sha": "1011",
+    "message":  f"{NXLIB_JIRA_ISSUE_KEY}: msg1",
     "diffs": [],
     "files": {},
 }

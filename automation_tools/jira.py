@@ -2,7 +2,6 @@ import datetime
 from typing import Set, Dict, List, Optional
 import logging
 import re
-from enum import Enum
 from functools import lru_cache
 import jira
 import jira.exceptions
@@ -10,35 +9,20 @@ import jira.exceptions
 import automation_tools.utils
 import automation_tools.jira_comments as jira_messages
 import automation_tools.bot_info
+from automation_tools.jira_helpers import (
+    JiraError,
+    JiraProjectConfig,
+    JIRA_STATUS_REVIEW,
+    JIRA_STATUS_PROGRESS,
+    JIRA_STATUS_CLOSED,
+    JIRA_STATUS_QA,
+    JIRA_STATUS_READY_TO_MERGE,
+    JIRA_STATUS_OPEN,
+    JIRA_STATUS_INQA,
+    JIRA_TRANSITION_WORKFLOW_FAILURE
+)
 
 logger = logging.getLogger(__name__)
-
-
-class JiraError(automation_tools.utils.AutomationError):
-    def __init__(self, message: str, jira_error: jira.exceptions.JIRAError = None):
-        super().__init__(message + (': ' + str(jira_error) if jira_error else ""))
-
-
-class JiraIssueStatus(Enum):
-    review = "In Review"
-    progress = "In progress"
-    closed = "Closed"
-    qa = "Waiting for QA"
-    ready_to_merge = "Ready to Merge"
-    open = "Open"
-    inqa = "In QA"
-
-    def __str__(self):
-        return str(self.value)
-
-
-class JiraIssueTransition(Enum):
-    Reopen = "Reopen"
-    BackToDevelopment = "Back to Development"
-    WorkflowFailure = "Workflow failure"
-
-    def __str__(self):
-        return str(self.value)
 
 
 class JiraIssue:
@@ -52,6 +36,30 @@ class JiraIssue:
     # "mr_id" is a numeric identifier of the Merge Request.
     _MERGE_REQUEST_LINK_RE = re.compile(
         r"//[\w\.]+?/(?P<repo_path>[\w\/]+)/\-/merge_requests/(?P<id>\d+)$")
+
+    # Project-specific config which is redefined in subclasses.
+    _project_config: JiraProjectConfig = {
+        "statuses": {
+            JIRA_STATUS_REVIEW: "In Review",
+            JIRA_STATUS_PROGRESS: "In progress",
+            JIRA_STATUS_CLOSED: "Closed",
+            JIRA_STATUS_QA: "Waiting for QA",
+            JIRA_STATUS_READY_TO_MERGE: "Ready to Merge",
+            JIRA_STATUS_OPEN: "Open",
+            JIRA_STATUS_INQA: "In QA",
+        },
+        "transitions": {
+            JIRA_TRANSITION_WORKFLOW_FAILURE: "Workflow failure",
+        }
+    }
+
+    @classmethod
+    def _project_status_name(cls, key: str) -> Optional[str]:
+        return cls._project_config["statuses"].get(key)
+
+    @classmethod
+    def _project_transition_name(cls, key: str) -> Optional[str]:
+        return cls._project_config["transitions"].get(key)
 
     def __init__(
             self, jira_handler: jira.JIRA, issue: jira.Issue, branch_mapping: Dict[str, str]):
@@ -88,9 +96,13 @@ class JiraIssue:
 
     @classmethod
     def closed_issues_filter(cls, period_min: int) -> str:
-        return (
-            f'(status = {JiraIssueStatus.closed} AND resolved >= -{period_min}m OR '
-            f'status = "{JiraIssueStatus.qa}" AND updated >= -{period_min}m)')
+        filter_expressions = []
+        if closed_status := cls._project_status_name(JIRA_STATUS_CLOSED):
+            filter_expressions.append(f'status = "{closed_status}" AND resolved >= -{period_min}m')
+        if qa_status := cls._project_status_name(JIRA_STATUS_QA):
+            filter_expressions.append(f'status = "{qa_status}" AND updated >= -{period_min}m)')
+
+        return f"({' OR '.join(filter_expressions)})" if filter_expressions else ''
 
     def get_related_merge_request_ids(self, project_path: str = None) -> Set[int]:
         issue = self._raw_issue
@@ -123,7 +135,7 @@ class JiraIssue:
 
     def branches(self, exclude_already_merged: bool = False) -> Set[str]:
         if not self._raw_issue.fields.fixVersions:
-            return []
+            return set()
 
         mapping = self._version_to_branch_mapping
         issue = self._raw_issue
@@ -145,11 +157,14 @@ class JiraIssue:
         return {v.name: mapping.get(v.name, None) for v in issue.fields.fixVersions}
 
     @property
-    def status(self) -> JiraIssueStatus:
-        for status in JiraIssueStatus:
-            if str(status) == self._raw_issue.fields.status.name:
-                return status
-        return None
+    def status(self) -> Optional[str]:
+        return next(
+            (
+                standard_name
+                for standard_name, project_status_name in self._project_config["statuses"].items()
+                if project_status_name == self._raw_issue.fields.status.name
+            ),
+            None)
 
     @property
     def resolution(self) -> Optional[str]:
@@ -173,56 +188,57 @@ class JiraIssue:
     def try_finalize(self) -> bool:
         logger.info(f"Trying to close issue {self}")
 
-        if self.status in [JiraIssueStatus.closed, JiraIssueStatus.qa]:
+        if self.status in [JIRA_STATUS_CLOSED, JIRA_STATUS_QA]:
             self._add_comment(jira_messages.issue_already_finalized.format(status=self.status))
-            logger.warning(f'Nothing to do: issue {self} already has status {self.status}.')
+            logger.warning(f'Nothing to do: the Issue {self} already has status "{self.status}".')
             return True
 
-        allowed_statuses = [
-            JiraIssueStatus.progress,
-            JiraIssueStatus.review,
-            JiraIssueStatus.ready_to_merge,
-        ]
+        allowed_statuses = {JIRA_STATUS_PROGRESS, JIRA_STATUS_REVIEW, JIRA_STATUS_READY_TO_MERGE}
         if self.status not in allowed_statuses:
             raise JiraError(
-                f"Cannot automatically move to QA or close Issue {self} because of the wrong "
+                f"Cannot automatically move to QA or close the Issue {self} because of the wrong "
                 f'status "{self._raw_issue.fields.status.name}".')
 
-        if self.status == JiraIssueStatus.progress:
+        if self.status == JIRA_STATUS_PROGRESS:
             logger.info(
-              f'The issue {self} is in "{JiraIssueStatus.progress}" status - leaving it as is.')
+              f'The Issue {self} is in "{self._project_status_name(JIRA_STATUS_PROGRESS)}" status '
+              "- leaving it as is.")
             return False
 
-        if self._set_status(JiraIssueStatus.qa, no_throw=True):
+        if self._set_status(JIRA_STATUS_QA, no_throw=True):
             self._add_comment(jira_messages.issue_moved_to_qa.format(
                 branches="\n* ".join(self.branches())))
-            logger.info(f'Status "{JiraIssueStatus.qa}" is set for the Issue {self}.')
+            logger.info(
+                f'Status "{self._project_status_name(JIRA_STATUS_QA)}" is set for the Issue '
+                f"{self}.")
             return True
 
-        self._set_status(JiraIssueStatus.closed)
+        self._set_status(JIRA_STATUS_CLOSED)
         self._add_comment(
             jira_messages.issue_closed.format(branches="\n* ".join(self.branches())))
-        logger.info(f'Status "Closed" is set for issue {self}.')
+        logger.info(
+            f'Status "{self._project_status_name(JIRA_STATUS_CLOSED)}" is set for the Issue '
+            f'{self}.')
 
         return True
 
-    def _set_status(self, target_status: JiraIssueStatus, no_throw=False) -> bool:
+    def _set_status(self, target_status: str, no_throw=False) -> bool:
         review_transition_name = self._get_transition_name(target_status)
         if review_transition_name is None:
             if no_throw:
                 return False
 
             raise JiraError(
-                f'Unable to find a transition to move issue {self} of type "{self.type_name}" '
+                f'Unable to find a transition to move the Issue {self} of type "{self.type_name}" '
                 f'from status "{self.status}" to status "{target_status}"')
 
         self._jira.transition_issue(self._raw_issue, review_transition_name)
         return True
 
-    def _get_transition_name(self, target_status: JiraIssueStatus) -> str:
+    def _get_transition_name(self, target_status: str) -> str:
         transitions = [
             t for t in self._jira.transitions(self._raw_issue)
-            if t["to"]["name"] == str(target_status)]
+            if t["to"]["name"] == self._project_status_name(target_status)]
         return transitions[0]["name"] if transitions else None
 
     def return_issue(self, reason: str):
@@ -230,18 +246,21 @@ class JiraIssue:
         try:
             logger.info(f'Reopening issue {issue.key}: {reason}')
 
-            assert self.status in [JiraIssueStatus.qa, JiraIssueStatus.closed], (
+            assert self.status in [JIRA_STATUS_QA, JIRA_STATUS_CLOSED], (
                 f"Unexpected issue {issue.key} status {issue.fields.status}")
 
-            self._jira.transition_issue(issue, str(JiraIssueTransition.WorkflowFailure))
+            self._jira.transition_issue(
+                issue, self._project_transition_name(JIRA_TRANSITION_WORKFLOW_FAILURE))
 
             self._add_comment(jira_messages.reopen_issue.format(
                 reason=reason,
                 resolution=issue.fields.resolution))
 
         except jira.exceptions.JIRAError as error:
-            self._add_comment(f'Unable to reopen issue {issue.key}: {error}. Forcing state "Open"')
-            self._set_status(JiraIssueStatus.open)
+            self._add_comment(
+                f'Unable to reopen issue {issue.key}: {error}. Forcing status '
+                f'"{self._project_status_name(JIRA_STATUS_OPEN)}".')
+            self._set_status(JIRA_STATUS_OPEN)
 
     def add_followups_created_comment(self, branches: Set[str]):
         self._add_comment(
@@ -271,28 +290,50 @@ class JiraAccessor:
             password: str,
             timeout: int,
             retries: int,
-            project_keys: Set[str]):
+            project_keys: Set[str],
+            custom_project_configs: Dict[str, dict] = None):
         try:
             self._jira = jira.JIRA(
                 server=url, basic_auth=(login, password), max_retries=retries, timeout=timeout)
             self.project_keys = project_keys
+            # Create classes for the Issues belonging to the Projects with non-default
+            # configuration (custom statuses, transitions, etc.).
+            if custom_project_configs:
+                self._custom_issue_classes = {
+                    key: type(f"JiraIssue{key}", (JiraIssue,), {'_project_config': config})
+                    for key, config in custom_project_configs.items()}
+            else:
+                self._custom_issue_classes = dict()
 
         except jira.exceptions.JIRAError as error:
             raise JiraError(f"Unable to connect to {url} with {login}", error) from error
 
     def get_recently_closed_issues(self, period_min: int) -> List[JiraIssue]:
-        closed_issues_filter = JiraIssue.closed_issues_filter(period_min)
-        projects_string = '"' + '", "'.join(self.project_keys) + '"'
-        project_closed_issues_filter = f"project in ({projects_string}) AND {closed_issues_filter}"
-        logger.debug(f'Searching issues with filter [{project_closed_issues_filter}]')
+        issues = []
 
+        standard_project_keys = self.project_keys - set(self._custom_issue_classes.keys())
+        project_keys = '"' + '", "'.join(standard_project_keys) + '"'
+        if closed_issues_filter := JiraIssue.closed_issues_filter(period_min):
+            issues = self._get_issues_by_filter(
+                f"project in ({project_keys}) AND {closed_issues_filter}")
+
+        for project_key, issue_class in self._custom_issue_classes.items():
+            if closed_issues_filter := issue_class.closed_issues_filter(period_min):
+                issues += self._get_issues_by_filter(
+                    f'project = "{project_key}" AND {closed_issues_filter}')
+
+        return issues
+
+    def _get_issues_by_filter(self, issues_filter: str):
+        logger.debug(f'Searching issues with filter [{issues_filter}]')
         issues = []
         branch_mappings = self.version_to_branch_mappings()
-        for raw_issue in self._jira.search_issues(project_closed_issues_filter, maxResults=None):
+        for raw_issue in self._jira.search_issues(issues_filter, maxResults=None):
             project = raw_issue.fields.project.key
             assert project in branch_mappings, (
                 f"Internal logic error: project {project!r} is not in branch mappings.")
-            issues.append(JiraIssue(
+            issue_class = self._custom_issue_classes.get(project, JiraIssue)
+            issues.append(issue_class(
                 jira_handler=self._jira, issue=raw_issue, branch_mapping=branch_mappings[project]))
 
         return issues
@@ -303,7 +344,8 @@ class JiraAccessor:
             raw_issue = self._jira.issue(key)
             project = raw_issue.fields.project.key
             branch_mapping = self.version_to_branch_mappings().get(project, {})
-            return JiraIssue(
+            issue_class = self._custom_issue_classes.get(project, JiraIssue)
+            return issue_class(
                 jira_handler=self._jira, issue=raw_issue, branch_mapping=branch_mapping)
 
         except jira.exceptions.JIRAError as error:

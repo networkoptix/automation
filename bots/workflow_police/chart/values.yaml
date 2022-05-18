@@ -31,7 +31,17 @@ config: |
         timeout: 10
         retries: 1
 
-    standard_projects: &standard_projects
+    custom_project_configs:
+        NXLIB:
+            states:
+            - review: IN REVIEW
+            - progress: IN PROGRESS
+            - closed: DONE
+            - open: To Do
+            transitions:
+            - workflow_failure: back to development
+
+    standard_project_keys: &standard_project_keys
         - VMS
         - MOBILE
         - CB
@@ -45,17 +55,17 @@ config: |
     checkers:
         ignore_by_project:
             projects:
-                - *standard_projects
+                - *standard_project_keys
                 - CLOUD
         ignore_by_label:
             projects:
-                - *standard_projects
+                - *standard_project_keys
                 - CLOUD
         ignore_by_type:
-            projects: *standard_projects
+            projects: *standard_project_keys
         ignore_fixed:
             projects:
-                - *standard_projects
+                - *standard_project_keys
                 - CLOUD
         ignore_by_version:
             projects:
@@ -64,16 +74,16 @@ config: |
                 - master
                 - "5.0_patch"
         wrong_version:
-            projects: *standard_projects
+            projects: *standard_project_keys
         missing_branch:
             repo: *vms_repo
-            projects: *standard_projects
+            projects: *standard_project_keys
         missing_issue_commit:
             repo: *vms_repo
-            projects: *standard_projects
+            projects: *standard_project_keys
         missing_commit_to_master:
             repo: *vms_repo
-            projects: *standard_projects
+            projects: *standard_project_keys
         no_related_commit:
             repo: *vms_repo
             related_project_id: 2

@@ -6,8 +6,9 @@ import gitlab.v4.objects
 from gitlab import GitlabGetError
 
 import automation_tools.checkers.config as config
-from automation_tools.jira import JiraIssue, JiraIssueStatus
+from automation_tools.jira import JiraIssue
 from automation_tools.git import Repo
+from automation_tools.jira_helpers import JIRA_STATUS_QA
 
 
 logger = logging.getLogger(__name__)
@@ -112,7 +113,7 @@ class IssueIsFixedChecker(WorkflowPolicyChecker):
             return None
 
         is_issue_done_externally = issue.has_label(config.DONE_EXTERNALLY_LABEL)
-        if issue.status == JiraIssueStatus.qa and not is_issue_done_externally:
+        if issue.status == JIRA_STATUS_QA and not is_issue_done_externally:
             return None
 
         return f"issue resolution [{issue.resolution}], issue status [{issue.status}]"

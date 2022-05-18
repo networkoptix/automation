@@ -21,7 +21,8 @@ class Jira:
 
     def search_issues(self, issue_filter, **__):
         issues = []
-        match = re.match(r"project in \((?P<projects_string>.+?)\)", issue_filter)
+        match = re.match(
+            r"project (?:in \(|\= \")(?P<projects_string>.+?)(?:\)|\")", issue_filter)
         for key, issue in self._issues.items():
             project, _, __ = key.partition("-")
             if project in [p.strip('" ') for p in match.group('projects_string').split(',')]:
@@ -70,6 +71,13 @@ class Jira:
                 Version("5.0_patch", "<vms_5.0_patch> 5.2 Monthly patches"),
                 Version("master", "<master> Major release with a lot of tech debt")
             ],
+            "NXLIB": [
+                Version("4.2", "<vms_4.2>"),
+                Version("4.2_patch", "<vms_4.2_patch>"),
+                Version("5.0", "<vms_5.0>"),
+                Version("5.0_patch", "<vms_5.0_patch>"),
+                Version("master", "<master>")
+            ],
             "MOBILE": [
                 Version("20.3", "<mobile_20.3>"),
                 Version("20.4", "<mobile_20.4>"),
@@ -91,6 +99,30 @@ class Jira:
 
     @staticmethod
     def transitions(issue: JiraIssue = None):
+        if issue.fields.project.key == "NXLIB":
+            if issue.fields.status.name == "To Do":
+                return [
+                    {"name": "start development", "to": {"name": "IN PROGRESS"}},
+                    {"name": "DONE", "to": {"name": "DONE"}},
+                ]
+
+            if issue.fields.status.name == "IN PROGRESS":
+                return [
+                    {"name": "To Do", "to": {"name": "To Do"}},
+                    {"name": "Review", "to": {"name": "IN REVIEW"}},
+                    {"name": "DONE", "to": {"name": "DONE"}},
+                ]
+
+            if issue.fields.status.name == "IN REVIEW":
+                return [
+                    {"name": "To Do", "to": {"name": "To Do"}},
+                    {"name": "back to development", "to": {"name": "IN PROGRESS"}},
+                    {"name": "DONE", "to": {"name": "DONE"}},
+                ]
+
+            if issue.fields.status.name == "DONE":
+                return [{"name": "To Do", "to": {"name": "To Do"}}]
+
         if issue.fields.status.name == "Closed":
             return [
                 {"name": "Reopen", "to": {"name": "Open"}},

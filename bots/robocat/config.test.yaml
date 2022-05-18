@@ -11,6 +11,16 @@ jira:
         - SQ
         - NXLIB
 
+    custom_project_configs:
+        NXLIB:
+            statuses:
+            - review: IN REVIEW
+            - progress: IN PROGRESS
+            - closed: DONE
+            - open: To Do
+            transitions:
+            - workflow_failure: back to development
+
 repo:
     path: /var/workflow_robocat/nx
     url: "git@gitlab.nxvms.dev:dev/nx.git"

@@ -32,7 +32,7 @@ class TestPoliceBot:
             issue = jira.get_issue(issue_key)
 
             initial_issue_state = issue_data.get("state", "Open")
-            current_issue_state = str(issue.status)
+            current_issue_state = issue._raw_issue.fields.status.name
             assert initial_issue_state == current_issue_state, (
                 f'State of issue "{issue_key}" was changed from '
                 f'"{initial_issue_state}" to "{current_issue_state}"')
@@ -69,4 +69,5 @@ class TestPoliceBot:
             issue_key = issue_data["key"]
             issue = jira.get_issue(issue_key)
 
-            assert str(issue.status) == "In Review", f'Issue "{issue_key}" was not reopend'
+            current_issue_state = issue._raw_issue.fields.status.name
+            assert current_issue_state == "In Review", f'Issue "{issue_key}" was not reopend'

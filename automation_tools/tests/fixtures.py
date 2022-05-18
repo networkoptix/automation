@@ -6,6 +6,13 @@ import automation_tools.jira
 import automation_tools.tests.mocks.jira
 from automation_tools.tests.mocks.git_mocks import (
     RepoMock, RemoteMock, BOT_EMAIL, BOT_NAME, BOT_USERNAME)
+from automation_tools.jira_helpers import (
+    JIRA_STATUS_REVIEW,
+    JIRA_STATUS_PROGRESS,
+    JIRA_STATUS_CLOSED,
+    JIRA_STATUS_OPEN,
+    JIRA_TRANSITION_WORKFLOW_FAILURE
+)
 
 
 @pytest.fixture
@@ -13,6 +20,23 @@ def jira(jira_issues, monkeypatch):
     def init_with_mock(this):
         project_keys_list = list({i["key"].partition("-")[0] for i in jira_issues})
         this.project_keys = set(project_keys_list)
+        custom_project_configs = {
+            "NXLIB": {
+                "statuses": {
+                    JIRA_STATUS_REVIEW: "IN REVIEW",
+                    JIRA_STATUS_PROGRESS: "IN PROGRESS",
+                    JIRA_STATUS_CLOSED: "DONE",
+                    JIRA_STATUS_OPEN: "To Do",
+                },
+                "transitions": {
+                    JIRA_TRANSITION_WORKFLOW_FAILURE: "back to development",
+                },
+            },
+        }
+        this._custom_issue_classes = {
+            key: type(
+                f"JiraIssue{key}", (automation_tools.jira.JiraIssue,), {'_project_config': config})
+            for key, config in custom_project_configs.items()}
         this._jira = automation_tools.tests.mocks.jira.Jira()
 
     def version_to_branch_mappings(obj):
