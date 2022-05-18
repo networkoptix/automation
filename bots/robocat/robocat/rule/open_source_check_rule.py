@@ -54,6 +54,7 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
             "manual_check_mandatory": "Manual check is mandatory",
             "checks_passed": (
                 "Open source rule check didn't find any problems; no manual check is required"),
+            "in_progress": "Check is not finished yet",
         })
     CHECK_STATUS_NO_CHECK_NEEDED = "no_open_source_changes"
     CHECK_STATUS_NOT_FINISHED = "check_not_finished"
