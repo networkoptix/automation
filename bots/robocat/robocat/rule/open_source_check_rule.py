@@ -2,7 +2,7 @@ from enum import Enum
 import logging
 from typing import Dict, List, Set, Tuple
 
-from robocat.merge_request_manager import MergeRequestManager, ApprovalRequirements
+from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
 from robocat.pipeline import JobStatus
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
@@ -127,10 +127,23 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
         new_files_check_result = mr_manager.last_pipeline_check_job_status(
             "new-open-source-files:check")
 
-        check_results = {errors_check_result, new_files_check_result}
-        if bool(check_results - {JobStatus.succeeded, JobStatus.failed}):
-            # One of the check jobs neither succeeded nor failed => the check is not completed.
+        # If some of the check jobs neither succeeded nor failed than the check is not completed.
+        # Enforce running these jobs and exit prohibiting merge.
+
+        check_is_completed = True
+
+        if errors_check_result not in {JobStatus.succeeded, JobStatus.failed}:
+            mr_manager.last_pipeline_enforce_job_run("open-source:check")
+            check_is_completed = False
+
+        if new_files_check_result not in {JobStatus.succeeded, JobStatus.failed}:
+            mr_manager.last_pipeline_enforce_job_run("new-open-source-files:check")
+            check_is_completed = False
+
+        if not check_is_completed:
             return True, {CheckError(type=self.CHECK_STATUS_NOT_FINISHED)}
+
+        # Return found errors.
 
         if errors_check_result == JobStatus.succeeded:
             return False, set()
@@ -200,8 +213,13 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
                 autoresolve=True)
             return
 
+        keepers = approve_rule_helpers.get_keepers(
+            approve_rules=self._approve_rules,
+            mr_manager=mr_manager,
+            for_changed_files=True)
         mr_manager.create_thread(
             title="Manual check is needed",
-            message=robocat.comments.has_new_files_in_open_source,
+            message=robocat.comments.has_new_files_in_open_source.format(
+                approvers=", @".join(keepers)),
             message_id=MessageId.OpenSourceNoProblemNeedApproval,
             emoji=AwardEmojiManager.NEED_MANUAL_CHECK_EMOJI)

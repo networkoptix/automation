@@ -15,6 +15,7 @@ from robocat.pipeline import (
     PipelineStatus,
     PlayPipelineError,
     RunPipelineReason,
+    Job,
     JobStatus)
 from robocat.action_reasons import WaitReason, ReturnToDevelopmentReason
 from robocat.merge_request import MergeRequest
@@ -627,9 +628,22 @@ class MergeRequestManager:
           message_id=MessageId.FollowUpIssueNotMovedToQA)
 
     def last_pipeline_check_job_status(self, job_name: str) -> Optional[JobStatus]:
-        pipeline = self._get_last_pipeline(include_skipped=True)
+        job = self._get_last_pipeline_job_by_name(job_name)
+        if job:
+            return job.status
+        return None
+
+    def _get_last_pipeline_job_by_name(self, job_name: str) -> Optional[Job]:
+        pipeline = self._get_last_pipeline(include_skipped=True) or []
         for j in pipeline.jobs():
             if j.name != job_name:
                 continue
-            return JobStatus(j.status)
+            return j
         return None
+
+    def last_pipeline_enforce_job_run(self, job_name: str) -> bool:
+        job = self._get_last_pipeline_job_by_name(job_name)
+        if not job or job.status == JobStatus.running:
+            return False
+        job.play()
+        return True

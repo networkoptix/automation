@@ -57,8 +57,8 @@ the issues, or ask one of @{approvers} to approve this merge request. Otherwise,
 has_bad_changes_and_new_files_in_open_source = """
 Auto-check of this merge request has failed. Full report about the problems can be seen in the
 output of the **open-source:check** job or as the **open-source-check-report** artifact. Also, it
-contains new or renamed files in the open-source part of the project, so it must be approved by one
-of: @{approvers}.
+contains new or renamed files in the open-source part of the project, so it **must be approved**
+by one of: @{approvers}.
 """
 
 has_bad_changes_from_authorized_approver = """

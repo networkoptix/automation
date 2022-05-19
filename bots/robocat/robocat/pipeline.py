@@ -31,11 +31,15 @@ class JobStatus(enum.Enum):
 
 class Job:
     def __init__(self, raw_job: gitlab.v4.objects):
-        self.name = raw_job.name
-        self.status = self._job_status_from_string(raw_job.status)
+        self._gitlab_job = raw_job
 
-    @staticmethod
-    def _job_status_from_string(raw_status: str) -> JobStatus:
+    @property
+    def name(self) -> str:
+        return self._gitlab_job.name
+
+    @property
+    def status(self) -> JobStatus:
+        raw_status = self._gitlab_job.status
         if raw_status == "success":
             return JobStatus.succeeded
         if raw_status == "running":
@@ -43,6 +47,14 @@ class Job:
         if raw_status == "failed":
             return JobStatus.failed
         return JobStatus.other
+
+    def play(self):
+        project = self._get_project()
+        project.jobs.get(self._gitlab_job.id, lazy=True).play()
+
+    def _get_project(self):
+        project_id = self._gitlab_job.project_id
+        return self._gitlab_job.manager.gitlab.projects.get(project_id, lazy=True)
 
 
 class PlayPipelineError(RuntimeError):
