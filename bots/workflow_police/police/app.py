@@ -83,8 +83,8 @@ class WorkflowEnforcer:
         self._polling_period_min = config.get("polling_period_min", 5)
         self._last_check_file = config.get("last_check_file", "/tmp/last_check")
 
-        all_projects = list(set(flatten_list(
-            [flatten_list(c["projects"]) for c in config["checkers"].values()])))
+        all_projects = set(flatten_list(
+            [flatten_list(c["projects"]) for c in config["checkers"].values()]))
         self._jira = JiraAccessor(**config["jira"], project_keys=all_projects) \
             if "jira" in config else None
         if "gitlab" in config:

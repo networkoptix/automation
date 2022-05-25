@@ -295,7 +295,7 @@ class JiraAccessor:
         try:
             self._jira = jira.JIRA(
                 server=url, basic_auth=(login, password), max_retries=retries, timeout=timeout)
-            self.project_keys = project_keys
+            self.project_keys = set(project_keys)
             # Create classes for the Issues belonging to the Projects with non-default
             # configuration (custom statuses, transitions, etc.).
             if custom_project_configs:
