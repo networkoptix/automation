@@ -100,7 +100,7 @@ class JiraIssue:
         if closed_status := cls._project_status_name(JIRA_STATUS_CLOSED):
             filter_expressions.append(f'status = "{closed_status}" AND resolved >= -{period_min}m')
         if qa_status := cls._project_status_name(JIRA_STATUS_QA):
-            filter_expressions.append(f'status = "{qa_status}" AND updated >= -{period_min}m)')
+            filter_expressions.append(f'status = "{qa_status}" AND updated >= -{period_min}m')
 
         return f"({' OR '.join(filter_expressions)})" if filter_expressions else ''
 
