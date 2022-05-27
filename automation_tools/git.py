@@ -39,7 +39,7 @@ class Repo:
         logger.debug(f"Fetching {remote}...")
         additional_args = []
         if flags & FetchFlags.NO_TAGS:
-            additional_args += "--no-tags"
+            additional_args.append("--no-tags")
         try:
             self.repo.remotes[remote].fetch(*additional_args)
         except git.exc.BadName as e:
