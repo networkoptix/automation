@@ -176,7 +176,7 @@ class RemoteMock:
         self._url = project.ssh_url_to_repo
         self._repo.mock_add_gitlab_project(project)
 
-    def fetch(self):
+    def fetch(self, *_):
         self._repo.mock_add_command_to_log(f"fetch {self._name!r}")
         if self._url in self._repo.mock_gitlab_projects:
             project = self._repo.mock_gitlab_projects[self._url]

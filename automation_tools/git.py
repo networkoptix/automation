@@ -1,3 +1,4 @@
+import enum
 from pathlib import Path
 from typing import List, Optional
 import logging
@@ -9,6 +10,11 @@ import automation_tools.utils
 logger = logging.getLogger(__name__)
 
 RECENT_COMMENTS_DEPTH = '36 month ago'
+
+
+class FetchFlags(enum.Flag):
+    EMPTY = enum.auto()
+    NO_TAGS = enum.auto()
 
 
 class Repo:
@@ -29,15 +35,18 @@ class Repo:
         except git.exc.NoSuchPathError:
             self.repo = git.Repo.clone_from(url, path)
 
-    def update_repository(self, remote: str = "origin"):
+    def update_repository(self, remote: str = "origin", flags: FetchFlags = FetchFlags.EMPTY):
         logger.debug(f"Fetching {remote}...")
+        additional_args = []
+        if flags & FetchFlags.NO_TAGS:
+            additional_args += "--no-tags"
         try:
-            self.repo.remotes[remote].fetch()
+            self.repo.remotes[remote].fetch(*additional_args)
         except git.exc.BadName as e:
             # Workaround for https://github.com/gitpython-developers/GitPython/issues/768.
             logger.debug(f"'BadName' exception while fetching remote: {e}. Retrying...")
             self.repo.git.gc("--auto")
-            self.repo.remotes[remote].fetch()
+            self.repo.remotes[remote].fetch(*additional_args)
 
     def add_remote(self, remote: str, url: str):
         try:
@@ -61,7 +70,7 @@ class Repo:
             self, remote: str, url: str, branch: str, message: str, base_sha: str,
             author: automation_tools.utils.User):
         self.add_remote(remote, url)
-        self.update_repository(remote)
+        self.update_repository(remote, flags=FetchFlags.NO_TAGS)
         self._hard_checkout(remote, branch)
         self._soft_reset(base_sha)
         self._commit(message, git.Actor(name=author.name, email=author.email))
@@ -125,8 +134,8 @@ class Repo:
     def create_branch(
             self, new_branch: str, target_remote: str, source_branch: str,
             source_remote: str = "origin", override_local_branch: bool = True):
-        self.update_repository(source_remote)
-        self.update_repository(target_remote)
+        self.update_repository(source_remote, flags=FetchFlags.NO_TAGS)
+        self.update_repository(target_remote, flags=FetchFlags.NO_TAGS)
         self._hard_checkout(source_remote, source_branch)
         if override_local_branch and self.check_branch_exists(new_branch, None):
             self.repo.head.reference.delete(self.repo, "-D", new_branch)

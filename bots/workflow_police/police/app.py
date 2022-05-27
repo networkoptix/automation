@@ -175,7 +175,7 @@ class WorkflowEnforcer:
             logger.debug(f"Verifying issues updated for last {recent_issues_interval_min} minutes")
             issues = self._jira.get_recently_closed_issues(recent_issues_interval_min)
             for repo in self._repos.values():
-                repo.update_repository()
+                repo.update_repository(flags=automation_tools.git.FetchFlags.NO_TAGS)
 
             for issue in issues:
                 self.handle(issue)
