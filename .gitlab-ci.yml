@@ -176,6 +176,7 @@ docker:build:open-source-checker:
     - changes:
       - $DOCKER_DIR/**/*
       - nx_source_file_compliance/**/*
+      - .gitlab-ci.yml
 
 # build robocat helm chart
 helm:build:robcat:
