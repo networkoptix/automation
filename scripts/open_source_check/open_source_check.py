@@ -3,16 +3,18 @@
 import argparse
 import itertools
 import logging
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import sys
 from typing import Iterable
 
 import source_file_compliance
 
 
-SCRIPT_DESCRIPTION = """
+SCRIPT_DESCRIPTION = f"""
 This script is to be used for checking source files for compatibility with Open Source standards
 (absence of "bad" words, correc copyright notes etc.)
+
+source_file_compliance library version: {source_file_compliance.__version__}
 """
 
 

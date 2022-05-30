@@ -1,4 +1,9 @@
+from pathlib import Path
 import setuptools
+
+pkg_vars = {}
+with open(f"{Path(__file__).parent}/_version.py") as fp:
+    exec(fp.read(), pkg_vars)
 
 setuptools.setup(
     name="nx-source-file-compliance",
@@ -9,4 +14,4 @@ setuptools.setup(
     package_data={
         "": ["organization_domains.txt"],
     },
-    version='2.2.5')
+    version=pkg_vars["__version__"])
