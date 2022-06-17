@@ -22,6 +22,6 @@ VMS_REPO_CONFIG = RepoCheckConfig(
         "*.png", "*.jpg", "*.jpeg", "*.svg", "*.ui", "*.ts", "*.rc", "qmldir", "control.template",
         "*.wxs", "*.wxl", "*.wxi", "*.xml", "*.conf", "*.conf.in", "*.desktop", "*.plist", "*.def",
         "*.profile", "*.vcproj", "*.vcxproj.user", "_nx_submodule", "*.natvis", "*.cfg", "*.frag",
-        "*.vert", "*.pyproj", "*.pem", ".keep", ".gitignore",
+        "*.vert", "*.pyproj", "*.pem", ".keep", ".gitignore", "*.json.template",
     },
 )
