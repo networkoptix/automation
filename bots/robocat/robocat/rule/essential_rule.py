@@ -67,7 +67,6 @@ class EssentialRule(BaseRule):
             return self.ExecutionResult.has_conflicts
 
         first_pipeline_started = mr_manager.ensure_first_pipeline_run()
-        first_pipeline_started = False
 
         approval_requirements = ApprovalRequirements(approvals_left=0)
         if not mr_manager.satisfies_approval_requirements(approval_requirements):

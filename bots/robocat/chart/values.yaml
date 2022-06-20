@@ -13,8 +13,9 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-# comment the line below to set default INFO level
-# logLevel: DEBUG
+# logLevel: INFO
+
+# workingMode: webhook
 
 # jira login api token
 jiraPassword:
@@ -100,9 +101,6 @@ gitlabToken:
 
 # gitlab project id
 gitlabProjectId: 2
-
-# Merge requests poll rate
-gitlabMrPollRate: 30
 
 # robocat gitlab config file
 gitlabConfig: |

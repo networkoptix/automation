@@ -1,32 +1,75 @@
-import sys
-import time
-from typing import Optional
-from pathlib import Path
-import requests
-
 import argparse
 import logging
+from pathlib import Path
+import queue
+import sys
+from typing import Awaitable, Callable
 
-import git
-import gitlab
+from gidgetlab.aiohttp import GitLabBot
 import graypy
 
 import automation_tools.utils
-import automation_tools.bot_info
-from automation_tools.jira import JiraAccessor, JiraError
-import automation_tools.git
-from robocat.project_manager import ProjectManager
-from robocat.merge_request_manager import MergeRequestManager
-from robocat.pipeline import PlayPipelineError
-from robocat.rule.commit_message_check_rule import CommitMessageCheckRule
-from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
-from robocat.rule.essential_rule import EssentialRule
-from robocat.rule.open_source_check_rule import OpenSourceCheckRule
-from robocat.rule.followup_rule import FollowupRule
-from robocat.rule.workflow_check_rule import WorkflowCheckRule
-from robocat.rule.process_related_projects_issues import ProcessRelatedProjectIssuesRule
+from robocat.bot import Bot, GitlabEventType, GitlabEventData
 
 logger = logging.getLogger(__name__)
+
+robocat = GitLabBot('Robocat')
+mr_queue = queue.SimpleQueue()
+
+
+AsyncCallback = Callable[..., Awaitable[None]]
+
+
+def add_event_hook(event_type: str) -> Callable[[AsyncCallback], AsyncCallback]:
+    def decorator(func: AsyncCallback) -> AsyncCallback:
+        async def event_processor(event, *_):
+            try:
+                await func(event)
+            except Exception as e:
+                logger.error(f"Crashed while processing {event_type} event: {e!r}")
+
+        return robocat.router.register(f"{event_type} Hook")(event_processor)
+
+    return decorator
+
+
+@add_event_hook("Merge Request")
+async def merge_request_event(event):
+    mr_id = event.data["object_attributes"]["iid"]
+    logger.debug(f'Got Merge Request event. MR id: "{mr_id}"')
+    mr_queue.put(GitlabEventData(mr_id=mr_id, event_type=GitlabEventType.merge_request))
+
+
+@add_event_hook("Pipeline")
+async def pipeline_event(event):
+    mr_object = event.data.get("merge_request")
+    if mr_object:
+        mr_id = mr_object['iid']
+        logger.debug(f'Got Pipeline event. MR id: {mr_id}"')
+        raw_pipeline_status = event.data["object_attributes"]["status"]
+        mr_queue.put(GitlabEventData(
+            mr_id=mr_id,
+            event_type=GitlabEventType.pipeline,
+            raw_pipeline_status=raw_pipeline_status))
+    else:
+        logger.debug(
+            f"Got Pipeline event without the 'merge_request' object. Raw data: {event.data!r}")
+
+
+@add_event_hook("Note")
+async def note_event(event):
+    mr_object = event.data.get("merge_request")
+    if mr_object:
+        mr_id = event.data['merge_request']['iid']
+        logger.debug(f'Got Note event. MR id: "{mr_id}"')
+        comment = event.data["object_attributes"]["note"]
+        mr_queue.put(GitlabEventData(
+            mr_id=mr_id,
+            event_type=GitlabEventType.comment,
+            added_comment=comment))
+    else:
+        logger.debug(
+            f"Got Note event without the 'merge_request' object. Raw data: {event.data!r}")
 
 
 class ServiceNameFilter(logging.Filter):
@@ -36,114 +79,12 @@ class ServiceNameFilter(logging.Filter):
         return True
 
 
-class Bot:
-    def __init__(self, config, project_id):
-        raw_gitlab = gitlab.Gitlab.from_config("nx_gitlab")
-        raw_gitlab.auth()
-        gitlab_user_info = raw_gitlab.users.get(raw_gitlab.user.id)
-        self._username = gitlab_user_info.username
-        committer = automation_tools.utils.User(
-            email=gitlab_user_info.email, name=gitlab_user_info.name,
-            username=gitlab_user_info.username)
-        self._repo = automation_tools.git.Repo(**config["repo"], committer=committer)
-
-        self._project_manager = ProjectManager(
-            gitlab_project=raw_gitlab.projects.get(project_id),
-            current_user=self._username,
-            repo=self._repo)
-
-        jira = JiraAccessor(**config["jira"])
-
-        self._rule_nx_submodules_check = NxSubmoduleCheckRule(
-            self._project_manager,
-            **config["nx_submodule_check_rule"])
-        # For now, use the same approval rules for OpenSourceCheckRule and CommitMessageCheckRule.
-        self._rule_commit_message = CommitMessageCheckRule(
-            approve_rules=config["open_source_check_rule"]["approve_rules"])
-        self._rule_essential = EssentialRule(project_keys=config["jira"].get("project_keys"))
-        self._rule_open_source_check = OpenSourceCheckRule(
-            project_manager=self._project_manager, **config["open_source_check_rule"])
-        self._rule_workflow_check = WorkflowCheckRule(jira=jira)
-        self._rule_followup = FollowupRule(project_manager=self._project_manager, jira=jira)
-        self._rule_process_related_projects_issues = ProcessRelatedProjectIssuesRule(
-            jira=jira, **config["process_related_merge_requests_rule"])
-
-    def handle(self, mr_manager: MergeRequestManager):
-        essential_rule_check_result = self._rule_essential.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {essential_rule_check_result}")
-
-        nx_submodule_check_result = self._rule_nx_submodules_check.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {nx_submodule_check_result}")
-
-        commit_message_check_result = self._rule_commit_message.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {commit_message_check_result}")
-
-        open_source_check_result = self._rule_open_source_check.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {open_source_check_result}")
-
-        if (not nx_submodule_check_result or
-                not essential_rule_check_result or
-                not commit_message_check_result or
-                not open_source_check_result):
-            return
-
-        workflow_check_result = self._rule_workflow_check.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {workflow_check_result}")
-
-        if not workflow_check_result:
-            return
-
-        self.merge_and_do_postprocessing(mr_manager)
-
-    def merge_and_do_postprocessing(self, mr_manager: MergeRequestManager):
-        mr_manager.squash_locally_if_needed(self._repo)
-
-        mr_manager.update_unfinished_processing_flag(True)
-
-        mr_manager.merge_or_rebase()
-
-        process_related_result = self._rule_process_related_projects_issues.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {process_related_result}")
-
-        followup_result = self._rule_followup.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {followup_result}")
-
-        mr_manager.update_unfinished_processing_flag(False)
-
-    def run(self, mr_poll_rate: Optional[int] = None):
-        logger.info(
-            f"Robocat revision {automation_tools.bot_info.revision()}. Started for project "
-            f"[{self._project_manager.data.name}] with {mr_poll_rate} secs poll rate")
-
-        for mr_manager in self.get_merge_requests_manager(mr_poll_rate):
-            try:
-                self.handle(mr_manager)
-            except gitlab.exceptions.GitlabError as e:
-                logger.warning(f"{mr_manager}: Gitlab error: {e}")
-            except JiraError as e:
-                logger.warning(f"{mr_manager}: Jira error: {e}")
-            except automation_tools.utils.AutomationError as e:
-                logger.warning(f"{mr_manager}: Generic error: {e}")
-            except git.GitError as e:
-                logger.warning(f"{mr_manager}: Git error: {e}")
-            except PlayPipelineError as e:
-                logger.warning(f"{mr_manager}: Error: {e}")
-            except requests.exceptions.ConnectionError as e:
-                logger.warning(f"{mr_manager}: Connection error: {e}")
-
-    def get_merge_requests_manager(self, mr_poll_rate):
-        while True:
-            start_time = time.time()
-            for mr in self._project_manager.get_next_unfinished_merge_request():
-                yield MergeRequestManager(mr, self._username)
-            for mr in self._project_manager.get_next_open_merge_request():
-                yield MergeRequestManager(mr, self._username)
-
-            if mr_poll_rate is None:
-                break
-
-            sleep_time = max(0, start_time + mr_poll_rate - time.time())
-            time.sleep(sleep_time)
+class DiscardHealhCheckMessage(logging.Filter):
+    """k8s pod health check performed every 2 seconds,
+    discard health check requests messages from container log"""
+    @staticmethod
+    def filter(record):
+        return 'GET /health' not in record.getMessage()
 
 
 def main():
@@ -160,10 +101,10 @@ def main():
         choices=logging._nameToLevel.keys(),
         default=logging.INFO)
     parser.add_argument(
-        '--mr-poll-rate',
-        help="Merge Requests poll rate, seconds (default: 30)",
-        type=int,
-        default=30)
+        '--mode',
+        help="Working mode",
+        choices=["webhook", "poll"],
+        default="webhook")
     parser.add_argument('--graylog', help="Hostname of Graylog service")
     arguments = parser.parse_args()
 
@@ -172,6 +113,7 @@ def main():
         host, port = arguments.graylog.split(":")
         log_handler = graypy.GELFTCPHandler(host, port, level_names=True)
         log_handler.addFilter(ServiceNameFilter())
+        log_handler.addFilter(DiscardHealhCheckMessage())
     else:
         log_handler = logging.StreamHandler()
 
@@ -180,16 +122,19 @@ def main():
         handlers=[log_handler],
         format='%(asctime)s %(levelname)s %(name)s\t%(message)s')
 
-    try:
-        if arguments.config:
-            config = automation_tools.utils.parse_config_file(Path(arguments.config))
-        else:
-            config = {}
-        bot = Bot(config, arguments.project_id)
-        bot.run(arguments.mr_poll_rate)
-    except Exception as e:
-        logger.error(f'Crashed with exception: {e}', exc_info=1)
-        sys.exit(1)
+    if arguments.config:
+        config = automation_tools.utils.parse_config_file(Path(arguments.config))
+    else:
+        config = {}
+
+    if arguments.mode == "webhook":
+        executor_thread = Bot(config, arguments.project_id, mr_queue)
+        executor_thread.start()
+
+        robocat.run()
+    else:  # arguments.mode == "poll"
+        executor = Bot(config, arguments.project_id, mr_queue)
+        executor.run_poller()
 
 
 if __name__ == '__main__':

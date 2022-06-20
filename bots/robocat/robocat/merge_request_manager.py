@@ -647,3 +647,7 @@ class MergeRequestManager:
             return False
         job.play()
         return True
+
+    @property
+    def is_mr_assigned_to_current_user(self) -> bool:
+        return self._current_user in self._mr.assignees

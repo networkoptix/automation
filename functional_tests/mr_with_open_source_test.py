@@ -9,7 +9,7 @@ import helpers.gitlab
 import helpers.repo
 import helpers.tests_config
 import helpers.constants
-from robocat.app import Bot
+from robocat.bot import Bot
 
 
 class TestOpenSource:

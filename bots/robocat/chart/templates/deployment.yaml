@@ -57,8 +57,8 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           args:
             - '--log-level={{ .Values.logLevel | default "INFO" }}'
+            - '--mode={{ .Values.workingMode | default "webhook" }}'
             - '--project-id={{ .Values.gitlabProjectId }}'
-            - '--mr-poll-rate={{ .Values.gitlabMrPollRate }}'
             {{- if .Values.gelfServer }}
             - '--graylog={{ .Values.gelfServer }}'
             {{- end }}
@@ -81,6 +81,16 @@ spec:
           env:
           - name: GL_SECRET
             value: {{ .Values.webHookSecret }}
+          {{- if eq (.Values.workingMode | default "webhook") "webhook" }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          {{- end }}
       volumes:
       - name: gitlab-config
         secret:

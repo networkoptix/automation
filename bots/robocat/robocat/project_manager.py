@@ -1,3 +1,4 @@
+from curses import raw
 import logging
 import dataclasses
 import re
@@ -164,6 +165,11 @@ class ProjectManager:
             mr.set_draft_flag()
 
         return mr
+
+    def get_merge_request_manager_by_id(self, mr_id) -> MergeRequestManager:
+        raw_mr = self._project.get_raw_mr_by_id(mr_id)
+        mr = MergeRequest(raw_mr, self._current_user)
+        return MergeRequestManager(mr, self._current_user)
 
     def get_next_open_merge_request(self) -> Generator[MergeRequest, None, None]:
         return self._get_next_merge_request(state='opened')
