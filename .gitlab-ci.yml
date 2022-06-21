@@ -12,8 +12,9 @@ include:
       vault: jira/service@networkoptix.com@apptokens
     SSH_PRIVATE_KEY_FILE:
       vault: gitlab/prod/workflow-robocat-ssh-private-key@apptokens
-    GITLAB_API_TOKEN_FILE:
+    GITLAB_API_TOKEN:
       vault: gitlab/prod/workflow-police-app-token@apptokens
+      file: false
 
 .set_common_k8_values:
   script:
@@ -28,7 +29,7 @@ include:
   - 'echo "gitlabUrl: ${CI_SERVER_URL}" >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - 'echo "repositoryServer: ${CI_SERVER_HOST}"
      >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - 'echo "gitlabToken: $(cat ${GITLAB_API_TOKEN_FILE})"
+  - 'echo "gitlabToken: ${GITLAB_API_TOKEN}"
        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
 
 # Remove pod to apply changes even if helm metadata is unchanged
