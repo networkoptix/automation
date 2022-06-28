@@ -174,7 +174,8 @@ docker:build:open-source-checker:
     DOCKER_CONTEXT: ""
     TARGET_IMAGE: "nx/workflow_police/open-source-checker"
   rules:
-    - changes:
+    - if: !reference [.enable_for_mr_and_protected_ref, if]
+      changes:
       - $DOCKER_DIR/**/*
       - nx_source_file_compliance/**/*
       - .gitlab-ci.yml
