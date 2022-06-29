@@ -234,6 +234,8 @@ k8s:robocat:deploy:
   - !reference [.set_common_k8_values, script]
   - 'echo "logLevel: ${ROBOCAT_LOG_LEVEL}"
        >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
+  - 'echo "webHookSecret: ${ROBOCAT_WEBHOOK_SECRET}"
+      >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
   - !reference [.stop_k8_containers, script]
   - !reference [.k8s.deploy.template, script]
   rules:

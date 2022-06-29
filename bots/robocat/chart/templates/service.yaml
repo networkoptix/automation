@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "workflow-police-robocat.fullname" . }}
+  labels:
+    {{- include "workflow-police-robocat.labels" . | nindent 4 }}
+  {{- if .Values.service.domainName }}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.service.domainName }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.service.frontendPort }}
+      targetPort: {{ .Values.service.backendPort }}
+      protocol: TCP
+  selector:
+    {{- include "workflow-police-robocat.selectorLabels" . | nindent 4 }}

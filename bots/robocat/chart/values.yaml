@@ -19,6 +19,15 @@ fullnameOverride: ""
 # jira login api token
 jiraPassword:
 
+# webhook secret token
+webHookSecret:
+
+service:
+  type: LoadBalancer
+  frontendPort: 80
+  backendPort: 8080
+  domainName: robocat.ru.nxteam.dev
+
 # robocat config file
 robocatConfig: |
   jira:
