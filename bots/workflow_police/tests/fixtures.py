@@ -42,6 +42,8 @@ def police_test_repo(repo_accessor):
         repo_accessor.repo, name="mobile_22.1", commits=[mobile1_commit_mock])
     repo_accessor.repo.branches["origin/mobile_22.3"] = BranchMock(
         repo_accessor.repo, name="mobile_22.3", commits=[mobile1_commit_mock])
+    repo_accessor.repo.branches["origin/mobile_22.4"] = BranchMock(
+        repo_accessor.repo, name="mobile_22.4", commits=[mobile1_commit_mock])
     repo_accessor.repo.branches["origin/cloud_backend_20.1"] = BranchMock(
         repo_accessor.repo, name="cloud_backend_20.1", commits=[cb1_commit_mock])
 

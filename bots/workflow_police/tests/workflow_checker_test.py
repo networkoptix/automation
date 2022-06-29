@@ -119,7 +119,7 @@ class TestPoliceChecker:
         ]),
         # "Good" issue for another project.
         ([
-            {"key": "MOBILE-1", "branches": ["master", "mobile_22.3", "mobile_22.1"]},
+            {"key": "MOBILE-1", "branches": ["master", "mobile_22.4", "mobile_22.3"]},
         ], [
             {},
         ]),
