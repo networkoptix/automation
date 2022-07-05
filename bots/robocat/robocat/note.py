@@ -12,11 +12,7 @@ class MessageId(Enum):
         return name
 
     Initial = auto()
-    OpenSourceHasBadChangesFromKeeper = auto()
-    OpenSourceHasBadChangesCallKeeperMandatory = auto()
-    OpenSourceHasBadChangesCallKeeperOptional = auto()
-    OpenSourceNoProblemNeedApproval = auto()
-    OpenSourceNoProblemAutoApproved = auto()
+    OpenSourceNeedApproval = auto()
 
     InconsistentNxSubmoduleChange = auto()
     NxSubmoduleConfigDeleted = auto()

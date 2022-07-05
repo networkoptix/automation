@@ -29,20 +29,8 @@ class OpenSourceCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
 
 
 class OpenSourceStoredCheckResults(StoredCheckResults):
-    ERROR_MESSAGE_IDS = {
-        MessageId.OpenSourceHasBadChangesFromKeeper,
-        MessageId.OpenSourceHasBadChangesCallKeeperMandatory,
-        MessageId.OpenSourceHasBadChangesCallKeeperOptional,
-    }
-    OK_MESSAGE_IDS = {
-        MessageId.OpenSourceNoProblemNeedApproval,
-        MessageId.OpenSourceNoProblemAutoApproved,
-    }
-    UNCHECKABLE_MESSAGE_IDS = set()
-    NEEDS_MANUAL_CHECK_MESSAGE_IDS = {
-        MessageId.OpenSourceHasBadChangesCallKeeperMandatory,
-        MessageId.OpenSourceNoProblemNeedApproval,
-    }
+    OK_MESSAGE_IDS = {MessageId.OpenSourceNeedApproval}
+    NEEDS_MANUAL_CHECK_MESSAGE_IDS = {MessageId.OpenSourceNeedApproval}
 
 
 class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
@@ -50,7 +38,6 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
         "OpenSourceCheckRuleExecutionResult", {
             "merge_authorized": "MR is approved by the authorized approver",
             "not_applicable": "No changes in open source files",
-            "problems_found": "Open source files do not comply with the requirements",
             "manual_check_mandatory": "Manual check is mandatory",
             "checks_passed": (
                 "Open source rule check didn't find any problems; no manual check is required"),
@@ -58,7 +45,7 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
         })
     CHECK_STATUS_NO_CHECK_NEEDED = "no_open_source_changes"
     CHECK_STATUS_NOT_FINISHED = "check_not_finished"
-    CHECK_STATUS_HAS_ERRORS = "open_source_has_errors"
+    CHECK_STATUS_HAS_NEW_FILES = "open_source_has_new_files"
 
     def __init__(self, project_manager, approve_rules: List[Dict[str, List[str]]]):
         self._approve_rules = []
@@ -86,18 +73,21 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
         if self._has_error(self.CHECK_STATUS_NOT_FINISHED, error_check_result):
             return self.ExecutionResult.in_progress
 
-        if error_check_result.has_errors:
-            self._ensure_problem_comments(mr_manager, error_check_result)
-        else:
-            self._ensure_problems_not_found_comment(mr_manager, error_check_result)
-
         if self._satisfies_approval_requirements(mr_manager):
             return self.ExecutionResult.merge_authorized
 
-        if self._enforce_manual_check_if_needed(mr_manager):
+        if self._is_manual_check_required(mr_manager):
+            self._ensure_need_manual_approvement_comment(mr_manager, error_check_result)
+            self._enforce_manual_check(mr_manager)
             return self.ExecutionResult.manual_check_mandatory
 
         if error_check_result.has_errors:
+            # We never should end up here - the only error we can get now also triggers the
+            # "manual check required" flag.
+            # TODO: Refactor accordingly, remove this part of the code, all related parts, and
+            # possibly rename the rule (to something like new_open_source_files_check_rule).
+            logger.error(
+                f"{mr_manager}: INTERNAL ERROR in the open source check rule.")
             return self.ExecutionResult.problems_found
         return self.ExecutionResult.checks_passed
 
@@ -145,83 +135,32 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
         if not check_is_completed:
             return True, {CheckError(type=self.CHECK_STATUS_NOT_FINISHED)}
 
-        # Return found errors.
+        return False, set()
 
-        if errors_check_result == JobStatus.succeeded:
-            return False, set()
-
-        error = CheckError(type=self.CHECK_STATUS_HAS_ERRORS)
-        return True, ({error} if not old_errors_info.have_error(error) else set())
-
-    def _ensure_problem_comments(
-            self, mr_manager: MergeRequestManager, error_check_result: ErrorCheckResult):
-        if not error_check_result.must_add_comment:
-            return
-
-        if not self._is_manual_check_required(mr_manager):
-            if approve_rule_helpers.is_mr_author_keeper(self._approve_rules, mr_manager):
-                message = robocat.comments.has_bad_changes_from_authorized_approver
-                message_id = MessageId.OpenSourceHasBadChangesFromKeeper
-            else:
-                keepers = approve_rule_helpers.get_keepers(
-                    approve_rules=self._approve_rules,
-                    mr_manager=mr_manager,
-                    for_changed_files=True)
-                message = robocat.comments.has_bad_changes_in_open_source.format(
-                    approvers=", @".join(keepers))
-                message_id = MessageId.OpenSourceHasBadChangesCallKeeperOptional
-
-        else:
-            keepers = approve_rule_helpers.get_keepers(
-                approve_rules=self._approve_rules,
-                mr_manager=mr_manager,
-                for_changed_files=True)
-            message = robocat.comments.has_bad_changes_and_new_files_in_open_source.format(
-                approvers=", @".join(keepers))
-            message_id = MessageId.OpenSourceHasBadChangesCallKeeperMandatory
-
-        mr_manager.create_thread(
-            title="Autocheck for open-source changes failed",
-            message=message,
-            message_id=message_id,
-            message_data={"type": self.CHECK_STATUS_HAS_ERRORS},
-            emoji=AwardEmojiManager.AUTOCHECK_FAILED_EMOJI)
-
-    def _enforce_manual_check_if_needed(self, mr_manager: MergeRequestManager) -> bool:
-        if not self._is_manual_check_required(mr_manager):
-            return False
+    def _enforce_manual_check(self, mr_manager: MergeRequestManager):
         preferred_approvers = approve_rule_helpers.get_keepers(
             approve_rules=self._approve_rules, mr_manager=mr_manager, for_changed_files=True)
         if mr_manager.ensure_authorized_approvers(preferred_approvers):
             logger.debug(f"{mr_manager}: Preferred approvers assigned to MR.")
-        return True
 
     def _satisfies_approval_requirements(self, mr_manager) -> bool:
         approval_requirements = approve_rule_helpers.get_approval_requirements(
             approve_rules=self._approve_rules, mr_manager=mr_manager)
         return mr_manager.satisfies_approval_requirements(approval_requirements)
 
-    def _ensure_problems_not_found_comment(
+    def _ensure_need_manual_approvement_comment(
             self, mr_manager: MergeRequestManager, error_check_result: ErrorCheckResult):
         if not error_check_result.must_add_comment:
             return
 
-        if not self._is_manual_check_required(mr_manager):
-            mr_manager.create_thread(
-                title="Auto-check for open-source changes passed",
-                message=robocat.comments.has_good_changes_in_open_source,
-                message_id=MessageId.OpenSourceNoProblemAutoApproved,
-                emoji=AwardEmojiManager.AUTOCHECK_OK_EMOJI,
-                autoresolve=True)
+        if approve_rule_helpers.is_mr_author_keeper(self._approve_rules, mr_manager):
             return
 
         keepers = approve_rule_helpers.get_keepers(
             approve_rules=self._approve_rules,
             mr_manager=mr_manager,
             for_changed_files=True)
-        mr_manager.create_thread(
-            title="Manual check is needed",
-            message=robocat.comments.has_new_files_in_open_source.format(
-                approvers=", @".join(keepers)),
-            message_id=MessageId.OpenSourceNoProblemNeedApproval,
-            emoji=AwardEmojiManager.NEED_MANUAL_CHECK_EMOJI)
+        mr_manager.add_comment_with_message_id(
+            message_id=MessageId.OpenSourceNeedApproval,
+            message_params={"approvers": ", @".join(keepers)},
+            message_data={"type": self.CHECK_STATUS_HAS_NEW_FILES})

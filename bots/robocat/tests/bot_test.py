@@ -24,7 +24,7 @@ class TestBot:
             "pipelines_list": [(
                 BAD_OPENSOURCE_COMMIT["sha"],
                 "success",
-                [("open-source:check", "failed"), ("new-open-source-files:check", "success")],
+                [("open-source:check", "failed"), ("new-open-source-files:check", "failed")],
             )],
         }),
         ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.1"]}], {

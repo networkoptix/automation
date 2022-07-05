@@ -214,8 +214,12 @@ class MergeRequestManager:
         return True
 
     def _add_comment(
-            self, title, message: str, emoji: str = None,
-            message_id: MessageId = None, message_data: Dict[str, Any] = None):
+            self,
+            title,
+            message: str,
+            emoji: str = None,
+            message_id: MessageId = None,
+            message_data: Dict[str, Any] = None):
         logger.debug(f"{self}: Adding comment with title: {title}")
         message_params = {}
         message_params["title"] = title

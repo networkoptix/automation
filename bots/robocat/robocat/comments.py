@@ -45,29 +45,6 @@ has_new_files_in_open_source = """This merge request contains new or renamed fil
 open-source part of the project, so it **must be approved** by one of: @{approvers}.
 """
 
-has_good_changes_in_open_source = """This merge request contains changes in the open-source part of
-the project. No problems were revealed by the auto-check.
-"""
-
-has_bad_changes_in_open_source = """
-Auto-check of this merge request has failed. Full report about the problems can be seen in the
-output of the **open-source:check** job or as the **open-source-check-report** artifact. Fix all
-the issues, or ask one of @{approvers} to approve this merge request. Otherwise, this merge request
-**will not be merged**.
-"""
-
-has_bad_changes_and_new_files_in_open_source = """
-Auto-check of this merge request has failed. Full report about the problems can be seen in the
-output of the **open-source:check** job or as the **open-source-check-report** artifact. Also, it
-contains new or renamed files in the open-source part of the project, so it **must be approved**
-by one of: @{approvers}.
-"""
-
-has_bad_changes_from_authorized_approver = """
-Auto-check of this merge request has failed. Please, check carefully all the issues and fix them if
-needed.
-"""
-
 bad_commit_message = """{error_message}
 
 Auto-check of this Merge Request has failed. Fix all the issues, or ask one of @{approvers} to
