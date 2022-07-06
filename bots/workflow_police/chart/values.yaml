@@ -72,7 +72,7 @@ config: |
                 - CLOUD
             relevant_versions:
                 - master
-                - "5.0_patch"
+                - "5.1"
         wrong_version:
             projects: *standard_project_keys
         missing_branch:

@@ -14,7 +14,7 @@ class TestPoliceBot:
         # Some ignored issues (including "bad" ones).
         [
             {"key": "VMS-1", "branches": ["master", "vms_4.2"]},
-            {"key": "VMS-1", "branches": ["vms_5.0_patch", "vms_4.2", "vms_4.2_patch", "master"]},
+            {"key": "VMS-1", "branches": ["vms_5.1", "vms_4.2", "vms_4.2_patch", "master"]},
             {"key": "VMS-2", "branches": ["master", "vms_4.2_patch"]},
             {"key": "VMS-4", "branches": ["master"], "state": "In Review"},
             {"key": "NONEXISTENT-1", "branches": ["master"], "state": "Waiting for QA"},
@@ -53,12 +53,12 @@ class TestPoliceBot:
         # Issues waiting for QA.
         [{
             "key": "VMS-1",
-            "branches": ["vms_5.0_patch", "vms_4.2", "vms_4.2_patch", "master"],
+            "branches": ["vms_5.1", "vms_4.2", "vms_4.2_patch", "master"],
             "state": "Waiting for QA",
             "typ": "Task",
         }, {
             "key": "VMS-2",
-            "branches": ["vms_5.0_patch", "vms_4.2", "vms_4.2_patch", "master"],
+            "branches": ["vms_5.1", "vms_4.2", "vms_4.2_patch", "master"],
             "state": "Waiting for QA",
             "typ": "Bug",
         }],

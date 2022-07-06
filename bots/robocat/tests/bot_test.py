@@ -17,7 +17,7 @@ class TestBot:
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Return to development on the second handle iteration if essential rule is ok but
         # open source rule check is failed and merge request is not approved by an eligible user.
-        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.1"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [BAD_OPENSOURCE_COMMIT],
@@ -27,7 +27,7 @@ class TestBot:
                 [("open-source:check", "failed"), ("new-open-source-files:check", "success")],
             )],
         }),
-        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.0_patch"]}], {
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.1"]}], {
             "blocking_discussions_resolved": True,
             "needed_approvers_number": 0,
             "commits_list": [GOOD_README_COMMIT_NEW_FILE],

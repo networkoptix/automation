@@ -68,14 +68,16 @@ class Jira:
                 Version("4.2", "<vms_4.2> Major release with plugins"),
                 Version("4.2_patch", "<vms_4.2_patch> 4.2 Monthly patches"),
                 Version("5.0", "<vms_5.0> 5.0 Release"),
-                Version("5.0_patch", "<vms_5.0_patch> 5.2 Monthly patches"),
+                Version("5.0_patch", "<vms_5.0_patch> 5.0 Monthly patches"),
+                Version("5.1", "<vms_5.1> 5.1 Release"),
                 Version("master", "<master> Major release with a lot of tech debt")
             ],
             "NXLIB": [
                 Version("4.2", "<vms_4.2>"),
                 Version("4.2_patch", "<vms_4.2_patch>"),
                 Version("5.0", "<vms_5.0>"),
-                Version("5.0_patch", "<vms_5.0_patch>"),
+                Version("5.0_patch", "<vms_5.0_patch> 5.0 Monthly patches"),
+                Version("5.1", "<vms_5.1>"),
                 Version("master", "<master>")
             ],
             "MOBILE": [
@@ -95,7 +97,8 @@ class Jira:
                 Version("21.1", ""),
                 Version("master", "<master>"),
                 Version("5.0", "<vms_5.0>"),
-                Version("5.0_patch", "<vms_5.0_patch>"),
+                Version("5.0_patch", "<vms_5.0_patch> 5.0 Monthly patches"),
+                Version("5.1", "<vms_5.1>"),
             ],
         }.get(project, {})
 

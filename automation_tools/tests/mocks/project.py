@@ -82,7 +82,7 @@ class BranchMock:
 @dataclass
 class BranchManagerMock:
     branches: list = field(default_factory=lambda: [
-        BranchMock(b) for b in ["master", "vms_5.0_patch", "vms_4.2", "feature1"]])
+        BranchMock(b) for b in ["master", "vms_5.1", "vms_4.2", "feature1"]])
     mock_conflicts: Dict[str, Set] = field(default_factory=dict)
 
     def create(self, params):

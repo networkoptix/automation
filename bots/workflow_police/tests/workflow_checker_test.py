@@ -61,9 +61,9 @@ class TestPoliceChecker:
         ], [
             {},
         ]),
-        # Non-existing branch "vms_5.0_patch_patch".
+        # Non-existing branch "vms_5.1_patch".
         ([
-            {"key": "VMS-1", "branches": ["vms_5.0_patch", "vms_4.2", "vms_4.2_patch", "master"]}
+            {"key": "VMS-1", "branches": ["vms_5.1", "vms_4.2", "vms_4.2_patch", "master"]}
         ], [
             {},
         ]),
@@ -113,7 +113,7 @@ class TestPoliceChecker:
     @pytest.mark.parametrize(("jira_issues", "mr_states"), [
         # "Good" issue.
         ([
-            {"key": "VMS-1", "branches": ["master", "vms_5.0_patch"]},
+            {"key": "VMS-1", "branches": ["master", "vms_5.1"]},
         ], [
             {}
         ]),
@@ -145,8 +145,8 @@ class TestPoliceChecker:
         # label.
         ([{
             "key": "VMS-4",
-            "branches": ["master", "vms_5.0_patch"],
-            "labels": ["already_in_5.0_patch"],
+            "branches": ["master", "vms_5.1"],
+            "labels": ["already_in_5.1"],
         }], [
             {}
         ]),

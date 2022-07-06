@@ -93,8 +93,8 @@ MERGED_TO_MASTER_MERGE_REQUESTS = {
     "opened": {"iid": 11, "target_branch": "master", "state": "opened"},
 }
 MERGED_TO_4_1_MERGE_REQUESTS = {
-    "merged": {"iid": 20, "target_branch": "vms_5.0_patch", "state": "merged"},
-    "opened": {"iid": 21, "target_branch": "vms_5.0_patch", "state": "opened"},
+    "merged": {"iid": 20, "target_branch": "vms_5.1", "state": "merged"},
+    "opened": {"iid": 21, "target_branch": "vms_5.1", "state": "opened"},
 }
 MERGED_TO_4_2_MERGE_REQUESTS = {
     "merged": {"iid": 30, "target_branch": "vms_4.2", "state": "merged"},
@@ -105,14 +105,14 @@ MERGED_TO_MASTER_MERGE_REQUESTS_MOBILE = {
     "opened": {"iid": 111, "target_branch": "master", "state": "opened"},
 }
 MERGED_TO_21_1_MERGE_REQUESTS_MOBILE = {
-    "merged": {"iid": 120, "target_branch": "vms_5.0_patch", "state": "merged"},
-    "opened": {"iid": 121, "target_branch": "vms_5.0_patch", "state": "opened"},
+    "merged": {"iid": 120, "target_branch": "vms_5.1", "state": "merged"},
+    "opened": {"iid": 121, "target_branch": "vms_5.1", "state": "opened"},
 }
 MERGED_TO_MASTER_MERGE_REQUESTS_CB = {
     "merged": {"iid": 210, "target_branch": "master", "state": "merged"},
     "opened": {"iid": 211, "target_branch": "master", "state": "opened"},
 }
 MERGED_TO_20_1_MERGE_REQUESTS_CB = {
-    "merged": {"iid": 220, "target_branch": "vms_5.0_patch", "state": "merged"},
-    "opened": {"iid": 221, "target_branch": "vms_5.0_patch", "state": "opened"},
+    "merged": {"iid": 220, "target_branch": "vms_5.1", "state": "merged"},
+    "opened": {"iid": 221, "target_branch": "vms_5.1", "state": "opened"},
 }
