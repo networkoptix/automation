@@ -162,7 +162,7 @@ class Bot(threading.Thread):
 
         if event_data["event_type"] == GitlabEventType.pipeline:
             pipeline_status = Pipeline.translate_status(event_data["raw_pipeline_status"])
-            if pipeline_status not in [PipelineStatus.succeeded, PipelineStatus.failed]:
+            if pipeline_status == PipelineStatus.running:
                 return
 
         self.handle(mr_manager)
