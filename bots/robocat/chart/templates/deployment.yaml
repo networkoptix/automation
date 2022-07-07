@@ -77,7 +77,8 @@ spec:
           - name: ssh-key
             mountPath: /home/workflow-robocat/.ssh
           ports:
-          - containerPort: {{ .Values.service.backendPort }}
+          - name: http
+            containerPort: {{ .Values.service.backendPort }}
           env:
           - name: GL_SECRET
             value: {{ .Values.webHookSecret }}
