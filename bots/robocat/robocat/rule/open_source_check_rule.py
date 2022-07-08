@@ -133,10 +133,12 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
         check_is_completed = True
 
         if errors_check_result not in {JobStatus.succeeded, JobStatus.failed}:
+            logger.debug(f'{mr_manager}: Trying to start "open-source:checK" job.')
             mr_manager.last_pipeline_enforce_job_run("open-source:check")
             check_is_completed = False
 
         if new_files_check_result not in {JobStatus.succeeded, JobStatus.failed}:
+            logger.debug(f'{mr_manager}: Trying to start "new-open-source:checK" job.')
             mr_manager.last_pipeline_enforce_job_run("new-open-source-files:check")
             check_is_completed = False
 

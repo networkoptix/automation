@@ -2,7 +2,10 @@ import argparse
 import logging
 from pathlib import Path
 import queue
+import signal
 import sys
+import traceback
+import threading
 from typing import Awaitable, Callable
 
 from gidgetlab.aiohttp import GitLabBot
@@ -36,7 +39,7 @@ def add_event_hook(event_type: str) -> Callable[[AsyncCallback], AsyncCallback]:
 @add_event_hook("Merge Request")
 async def merge_request_event(event):
     mr_id = event.data["object_attributes"]["iid"]
-    logger.debug(f'Got Merge Request event. MR id: "{mr_id}"')
+    logger.debug(f'Got Merge Request event. MR id: {mr_id}')
     mr_queue.put(GitlabEventData(mr_id=mr_id, event_type=GitlabEventType.merge_request))
 
 
@@ -45,7 +48,7 @@ async def pipeline_event(event):
     mr_object = event.data.get("merge_request")
     if mr_object:
         mr_id = mr_object['iid']
-        logger.debug(f'Got Pipeline event. MR id: {mr_id}"')
+        logger.debug(f'Got Pipeline event. MR id: {mr_id}')
         raw_pipeline_status = event.data["object_attributes"]["status"]
         mr_queue.put(GitlabEventData(
             mr_id=mr_id,
@@ -61,7 +64,7 @@ async def note_event(event):
     mr_object = event.data.get("merge_request")
     if mr_object:
         mr_id = event.data['merge_request']['iid']
-        logger.debug(f'Got Note event. MR id: "{mr_id}"')
+        logger.debug(f'Got Note event. MR id: {mr_id}')
         comment = event.data["object_attributes"]["note"]
         mr_queue.put(GitlabEventData(
             mr_id=mr_id,
@@ -85,6 +88,14 @@ class DiscardHealhCheckMessage(logging.Filter):
     @staticmethod
     def filter(record):
         return 'GET /health' not in record.getMessage()
+
+
+def thread_exception_hook(args):
+    logger.error(
+        f'Unexpected exception in thread: {args.exc_value!r}\n'
+        f'{"".join(traceback.format_tb(args.exc_traceback))}\n'
+        'Exiting.')
+    signal.raise_signal(signal.SIGTERM)
 
 
 def main():
@@ -128,6 +139,7 @@ def main():
         config = {}
 
     if arguments.mode == "webhook":
+        threading.excepthook = thread_exception_hook
         executor_thread = Bot(config, arguments.project_id, mr_queue)
         executor_thread.start()
 

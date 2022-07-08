@@ -134,19 +134,19 @@ class Bot(threading.Thread):
             try:
                 self.process_event(event_data)
             except gitlab.exceptions.GitlabError as e:
-                logger.warning(f"{mr_manager}: Gitlab error: {e}")
+                logger.warning(f"{event_data}: Gitlab error: {e}")
             except JiraError as e:
-                logger.warning(f"{mr_manager}: Jira error: {e}")
+                logger.warning(f"{event_data}: Jira error: {e}")
             except automation_tools.utils.AutomationError as e:
-                logger.warning(f"{mr_manager}: Generic bot error: {e}")
+                logger.warning(f"{event_data}: Generic bot error: {e}")
             except git.GitError as e:
-                logger.warning(f"{mr_manager}: Git error: {e}")
+                logger.warning(f"{event_data}: Git error: {e}")
             except PlayPipelineError as e:
-                logger.warning(f"{mr_manager}: Pipeline error: {e}")
+                logger.warning(f"{event_data}: Pipeline error: {e}")
             except requests.exceptions.ConnectionError as e:
-                logger.warning(f"{mr_manager}: Connection error: {e}")
+                logger.warning(f"{event_data}: Connection error: {e}")
             except Exception as e:
-                logger.warning(f"{mr_manager}: Unknown error: {e}")
+                logger.warning(f"{event_data}: Unknown error: {e}")
 
     def process_event(self, event_data: GitlabEventData):
         mr_id = event_data["mr_id"]
@@ -162,6 +162,7 @@ class Bot(threading.Thread):
 
         if event_data["event_type"] == GitlabEventType.pipeline:
             pipeline_status = Pipeline.translate_status(event_data["raw_pipeline_status"])
+            logger.debug(f"New pipeline status for mr {mr_id} is {pipeline_status}.")
             if pipeline_status == PipelineStatus.running:
                 return
 
