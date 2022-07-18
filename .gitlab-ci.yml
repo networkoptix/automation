@@ -62,7 +62,7 @@ stages:
   - deploy
 
 pep8:
-  image: nx/deploy-pod
+  image: ${DOCKER_REGISTRY}/nx/deploy-pod
   tags:
   - service
   stage: validate
@@ -72,7 +72,7 @@ pep8:
   - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 robocat:test:
-  image: python:3.8
+  image: ${DOCKER_REGISTRY}/python:3.8
   stage: test
   tags:
   - service
@@ -93,7 +93,7 @@ robocat:test:
     - automation_tools/**/*
 
 workflow_police:test:
-  image: python:3.8
+  image: ${DOCKER_REGISTRY}/python:3.8
   stage: test
   tags:
   - service
@@ -114,7 +114,7 @@ workflow_police:test:
     - automation_tools/**/*
 
 source_files_compliance:test:
-  image: python:3.8
+  image: ${DOCKER_REGISTRY}/python:3.8
   stage: test
   tags:
   - service
@@ -150,7 +150,7 @@ docker:build:robocat:
   variables:
     DOCKER_DIR: "bots/robocat"
     DOCKER_CONTEXT: ""
-    TARGET_IMAGE: "nx/workflow_police/robocat"
+    TARGET_IMAGE: "${DOCKER_REGISTRY}/nx/workflow_police/robocat"
     TARGET_IMAGE_TAG: "$ROBOCAT_VERSION"
     BUILD_OPTIONS: "--build-arg=GIT_COMMIT=$CI_COMMIT_SHORT_SHA"
 
@@ -161,7 +161,7 @@ docker:build:workflow_police:
   variables:
     DOCKER_DIR: "bots/workflow_police"
     DOCKER_CONTEXT: ""
-    TARGET_IMAGE: "nx/workflow_police"
+    TARGET_IMAGE: "${DOCKER_REGISTRY}/nx/workflow_police"
     TARGET_IMAGE_TAG: "$WORKFLOW_POLICE_VERSION"
     BUILD_OPTIONS: "--build-arg=GIT_COMMIT=$CI_COMMIT_SHORT_SHA"
 
@@ -172,7 +172,7 @@ docker:build:open-source-checker:
   variables:
     DOCKER_DIR: "scripts/open_source_check"
     DOCKER_CONTEXT: ""
-    TARGET_IMAGE: "nx/workflow_police/open-source-checker"
+    TARGET_IMAGE: "${DOCKER_REGISTRY}/nx/workflow_police/open-source-checker"
   rules:
     - if: !reference [.enable_for_mr_and_protected_ref, if]
       changes:
