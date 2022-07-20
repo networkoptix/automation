@@ -1,10 +1,13 @@
 import pytest
 
+from automation_tools.git import Repo
 from automation_tools.tests.gitlab_constants import (
     DEFAULT_COMMIT,
     GOOD_README_COMMIT_NEW_FILE,
     FILE_COMMITS_SHA,
-    DEFAULT_JIRA_ISSUE_KEY)
+    DEFAULT_JIRA_ISSUE_KEY,
+    FORK_PROJECT_ID,
+    MERGED_TO_MASTER_MERGE_REQUESTS)
 from automation_tools.tests.mocks.git_mocks import BOT_USERNAME
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.bot import Bot, GitlabEventData, GitlabEventType
@@ -79,10 +82,59 @@ class TestRobocatCommands:
             "squash": False
         })
     ])
-    def test_serve(self, bot: Bot, mr: MergeRequestMock):
+    def test_process_unmerged(self, bot: Bot, mr: MergeRequestMock):
         event_data = GitlabEventData(
             mr_id=mr.iid,
             event_type=GitlabEventType.comment,
             added_comment=f"@{BOT_USERNAME} process")
         bot.process_event(event_data)
         assert mr.state == "merged"
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY,
+            "branches": ["master", "vms_5.1"],
+            "merge_requests": [
+                MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"],
+            ],
+            "state": "In Review",
+         }], {
+            "title": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[0],
+            "description": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[1],
+            "blocking_discussions_resolved": True,
+            "needed_approvers_number": 0,
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
+            "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
+            "source_project_id": FORK_PROJECT_ID,
+            "state": "merged",
+        })
+    ])
+    def test_process_merged(
+            self,
+            project: ProjectMock,
+            repo_accessor: Repo,
+            bot: Bot,
+            mr: MergeRequestMock):
+        # Init git repo state. TODO: Move git repo state to parameters.
+        source_project = ProjectMock(id=mr.source_project_id, manager=project.manager)
+        for c in mr.commits_list:
+            source_project.add_mock_commit("master", c["sha"], c["message"])
+        project_remote = project.namespace["full_path"]
+        repo_accessor.create_branch(
+            target_remote=project_remote, new_branch="vms_5.1", source_branch="master")
+        for c in mr.commits_list:
+            repo_accessor.repo.add_mock_commit(c["sha"], c["message"])
+        repo_accessor.repo.remotes[project_remote].mock_attach_gitlab_project(project)
+        repo_accessor.repo.mock_add_gitlab_project(source_project)
+
+        event_data = GitlabEventData(
+            mr_id=mr.iid,
+            event_type=GitlabEventType.comment,
+            added_comment=f"@{BOT_USERNAME} process")
+
+        bot.process_event(event_data)
+
+        comments = mr.mock_comments()
+        assert len(comments) == 2, f"Got comments: {comments}"
+        assert f":{AwardEmojiManager.FOLLOWUP_CREATED_EMOJI}:" in comments[-1], (
+            f"Last comment: {comments[-1]}.")

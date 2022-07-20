@@ -96,6 +96,9 @@ class Bot(threading.Thread):
                 not essential_rule_check_result or
                 not commit_message_check_result or
                 not open_source_check_result):
+            if essential_rule_check_result == EssentialRule.ExecutionResult.merged:
+                followup_result = self._rule_followup.execute(mr_manager)
+                logger.debug(f"{mr_manager}: {followup_result}")
             return
 
         workflow_check_result = self._rule_workflow_check.execute(mr_manager)
