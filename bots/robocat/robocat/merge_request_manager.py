@@ -228,16 +228,22 @@ class MergeRequestManager:
         message_params["revision"] = automation_tools.bot_info.revision()
         self._mr.create_note(body=robocat.comments.template.format(**message_params))
 
+    # TODO: This function is deprecated and will be deleted when the users get used to control
+    # Robocat with comments instead of emojis.
     def ensure_user_requested_pipeline_run(self) -> bool:
         if not self._mr.award_emoji.find(AwardEmojiManager.PIPELINE_EMOJI, own=False):
             return False
+        return self.run_user_requested_pipeline()
+
+    def run_user_requested_pipeline(self) -> bool:
         last_pipeline = self._get_last_pipeline()
         if last_pipeline and last_pipeline.sha == self._mr.sha:
             logger.info(f"{self._mr}: Refusing to manually run pipeline with the same sha")
             message = robocat.comments.refuse_run_pipeline_message.format(
                 pipeline_id=last_pipeline.id, pipeline_url=last_pipeline.web_url, sha=self._mr.sha)
             self._add_comment(
-                "Pipeline was not started", message, AwardEmojiManager.NOTIFICATION_EMOJI)
+                "Pipeline was not started", message, AwardEmojiManager.NO_PIPELINE_EMOJI)
+            # TODO: Remove the next line when ensure_user_requested_pipeline_run() will be removed.
             self._mr.award_emoji.delete(AwardEmojiManager.PIPELINE_EMOJI, own=False)
             return False
 
@@ -651,3 +657,10 @@ class MergeRequestManager:
     @property
     def is_mr_assigned_to_current_user(self) -> bool:
         return self._current_user in self._mr.assignees
+
+    def add_command_confirmation_comment(self, message_id: MessageId):
+        self._add_comment(
+            title=robocat.comments.command_confirmation_title,
+            message=robocat.comments.command_confirmation[message_id],
+            emoji=AwardEmojiManager.NOTIFICATION_EMOJI,
+            message_id=message_id)

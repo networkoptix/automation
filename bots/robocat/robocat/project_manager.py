@@ -1,4 +1,3 @@
-from curses import raw
 import logging
 import dataclasses
 import re

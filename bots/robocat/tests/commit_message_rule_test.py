@@ -168,11 +168,11 @@ class TestCommitMessageRule:
             assignees = {a["username"] for a in mr.assignees}
             approvers = {r["username"] for r in mr.reviewers} | assignees
             if is_author_keeper:
-                assert len(approvers) == 0, f"Got approvers: {approvers}"
-            elif reviewers_before.intersection(authorized_approvers):
                 assert len(approvers) == 1, f"Got approvers: {approvers}"
-            else:
+            elif reviewers_before.intersection(authorized_approvers):
                 assert len(approvers) == 2, f"Got approvers: {approvers}"
+            else:
+                assert len(approvers) == 3, f"Got approvers: {approvers}"
                 approvers_was_set = True
 
             comments = mr.mock_comments()

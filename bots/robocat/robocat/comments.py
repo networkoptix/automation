@@ -1,3 +1,5 @@
+from robocat.note import MessageId
+
 _mark_as_ready_url = (
     "https://docs.gitlab.com/ee/user/project/merge_requests/work_in_progress_merge_requests.html"
     "#removing-the-draft-flag-from-a-merge-request")
@@ -166,3 +168,9 @@ value in `subrepo-url` or `commit-sha`): *{explanation}*.
 
 issue_is_not_finalized = """The Issue {issue_key} was not moved to the QA state because of its
 current status. Check the Issue status and fix in manually if necessary."""
+
+command_confirmation_title = "User command action"
+command_confirmation = {
+    MessageId.CommandServe: "Re-checking Merge Request",
+    MessageId.CommandRunPipeline: "Initiating pipeline run",
+}

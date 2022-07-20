@@ -41,6 +41,9 @@ class MessageId(Enum):
     BadCommitMessageByKeeper = auto()
     CommitMessageIsOk = auto()
 
+    CommandServe = auto()
+    CommandRunPipeline = auto()
+
 
 class Comment(NamedTuple):
     id: MessageId

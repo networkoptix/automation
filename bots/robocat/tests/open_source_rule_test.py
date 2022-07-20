@@ -128,6 +128,7 @@ class TestOpenSourceRule:
                 "success",
                 [("open-source:check", "success"), ("new-open-source-files:check", "failed")],
             )],
+            "assignees": [],
         },
     ])
     def test_set_assignee(self, open_source_rule, mr, mr_manager):

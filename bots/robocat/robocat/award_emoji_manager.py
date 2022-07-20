@@ -10,6 +10,7 @@ class AwardEmojiManager():
     WATCH_EMOJI = "eyes"
     WAIT_EMOJI = "hourglass_flowing_sand"
     PIPELINE_EMOJI = "construction_site"
+    NO_PIPELINE_EMOJI = "no_entry"
     INITIAL_EMOJI = "cat2"
     RETURN_TO_DEVELOPMENT_EMOJI = "exclamation"
     AUTOCHECK_FAILED_EMOJI = "stop_sign"

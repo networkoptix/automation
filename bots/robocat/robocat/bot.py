@@ -13,6 +13,7 @@ import automation_tools.utils
 import automation_tools.bot_info
 from automation_tools.jira import JiraAccessor, JiraError
 import automation_tools.git
+import robocat.commands.parser
 from robocat.project_manager import ProjectManager
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.pipeline import PlayPipelineError, Pipeline, PipelineStatus
@@ -155,9 +156,15 @@ class Bot(threading.Thread):
             return
 
         if event_data["event_type"] == GitlabEventType.comment:
-            # TODO: Add processing of comment events.
-            logger.debug(
-                f'{mr_manager}: Comment was added: "{event_data["added_comment"]}"')
+            command = robocat.commands.parser.create_command_from_text(
+                username=self._username,
+                text=event_data["added_comment"])
+            logger.debug(f'Comment {event_data["added_comment"]} parsed as "{command}" command.')
+
+            if command:
+                command.run(mr_manager)
+                if command.should_handle_mr_after_run:
+                    self.handle(mr_manager)
             return
 
         if event_data["event_type"] == GitlabEventType.pipeline:

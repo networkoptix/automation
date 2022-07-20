@@ -1,7 +1,7 @@
 from pathlib import Path
 import pytest
 
-from automation_tools.tests.mocks.git_mocks import BOT_NAME, BOT_USERNAME
+from automation_tools.tests.mocks.git_mocks import BOT_USERNAME
 from robocat.merge_request import MergeRequest
 import robocat.gitlab
 from automation_tools.tests.mocks.project import ProjectMock
@@ -124,6 +124,7 @@ def bot(
         workflow_rule,
         process_related_projects_issues_rule,
         repo_accessor,
+        project,
         monkeypatch):
     def bot_init(bot):
         bot._rule_commit_message = commit_message_rule
@@ -133,7 +134,9 @@ def bot(
         bot._rule_followup = followup_rule
         bot._rule_workflow_check = workflow_rule
         bot._rule_process_related_projects_issues = process_related_projects_issues_rule
+        bot._username = BOT_USERNAME
         bot._repo = repo_accessor
+        bot._project_manager = ProjectManager(project, bot._username, repo=bot._repo)
 
     monkeypatch.setattr(Bot, "__init__", bot_init)
     monkeypatch.setenv("BOT_NAME", "Robocat")
