@@ -11,16 +11,16 @@ from automation_tools.tests.gitlab_constants import (
 from automation_tools.tests.mocks.git_mocks import BOT_USERNAME
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.bot import Bot, GitlabEventData, GitlabEventType
-from robocat.commands.commands import BaseCommand, ServeCommand, RunPipelineCommand
+from robocat.commands.commands import BaseCommand, ProcessCommand, RunPipelineCommand
 import robocat.commands.parser
 from tests.fixtures import *
 
 
 class TestRobocatCommands:
     @pytest.mark.parametrize(("comment", "command_class"), [
-        (f"@{BOT_USERNAME} process", ServeCommand),
-        (f"@{BOT_USERNAME}   process", ServeCommand),
-        (f"  @{BOT_USERNAME}   process", ServeCommand),
+        (f"@{BOT_USERNAME} process", ProcessCommand),
+        (f"@{BOT_USERNAME}   process", ProcessCommand),
+        (f"  @{BOT_USERNAME}   process", ProcessCommand),
         (f"@{BOT_USERNAME}\n process", None),
         (f"sometext @{BOT_USERNAME} process", None),
         (f"@{BOT_USERNAME} serves", None),

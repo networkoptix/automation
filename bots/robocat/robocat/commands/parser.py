@@ -1,4 +1,4 @@
-from robocat.commands.commands import BaseCommand, ServeCommand, RunPipelineCommand
+from robocat.commands.commands import BaseCommand, ProcessCommand, RunPipelineCommand
 
 
 def create_command_from_text(username: str, text: str) -> BaseCommand:
@@ -6,5 +6,5 @@ def create_command_from_text(username: str, text: str) -> BaseCommand:
     if len(tokens) < 2 or tokens[0] != f'@{username}':
         return None
 
-    classes = (ServeCommand, RunPipelineCommand)
+    classes = (ProcessCommand, RunPipelineCommand)
     return next((cls() for cls in classes if cls.verb == tokens[1]), None)

@@ -30,8 +30,8 @@ def robocat_command(verb: str, confirmation_message_id: MessageId, process_mr: b
     return command_class_decorator
 
 
-@robocat_command(verb='process', confirmation_message_id=MessageId.CommandServe, process_mr=True)
-class ServeCommand(BaseCommand):
+@robocat_command(verb='process', confirmation_message_id=MessageId.CommandProcess, process_mr=True)
+class ProcessCommand(BaseCommand):
     """This command is used for manual initiating of processing the related Merge Request"""
     pass
 

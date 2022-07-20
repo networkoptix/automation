@@ -171,6 +171,6 @@ current status. Check the Issue status and fix in manually if necessary."""
 
 command_confirmation_title = "User command action"
 command_confirmation = {
-    MessageId.CommandServe: "Re-checking Merge Request",
+    MessageId.CommandProcess: "Re-checking Merge Request",
     MessageId.CommandRunPipeline: "Initiating pipeline run",
 }

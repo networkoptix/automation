@@ -41,7 +41,7 @@ class MessageId(Enum):
     BadCommitMessageByKeeper = auto()
     CommitMessageIsOk = auto()
 
-    CommandServe = auto()
+    CommandProcess = auto()
     CommandRunPipeline = auto()
 
 
