@@ -169,8 +169,16 @@ value in `subrepo-url` or `commit-sha`): *{explanation}*.
 issue_is_not_finalized = """The Issue {issue_key} was not moved to the QA state because of its
 current status. Check the Issue status and fix in manually if necessary."""
 
-command_confirmation_title = "User command action"
-command_confirmation = {
+bot_readable_comment_title = {
+    MessageId.CommandProcess: "User command action",
+    MessageId.CommandRunPipeline: "User command action",
+    MessageId.OpenSourceNeedApproval: "Manual check is needed",
+}
+bot_readable_comment = {
     MessageId.CommandProcess: "Re-checking Merge Request",
     MessageId.CommandRunPipeline: "Initiating pipeline run",
+    MessageId.OpenSourceNeedApproval: """
+This merge request contains new or renamed files in the open-source part of the project, so it
+**must be approved** by one of: @{approvers}.
+""",
 }

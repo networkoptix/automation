@@ -658,9 +658,16 @@ class MergeRequestManager:
     def is_mr_assigned_to_current_user(self) -> bool:
         return self._current_user in self._mr.assignees
 
-    def add_command_confirmation_comment(self, message_id: MessageId):
-        self._add_comment(
-            title=robocat.comments.command_confirmation_title,
-            message=robocat.comments.command_confirmation[message_id],
-            emoji=AwardEmojiManager.NOTIFICATION_EMOJI,
-            message_id=message_id)
+    def add_comment_with_message_id(
+            self,
+            message_id: MessageId,
+            message_params: Dict[str, Any] = None,
+            message_data: Dict[str, Any] = None):
+        title = robocat.comments.bot_readable_comment_title[message_id]
+        emoji = AwardEmojiManager.EMOJI_BY_MESSAGE_ID.get(message_id)
+        if message_params:
+            message = robocat.comments.bot_readable_comment[message_id].format(**message_params)
+        else:
+            message = robocat.comments.bot_readable_comment[message_id]
+
+        self._add_comment(title, message, emoji, message_id=message_id, message_data=message_data)

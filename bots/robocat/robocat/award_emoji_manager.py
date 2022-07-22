@@ -1,6 +1,8 @@
 import logging
 from functools import lru_cache
 
+from robocat.note import MessageId
+
 logger = logging.getLogger(__name__)
 
 
@@ -28,6 +30,12 @@ class AwardEmojiManager():
     LOCAL_SQUASH_PROBLEMS_EMOJI = "warning"
     NOTIFICATION_EMOJI = "bell"
     ISSUE_NOT_MOVED_TO_QA_EMOJI = "point_up"
+
+    EMOJI_BY_MESSAGE_ID = {
+        MessageId.CommandProcess: NOTIFICATION_EMOJI,
+        MessageId.CommandRunPipeline: NOTIFICATION_EMOJI,
+        MessageId.OpenSourceNeedApproval: NEED_MANUAL_CHECK_EMOJI,
+    }
 
     def __init__(self, gitlab_award_emoji_manager, current_user):
         self._gitlab_manager = gitlab_award_emoji_manager

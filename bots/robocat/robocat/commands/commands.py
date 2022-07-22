@@ -17,7 +17,7 @@ class BaseCommand:
 
     def run(self, mr_manager: MergeRequestManager):
         logger.info(f'Executing "{self}" for {mr_manager}')
-        mr_manager.add_command_confirmation_comment(self._confirmation_message_id)
+        mr_manager.add_comment_with_message_id(self._confirmation_message_id)
 
 
 def robocat_command(verb: str, confirmation_message_id: MessageId, process_mr: bool = False):
