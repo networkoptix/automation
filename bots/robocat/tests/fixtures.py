@@ -137,6 +137,7 @@ def bot(
         bot._username = BOT_USERNAME
         bot._repo = repo_accessor
         bot._project_manager = ProjectManager(project, bot._username, repo=bot._repo)
+        bot._polling = False
 
     monkeypatch.setattr(Bot, "__init__", bot_init)
     monkeypatch.setenv("BOT_NAME", "Robocat")

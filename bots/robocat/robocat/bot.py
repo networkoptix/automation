@@ -78,6 +78,7 @@ class Bot(threading.Thread):
             jira=jira, **config["process_related_merge_requests_rule"])
 
         self._mr_queue = mr_queue
+        self._polling = False  # By default assume that we are in the "webhook" mode.
 
     def handle(self, mr_manager: MergeRequestManager):
         essential_rule_check_result = self._rule_essential.execute(mr_manager)
@@ -119,8 +120,9 @@ class Bot(threading.Thread):
         process_related_result = self._rule_process_related_projects_issues.execute(mr_manager)
         logger.debug(f"{mr_manager}: {process_related_result}")
 
-        followup_result = self._rule_followup.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {followup_result}")
+        if self._polling:
+            followup_result = self._rule_followup.execute(mr_manager)
+            logger.debug(f"{mr_manager}: {followup_result}")
 
         mr_manager.update_unfinished_processing_flag(False)
 
@@ -128,6 +130,8 @@ class Bot(threading.Thread):
         logger.info(
             f"Robocat revision {automation_tools.bot_info.revision()}. Started for project "
             f"[{self._project_manager.data.name}].")
+
+        self._polling = False
 
         for mr in self._project_manager.get_next_open_merge_request():
             self._mr_queue.put(
@@ -196,6 +200,8 @@ class Bot(threading.Thread):
         logger.info(
             f"Robocat revision {automation_tools.bot_info.revision()}. Started for project "
             f"[{self._project_manager.data.name}] in polling mode.")
+
+        self._polling = True
 
         for mr_manager in self.get_merge_requests_manager(MR_POLL_RATE_S):
             try:
