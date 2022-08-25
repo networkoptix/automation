@@ -35,7 +35,7 @@ def add_event_hook(
                 else:
                     logger.info(
                         f"Got {event_type} event without the Merge Request object. Raw data: "
-                        "{event.data!r}")
+                        f"{event.data!r}")
             except Exception as e:
                 logger.error(f"Crashed while processing {event_type} event: {e!r}")
 
@@ -49,7 +49,7 @@ async def merge_request_event(event, mr_object):
     mr_id = mr_object['iid']
     mr_state = mr_object['state']
     logger.debug(f'Got Merge Request event. MR id: {mr_id} ({mr_state})')
-    mr_changes = mr_object["changes"]
+    mr_changes = event.data["changes"]
     mr_previous_data = {
         k: mr_changes.get(k, {}).get("previous") for k in MrPreviousData.__required_keys__}
     mr_queue.put(GitlabEventData(
@@ -72,7 +72,7 @@ async def pipeline_event(event, mr_object):
         raw_pipeline_status=raw_pipeline_status))
 
 
-@add_event_hook("Note")
+@add_event_hook("Note", "merge_request")
 async def note_event(event, mr_object):
     mr_id = mr_object['iid']
     mr_state = mr_object['state']

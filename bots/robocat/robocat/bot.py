@@ -78,7 +78,7 @@ class Bot(threading.Thread):
         self._rule_essential = EssentialRule(project_keys=config["jira"].get("project_keys"))
         self._rule_open_source_check = OpenSourceCheckRule(
             project_manager=self._project_manager, **config["open_source_check_rule"])
-        self._rule_workflow_check = WorkflowCheckRule(jira=jira)
+        self._rule_workflow_check = WorkflowCheckRule(jira=self._jira)
         self._rule_followup = FollowupRule(project_manager=self._project_manager, jira=self._jira)
         self._rule_process_related_projects_issues = ProcessRelatedProjectIssuesRule(
             jira=self._jira, **config["process_related_merge_requests_rule"])
@@ -138,7 +138,10 @@ class Bot(threading.Thread):
 
         for mr in self._project_manager.get_next_open_merge_request():
             self._mr_queue.put(
-                GitlabEventData(mr_id=mr.id, event_type=GitlabEventType.merge_request))
+                GitlabEventData(
+                    mr_id=mr.id,
+                    mr_state='opened',
+                    event_type=GitlabEventType.merge_request))
 
         while (True):
             event_data = self._mr_queue.get()
