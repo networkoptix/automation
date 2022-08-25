@@ -39,6 +39,8 @@ class MessageId(Enum):
 
     CommandProcess = auto()
     CommandRunPipeline = auto()
+    CommandFollowup = auto()
+    CommandNotExecuted = auto()
 
 
 class Comment(NamedTuple):

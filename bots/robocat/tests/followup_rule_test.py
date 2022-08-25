@@ -50,7 +50,7 @@ class TestFollowupRule:
 
         for _ in range(2):
             assert followup_rule.execute(mr_manager) in (
-                followup_rule.ExecutionResult.rule_execution_successfull,
+                followup_rule.ExecutionResult.rule_execution_successful,
                 followup_rule.ExecutionResult.not_eligible)
 
             issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)

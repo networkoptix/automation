@@ -1,4 +1,3 @@
-import re
 from typing import TypedDict
 
 import jira.exceptions

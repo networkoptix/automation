@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class FollowupRuleExecutionResultClass(RuleExecutionResultClass, Enum):
     def __bool__(self):
-        return self == self.rule_execution_successfull
+        return self == self.rule_execution_successful
 
     def __str__(self):
         return str(self.value)
@@ -21,7 +21,7 @@ class FollowupRuleExecutionResultClass(RuleExecutionResultClass, Enum):
 class FollowupRule(BaseRule):
     ExecutionResult = FollowupRuleExecutionResultClass.create(
         "FollowupRuleExecutionResult", {
-            "rule_execution_successfull": "All operations completed successfully",
+            "rule_execution_successful": "All operations completed successfully",
             "not_eligible": "Merge request is not eligible for cherry-pick",
             "rule_execution_failed": "Some of operations failed",
         })
@@ -64,7 +64,7 @@ class FollowupRule(BaseRule):
                     mr_manager=mr_manager,
                     target_branch=mr_data.target_branch,
                     issue_keys=jira_issue_keys)
-                return self.ExecutionResult.rule_execution_successfull
+                return self.ExecutionResult.rule_execution_successful
 
             # Primary merge request.
             # 1. Check all Jira issues which are mentioned by the current merge request and create
@@ -80,7 +80,7 @@ class FollowupRule(BaseRule):
                 target_branch=mr_data.target_branch,
                 issue_keys=jira_issue_keys,
                 mr_manager=mr_manager)
-            return self.ExecutionResult.rule_execution_successfull
+            return self.ExecutionResult.rule_execution_successful
 
         except Exception as error:
             logger.error(
@@ -128,7 +128,7 @@ class FollowupRule(BaseRule):
 
                 logger.debug(
                     f"{original_mr_manager}: Trying to create follow-up merge requests for issue "
-                    f"{issue}.")
+                    f"{issue} (branch {target_branch}).")
                 is_followup_created = self._create_followup_merge_request(
                     original_mr_manager=original_mr_manager,
                     target_branch=target_branch)

@@ -117,7 +117,7 @@ class TestProcessRelatedProjectIssuesRule:
     ])
     def test_postprocessing_ok(self, process_related_projects_issues_rule, mr, mr_manager):
         expected_result = (
-            ProcessRelatedProjectIssuesRule.ExecutionResult.rule_execution_successfull)
+            ProcessRelatedProjectIssuesRule.ExecutionResult.rule_execution_successful)
         for _ in range(2):
             result = process_related_projects_issues_rule.execute(mr_manager)
             assert result == expected_result, f"Unexpected result: {result}"

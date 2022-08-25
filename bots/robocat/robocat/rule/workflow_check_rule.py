@@ -31,13 +31,13 @@ class WorkflowStoredCheckResults(StoredCheckResults):
 
 class WorkflowCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
     def __bool__(self):
-        return self in [self.rule_execution_successfull, self.merged]
+        return self in [self.rule_execution_successful, self.merged]
 
 
 class WorkflowCheckRule(BaseRule):
     ExecutionResult = WorkflowCheckRuleExecutionResultClass.create(
         "WorkflowCheckRuleExecutionResult", {
-            "rule_execution_successfull": "Workflow requirements are ok",
+            "rule_execution_successful": "Workflow requirements are ok",
             "jira_issue_problems": "Problems with the attached Jira Issues",
             "inconsistent_descriptions": "MR description is inconsistent with the commit messages",
         })
@@ -72,7 +72,7 @@ class WorkflowCheckRule(BaseRule):
             return self.ExecutionResult.inconsistent_descriptions
 
         mr_manager.ensure_no_workflow_errors()
-        return self.ExecutionResult.rule_execution_successfull
+        return self.ExecutionResult.rule_execution_successful
 
     def _update_workflow_errors_info(
             self, mr_manager: MergeRequestManager, errors: List[Comment], title: str):

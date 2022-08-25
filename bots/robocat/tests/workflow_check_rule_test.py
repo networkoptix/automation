@@ -244,7 +244,7 @@ class TestWorkflowCheckRule:
     def test_jira_issues_are_ok(self, workflow_rule, mr, mr_manager):
         for _ in range(2):  # State must not change after any number of rule executions.
             result = workflow_rule.execute(mr_manager)
-            assert result == WorkflowCheckRule.ExecutionResult.rule_execution_successfull
+            assert result == WorkflowCheckRule.ExecutionResult.rule_execution_successful
 
             emojis = mr.awardemojis.list()
             assert not any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
@@ -288,7 +288,7 @@ class TestWorkflowCheckRule:
             Version("master", "<master> Major release with a lot of tech debt")]
 
         execution_result = workflow_rule.execute(mr_manager)
-        assert execution_result == WorkflowCheckRule.ExecutionResult.rule_execution_successfull
+        assert execution_result == WorkflowCheckRule.ExecutionResult.rule_execution_successful
 
         emojis = mr.awardemojis.list()
         assert not any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)

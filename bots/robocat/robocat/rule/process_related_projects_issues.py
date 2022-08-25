@@ -55,7 +55,7 @@ class PostprocessingRule:
 
 class ProcessRelatedProjectIssuesRuleExecutionResultClass(RuleExecutionResultClass, Enum):
     def __bool__(self):
-        return self == self.rule_execution_successfull or self == self.no_applicable_rules
+        return self == self.rule_execution_successful or self == self.no_applicable_rules
 
     def __str__(self):
         return str(self.value)
@@ -64,7 +64,7 @@ class ProcessRelatedProjectIssuesRuleExecutionResultClass(RuleExecutionResultCla
 class ProcessRelatedProjectIssuesRule(BaseRule):
     ExecutionResult = ProcessRelatedProjectIssuesRuleExecutionResultClass.create(
         "ProcessRelatedProjectIssuesRuleExecutionResult", {
-            "rule_execution_successfull": "All operations completed successfully",
+            "rule_execution_successful": "All operations completed successfully",
             "not_eligible": "The Merge Request is not eligible for postprocessing",
             "no_applicable_rules": "No postprocessing rules can be applied",
             "rule_execution_failed": "Some of the operations failed",
@@ -102,4 +102,4 @@ class ProcessRelatedProjectIssuesRule(BaseRule):
         if not rule_executions_result:
             return self.ExecutionResult.rule_execution_failed
 
-        return self.ExecutionResult.rule_execution_successfull
+        return self.ExecutionResult.rule_execution_successful

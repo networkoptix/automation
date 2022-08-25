@@ -1,8 +1,10 @@
 import logging
-from typing import Any
 
+from automation_tools.jira import JiraAccessor
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
+from robocat.project_manager import ProjectManager
+from robocat.rule.followup_rule import FollowupRule
 
 
 logger = logging.getLogger(__name__)
@@ -15,7 +17,7 @@ class BaseCommand:
     def __str__(self):
         return self.verb
 
-    def run(self, mr_manager: MergeRequestManager):
+    def run(self, mr_manager: MergeRequestManager, **_):
         logger.info(f'Executing "{self}" for {mr_manager}')
         mr_manager.add_comment_with_message_id(self._confirmation_message_id)
 
@@ -40,6 +42,31 @@ class ProcessCommand(BaseCommand):
 class RunPipelineCommand(BaseCommand):
     """This command is used for manual running the pipeline for the related Merge Request"""
 
-    def run(self, mr_manager: MergeRequestManager):
-        super().run(mr_manager)
+    def run(self, mr_manager: MergeRequestManager, **kwargs):
+        super().run(mr_manager, **kwargs)
         mr_manager.run_user_requested_pipeline()
+
+
+# TODO: Add separate command for creating follow-ups.
+@robocat_command(verb='follow-up', confirmation_message_id=MessageId.CommandFollowup)
+class FollowupCommand(BaseCommand):
+    """This command is used for executing follow-up actions upon the related Merge Request"""
+
+    def run(
+            self,
+            mr_manager: MergeRequestManager,
+            project_manager: ProjectManager,
+            jira: JiraAccessor):
+        super().run(mr_manager)
+        if mr_manager.data.is_merged:
+            followup_rule = FollowupRule(project_manager=project_manager, jira=jira)
+            followup_result = followup_rule.execute(mr_manager)
+            logger.debug(f"{mr_manager}: {followup_result}")
+        else:
+            mr_manager.add_comment_with_message_id(
+                MessageId.CommandNotExecuted,
+                message_params={
+                    'command': self.verb,
+                    'explanation': (
+                        'Refusing to execute follow-up actions upon unmerged Merge Request'),
+                    })

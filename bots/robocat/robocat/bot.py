@@ -36,8 +36,14 @@ class GitlabEventType(enum.Enum):
     comment = enum.auto()
 
 
+class MrPreviousData(TypedDict):
+    state: str
+
+
 class GitlabEventData(TypedDict):
     mr_id: str
+    mr_state: str
+    mr_previous_data: MrPreviousData
     event_type: GitlabEventType
     added_comment: str
     raw_pipeline_status: str
@@ -61,7 +67,7 @@ class Bot(threading.Thread):
             current_user=self._username,
             repo=self._repo)
 
-        jira = JiraAccessor(**config["jira"])
+        self._jira = JiraAccessor(**config["jira"])
 
         self._rule_nx_submodules_check = NxSubmoduleCheckRule(
             self._project_manager,
@@ -73,9 +79,9 @@ class Bot(threading.Thread):
         self._rule_open_source_check = OpenSourceCheckRule(
             project_manager=self._project_manager, **config["open_source_check_rule"])
         self._rule_workflow_check = WorkflowCheckRule(jira=jira)
-        self._rule_followup = FollowupRule(project_manager=self._project_manager, jira=jira)
+        self._rule_followup = FollowupRule(project_manager=self._project_manager, jira=self._jira)
         self._rule_process_related_projects_issues = ProcessRelatedProjectIssuesRule(
-            jira=jira, **config["process_related_merge_requests_rule"])
+            jira=self._jira, **config["process_related_merge_requests_rule"])
 
         self._mr_queue = mr_queue
         self._polling = False  # By default assume that we are in the "webhook" mode.
@@ -97,9 +103,6 @@ class Bot(threading.Thread):
                 not essential_rule_check_result or
                 not commit_message_check_result or
                 not open_source_check_result):
-            if essential_rule_check_result == EssentialRule.ExecutionResult.merged:
-                followup_result = self._rule_followup.execute(mr_manager)
-                logger.debug(f"{mr_manager}: {followup_result}")
             return
 
         workflow_check_result = self._rule_workflow_check.execute(mr_manager)
@@ -137,10 +140,12 @@ class Bot(threading.Thread):
             self._mr_queue.put(
                 GitlabEventData(mr_id=mr.id, event_type=GitlabEventType.merge_request))
 
-        while(True):
+        while (True):
             event_data = self._mr_queue.get()
             try:
+                logger.debug(f"{event_data}: Start event processing.")
                 self.process_event(event_data)
+                logger.debug(f"{event_data}: Finish event processing")
             except gitlab.exceptions.GitlabError as e:
                 logger.warning(f"{event_data}: Gitlab error: {e}")
             except JiraError as e:
@@ -169,7 +174,10 @@ class Bot(threading.Thread):
             logger.debug(f'Comment {event_data["added_comment"]} parsed as "{command}" command.')
 
             if command:
-                command.run(mr_manager)
+                command.run(
+                    mr_manager=mr_manager,
+                    project_manager=self._project_manager,
+                    jira=self._jira)
                 if command.should_handle_mr_after_run:
                     self.handle(mr_manager)
             return
@@ -180,7 +188,14 @@ class Bot(threading.Thread):
             if pipeline_status == PipelineStatus.running:
                 return
 
-        self.handle(mr_manager)
+        current_mr_state = event_data["mr_state"]
+        previous_mr_state = event_data.get("mr_previous_data", {}).get("state", "")
+        if current_mr_state == "opened":
+            self.handle(mr_manager)
+        elif current_mr_state == "merged" and previous_mr_state == "opened":
+            logger.info(f"{mr_manager}: Merge Request is just merged; executing follow-up rule.")
+            followup_result = self._rule_followup.execute(mr_manager)
+            logger.debug(f"{mr_manager}: {followup_result}")
 
     def get_merge_requests_manager(self, mr_poll_rate):
         while True:

@@ -12,7 +12,7 @@ from gidgetlab.aiohttp import GitLabBot
 import graypy
 
 import automation_tools.utils
-from robocat.bot import Bot, GitlabEventType, GitlabEventData
+from robocat.bot import Bot, GitlabEventType, GitlabEventData, MrPreviousData
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +23,19 @@ mr_queue = queue.SimpleQueue()
 AsyncCallback = Callable[..., Awaitable[None]]
 
 
-def add_event_hook(event_type: str) -> Callable[[AsyncCallback], AsyncCallback]:
+def add_event_hook(
+        event_type: str,
+        mr_object_key: str = "object_attributes") -> Callable[[AsyncCallback], AsyncCallback]:
     def decorator(func: AsyncCallback) -> AsyncCallback:
         async def event_processor(event, *_):
             try:
-                await func(event)
+                mr_object = event.data.get(mr_object_key)
+                if mr_object:
+                    await func(event, mr_object)
+                else:
+                    logger.info(
+                        f"Got {event_type} event without the Merge Request object. Raw data: "
+                        "{event.data!r}")
             except Exception as e:
                 logger.error(f"Crashed while processing {event_type} event: {e!r}")
 
@@ -37,42 +45,44 @@ def add_event_hook(event_type: str) -> Callable[[AsyncCallback], AsyncCallback]:
 
 
 @add_event_hook("Merge Request")
-async def merge_request_event(event):
-    mr_id = event.data["object_attributes"]["iid"]
-    logger.debug(f'Got Merge Request event. MR id: {mr_id}')
-    mr_queue.put(GitlabEventData(mr_id=mr_id, event_type=GitlabEventType.merge_request))
+async def merge_request_event(event, mr_object):
+    mr_id = mr_object['iid']
+    mr_state = mr_object['state']
+    logger.debug(f'Got Merge Request event. MR id: {mr_id} ({mr_state})')
+    mr_changes = mr_object["changes"]
+    mr_previous_data = {
+        k: mr_changes.get(k, {}).get("previous") for k in MrPreviousData.__required_keys__}
+    mr_queue.put(GitlabEventData(
+        mr_id=mr_id,
+        mr_state=mr_state,
+        mr_previous_data=mr_previous_data,
+        event_type=GitlabEventType.merge_request))
 
 
-@add_event_hook("Pipeline")
-async def pipeline_event(event):
-    mr_object = event.data.get("merge_request")
-    if mr_object:
-        mr_id = mr_object['iid']
-        logger.debug(f'Got Pipeline event. MR id: {mr_id}')
-        raw_pipeline_status = event.data["object_attributes"]["status"]
-        mr_queue.put(GitlabEventData(
-            mr_id=mr_id,
-            event_type=GitlabEventType.pipeline,
-            raw_pipeline_status=raw_pipeline_status))
-    else:
-        logger.debug(
-            f"Got Pipeline event without the 'merge_request' object. Raw data: {event.data!r}")
+@add_event_hook("Pipeline", "merge_request")
+async def pipeline_event(event, mr_object):
+    mr_id = mr_object['iid']
+    mr_state = mr_object['state']
+    logger.debug(f'Got Pipeline event. MR id: {mr_id} ({mr_state})')
+    raw_pipeline_status = event.data["object_attributes"]["status"]
+    mr_queue.put(GitlabEventData(
+        mr_id=mr_id,
+        mr_state=mr_state,
+        event_type=GitlabEventType.pipeline,
+        raw_pipeline_status=raw_pipeline_status))
 
 
 @add_event_hook("Note")
-async def note_event(event):
-    mr_object = event.data.get("merge_request")
-    if mr_object:
-        mr_id = event.data['merge_request']['iid']
-        logger.debug(f'Got Note event. MR id: {mr_id}')
-        comment = event.data["object_attributes"]["note"]
-        mr_queue.put(GitlabEventData(
-            mr_id=mr_id,
-            event_type=GitlabEventType.comment,
-            added_comment=comment))
-    else:
-        logger.debug(
-            f"Got Note event without the 'merge_request' object. Raw data: {event.data!r}")
+async def note_event(event, mr_object):
+    mr_id = mr_object['iid']
+    mr_state = mr_object['state']
+    logger.debug(f'Got Note event. MR id: {mr_id} ({mr_state})')
+    comment = event.data["object_attributes"]["note"]
+    mr_queue.put(GitlabEventData(
+        mr_id=mr_id,
+        mr_state=mr_state,
+        event_type=GitlabEventType.comment,
+        added_comment=comment))
 
 
 class ServiceNameFilter(logging.Filter):

@@ -11,7 +11,11 @@ from automation_tools.tests.gitlab_constants import (
 from automation_tools.tests.mocks.git_mocks import BOT_USERNAME
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.bot import Bot, GitlabEventData, GitlabEventType
-from robocat.commands.commands import BaseCommand, ProcessCommand, RunPipelineCommand
+from robocat.commands.commands import (
+    BaseCommand,
+    ProcessCommand,
+    RunPipelineCommand,
+    FollowupCommand)
 import robocat.commands.parser
 from tests.fixtures import *
 
@@ -25,7 +29,8 @@ class TestRobocatCommands:
         (f"sometext @{BOT_USERNAME} process", None),
         (f"@{BOT_USERNAME} serves", None),
         (f"{BOT_USERNAME} process", None),
-        (f"@{BOT_USERNAME} run_pipeline", RunPipelineCommand)
+        (f"@{BOT_USERNAME} run_pipeline", RunPipelineCommand),
+        (f"@{BOT_USERNAME} follow-up", FollowupCommand)
     ])
     def test_command_parsing(self, comment: str, command_class: BaseCommand):
         command = robocat.commands.parser.create_command_from_text(
@@ -86,6 +91,15 @@ class TestRobocatCommands:
         event_data = GitlabEventData(
             mr_id=mr.iid,
             event_type=GitlabEventType.comment,
+            added_comment=f"@{BOT_USERNAME} follow-up")
+        bot.process_event(event_data)
+        comments = mr.mock_comments()
+        assert f":{AwardEmojiManager.COMMAND_NOT_EXECUTED}:" in comments[-1], (
+            f"Last comment: {comments}.")
+
+        event_data = GitlabEventData(
+            mr_id=mr.iid,
+            event_type=GitlabEventType.comment,
             added_comment=f"@{BOT_USERNAME} process")
         bot.process_event(event_data)
         assert mr.state == "merged"
@@ -109,7 +123,7 @@ class TestRobocatCommands:
             "state": "merged",
         })
     ])
-    def test_process_merged(
+    def test_execute_commands_on_merged(
             self,
             project: ProjectMock,
             repo_accessor: Repo,
@@ -135,6 +149,18 @@ class TestRobocatCommands:
         bot.process_event(event_data)
 
         comments = mr.mock_comments()
-        assert len(comments) == 2, f"Got comments: {comments}"
+        assert len(comments) == 1, f"Got comments: {comments}"
+        assert f":{AwardEmojiManager.NOTIFICATION_EMOJI}:" in comments[-1], (
+            f"Last comment: {comments[-1]}.")
+
+        event_data = GitlabEventData(
+            mr_id=mr.iid,
+            event_type=GitlabEventType.comment,
+            added_comment=f"@{BOT_USERNAME} follow-up")
+
+        bot.process_event(event_data)
+
+        comments = mr.mock_comments()
+        assert len(comments) == 3, f"Got comments: {comments}"
         assert f":{AwardEmojiManager.FOLLOWUP_CREATED_EMOJI}:" in comments[-1], (
             f"Last comment: {comments[-1]}.")

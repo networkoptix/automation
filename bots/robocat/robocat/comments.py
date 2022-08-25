@@ -149,13 +149,17 @@ current status. Check the Issue status and fix in manually if necessary."""
 bot_readable_comment_title = {
     MessageId.CommandProcess: "User command action",
     MessageId.CommandRunPipeline: "User command action",
+    MessageId.CommandFollowup: "User command action",
     MessageId.OpenSourceNeedApproval: "Manual check is needed",
+    MessageId.CommandNotExecuted: "Command was not executed",
 }
 bot_readable_comment = {
     MessageId.CommandProcess: "Re-checking Merge Request",
     MessageId.CommandRunPipeline: "Initiating pipeline run",
+    MessageId.CommandFollowup: "Executing follow-up actions",
     MessageId.OpenSourceNeedApproval: """
 This merge request contains new or renamed files in the open-source part of the project, so it
 **must be approved** by one of: @{approvers}.
 """,
+    MessageId.CommandNotExecuted: "Command **{command}** is not executed: {explanation}.",
 }

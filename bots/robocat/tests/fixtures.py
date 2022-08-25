@@ -125,6 +125,7 @@ def bot(
         process_related_projects_issues_rule,
         repo_accessor,
         project,
+        jira,
         monkeypatch):
     def bot_init(bot):
         bot._rule_commit_message = commit_message_rule
@@ -137,6 +138,7 @@ def bot(
         bot._username = BOT_USERNAME
         bot._repo = repo_accessor
         bot._project_manager = ProjectManager(project, bot._username, repo=bot._repo)
+        bot._jira = jira
         bot._polling = False
 
     monkeypatch.setattr(Bot, "__init__", bot_init)
