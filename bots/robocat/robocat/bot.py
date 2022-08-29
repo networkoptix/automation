@@ -195,7 +195,7 @@ class Bot(threading.Thread):
         previous_mr_state = event_data.get("mr_previous_data", {}).get("state", "")
         if current_mr_state == "opened":
             self.handle(mr_manager)
-        elif current_mr_state == "merged" and previous_mr_state == "opened":
+        elif current_mr_state == "merged" and previous_mr_state in ["opened", "locked"]:
             logger.info(f"{mr_manager}: Merge Request is just merged; executing follow-up rule.")
             followup_result = self._rule_followup.execute(mr_manager)
             logger.debug(f"{mr_manager}: {followup_result}")

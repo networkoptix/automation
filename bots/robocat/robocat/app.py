@@ -23,6 +23,14 @@ mr_queue = queue.SimpleQueue()
 AsyncCallback = Callable[..., Awaitable[None]]
 
 
+MR_STATE_ID_TO_STATE_NAME = {
+    1: "opened",
+    2: "closed",
+    3: "merged",
+    4: "locked",
+}
+
+
 def add_event_hook(
         event_type: str,
         mr_object_key: str = "object_attributes") -> Callable[[AsyncCallback], AsyncCallback]:
@@ -50,6 +58,13 @@ async def merge_request_event(event, mr_object):
     mr_state = mr_object['state']
     logger.debug(f'Got Merge Request event. MR id: {mr_id} ({mr_state})')
     mr_changes = event.data["changes"]
+
+    # Convert state ids to state names.
+    if "state_id" in mr_changes:
+        mr_changes["state"] = {
+            k: MR_STATE_ID_TO_STATE_NAME[v] for k, v in mr_changes["state_id"].items()}
+        del mr_changes["state_id"]
+
     mr_previous_data = {
         k: mr_changes.get(k, {}).get("previous") for k in MrPreviousData.__required_keys__}
     mr_queue.put(GitlabEventData(
