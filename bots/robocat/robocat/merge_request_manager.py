@@ -381,26 +381,30 @@ class MergeRequestManager:
         logger.info(f"{self._mr}: Running pipeline ({reason})")
 
         running_pipeline = self._get_last_pipeline_by_status(frozenset([PipelineStatus.running]))
-        if running_pipeline:
-            running_pipeline.stop()
-
-        pipeline = self._get_last_pipeline(include_skipped=True)
+        pipeline_to_start = self._get_last_pipeline(include_skipped=True)
 
         # NOTE: There's no need to create pipelines in other cases because they are created by
         # Gitlab automatically.
         if reason == RunPipelineReason.requested_by_user:
             self._mr.award_emoji.delete(AwardEmojiManager.PIPELINE_EMOJI, own=False)
             # Don't create new pipeline if the last one is ready to start.
-            if not pipeline or not pipeline.is_manual:
-                pipeline = self._create_mr_pipeline()
+            if not pipeline_to_start or not pipeline_to_start.is_manual:
+                pipeline_to_start = self._create_mr_pipeline()
 
-        if not pipeline:  # We expect that by this time gitlab has already created a pipeline.
-            raise PlayPipelineError("No autocreated pipelines found.")
-        pipeline.play()
+        if not pipeline_to_start or pipeline_to_start.status == PipelineStatus.running:
+            logging.info(
+                "No pipeline ready to start is found. Probably, GitLab haven't created the "
+                "pipeline for the new MR changes yet. Do nothing until this happen.")
+            return
+
+        # To be on the safe side, first run new pipeline than cancel the old one.
+        pipeline_to_start.play()
+        if running_pipeline:
+            running_pipeline.stop()
 
         reason_msg = reason.value + ("" if not details else f" ({details})")
         message = robocat.comments.run_pipeline_message.format(
-            pipeline_id=pipeline.id, reason=reason_msg)
+            pipeline_id=pipeline_to_start.id, reason=reason_msg)
         self._add_comment("Pipeline started", message, AwardEmojiManager.PIPELINE_EMOJI)
         self.ensure_wait_state(None)
 
