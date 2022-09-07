@@ -9,6 +9,7 @@ VMS_REPO_CONFIG = RepoCheckConfig(
     },
     excluded_file_paths={
         "open/readme.md",
+        "open/requirements.txt",
         "open/build_info.txt",
         "open/vms/distribution/unit_tests/build_distribution_conf.py.in",
         "open/libs/nx_utils/static-resources/common_passwords.txt",
