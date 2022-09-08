@@ -9,6 +9,13 @@ image:
   tag: latest
   pullPolicy: Always
 
+# create image pull secret, all fields are required
+# when defined, overrides imagePullSecrets below
+# createImagePullSecret:
+  # registry:
+  # user:
+  # password:
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -99,12 +106,12 @@ config: |
         api_version: "4"
         timeout: 20
 
-
 persistence:
-  existingClaim: '{{ .Release.Name }}'
-  hostPath: /srv/workflow_police-{{ .Release.Name }}
-  size: 1G
-  # clean data volume on start: remove last_check file, repository
+  enabled: true
+  size: 3Gi
+  # storageClassName, set to "-" to define empty storageclass
+  storageClass: ""
+  # Clean data volume on start: remove last_check file, repository.
   wipeData: false
 
 serviceAccount:
@@ -141,8 +148,7 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-nodeSelector:
-  workflow-police: deploy
+nodeSelector: {}
 
 tolerations: []
 

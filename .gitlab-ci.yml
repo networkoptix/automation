@@ -5,48 +5,10 @@ include:
 - project: 'dev/ci'
   file: 'pipelines/infra-templates.yml'
 
-.deploy_secrets:
-  secrets:
-    KUBECONFIG: !reference [.k8s.deploy.template, secrets, KUBECONFIG]
-    JIRA_PASSWORD_FILE:
-      vault: jira/service@networkoptix.com@apptokens
-    SSH_PRIVATE_KEY_FILE:
-      vault: gitlab/prod/workflow-robocat-ssh-private-key@apptokens
-    GITLAB_API_TOKEN:
-      vault: gitlab/prod/workflow-police-app-token@apptokens
-      file: false
-
-.set_common_k8_values:
-  script:
-  - 'echo "gitSshKey: |" > ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - 'cat "${SSH_PRIVATE_KEY_FILE}"
-      | sed "s/^/  /" >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - 'echo "jiraPassword: $(cat ${JIRA_PASSWORD_FILE})"
-     >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - 'echo "repositoryUrl: git@${CI_SERVER_HOST}:dev/nx.git"
-     >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - 'echo "gelfServer: ${GRAYLOG_URL}" >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - 'echo "gitlabUrl: ${CI_SERVER_URL}" >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - 'echo "repositoryServer: ${CI_SERVER_HOST}"
-     >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - 'echo "gitlabToken: ${GITLAB_API_TOKEN}"
-       >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-
-# Remove pod to apply changes even if helm metadata is unchanged
-.stop_k8_containers:
-  script:
-  - set +o pipefail
-  - >
-    kubectl scale deployment "${PRODUCT}-${K8S_PRODUCT_RELEASE}"
-    --namespace "${K8S_DEPLOY_NAMESPACE}"
-    --replicas=0
-    |:
-
-
 variables:
+  DOCKER_REGISTRY_MIRROR: "docker.ru.nxteam.dev"
   WORKFLOW_POLICE_VERSION: "1.14"
   ROBOCAT_VERSION: "2.0"
-  K8S_PRODUCT_RELEASE: "prod"
   K8S_DEPLOY_NAMESPACE: "workflow-police"
   WORKFLOW_POLICE_LOG_LEVEL:
     description: Workflow police log level
@@ -147,23 +109,29 @@ helm:workflow_police:validate:
 docker:build:robocat:
   extends: .docker.template
   stage: "docker image, chart"
+  tags:
+  - primary
   variables:
     DOCKER_DIR: "bots/robocat"
     DOCKER_CONTEXT: ""
-    TARGET_IMAGE: "${DOCKER_REGISTRY}/nx/workflow_police/robocat"
+    TARGET_IMAGE: "${CI_REGISTRY_IMAGE}/robocat"
     TARGET_IMAGE_TAG: "$ROBOCAT_VERSION"
     BUILD_OPTIONS: "--build-arg=GIT_COMMIT=$CI_COMMIT_SHORT_SHA"
+    USE_GITLAB_REGISTRY: "true"
 
 # build workflow police docker image
 docker:build:workflow_police:
   extends: .docker.template
   stage: "docker image, chart"
+  tags:
+  - primary
   variables:
     DOCKER_DIR: "bots/workflow_police"
     DOCKER_CONTEXT: ""
-    TARGET_IMAGE: "${DOCKER_REGISTRY}/nx/workflow_police"
+    TARGET_IMAGE: "${CI_REGISTRY_IMAGE}/workflow_police"
     TARGET_IMAGE_TAG: "$WORKFLOW_POLICE_VERSION"
     BUILD_OPTIONS: "--build-arg=GIT_COMMIT=$CI_COMMIT_SHORT_SHA"
+    USE_GITLAB_REGISTRY: "true"
 
 # build open-source checker
 docker:build:open-source-checker:
@@ -196,18 +164,19 @@ helm:build:workflow_police:
 
 # deploy workflow_police
 k8s:workflow_police:deploy:
-  extends: .k8s.deploy.template
+  image: ${DOCKER_REGISTRY}/nx/deploy-pod
   variables:
-    DOCKER_DIR: "bots/workflow_police"
-    HELM_CHART_DIR: "$DOCKER_DIR/chart"
-    PRODUCT: "workflow-police"
-  secrets: !reference [.deploy_secrets, secrets]
+    HELM_CHART_DIR: "bots/workflow_police/chart"
+    LOG_LEVEL:  "${WORKFLOW_POLICE_LOG_LEVEL}"
+    TARGET_IMAGE: "${CI_REGISTRY_IMAGE}/workflow_police"
+    TARGET_IMAGE_TAG: "$WORKFLOW_POLICE_VERSION"
+  stage: deploy
+  tags:
+  - primary
   script:
-  - !reference [.set_common_k8_values, script]
-  - 'echo "logLevel: ${WORKFLOW_POLICE_LOG_LEVEL}"
-       >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - !reference [.stop_k8_containers, script]
-  - !reference [.k8s.deploy.template, script]
+  # ANSIBLE_* variables at https://gitlab.nxvms.dev/admin/application_settings/ci_cd
+  # ref: https://docs.ansible.com/ansible/latest/collections/community/hashi_vault/hashi_vault_lookup.html
+  - ansible-playbook -i deployment/inventory-master.yml deployment/deployment.yml
   rules:
   - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "master"
     changes:
@@ -224,20 +193,19 @@ k8s:workflow_police:manual:deploy:
 
 # deploy robocat
 k8s:robocat:deploy:
-  extends: .k8s.deploy.template
+  image: ${DOCKER_REGISTRY}/nx/deploy-pod
   variables:
-    DOCKER_DIR: "bots/robocat"
-    HELM_CHART_DIR: "$DOCKER_DIR/chart"
-    PRODUCT: "workflow-police-robocat"
-  secrets: !reference [.deploy_secrets, secrets]
+    HELM_CHART_DIR: "bots/robocat/chart"
+    LOG_LEVEL:  "${ROBOCAT_LOG_LEVEL}"
+    TARGET_IMAGE: "${CI_REGISTRY_IMAGE}/robocat"
+    TARGET_IMAGE_TAG: "$ROBOCAT_VERSION"
+  stage: deploy
+  tags:
+  - primary
   script:
-  - !reference [.set_common_k8_values, script]
-  - 'echo "logLevel: ${ROBOCAT_LOG_LEVEL}"
-       >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - 'echo "webHookSecret: ${ROBOCAT_WEBHOOK_SECRET}"
-      >> ${HELM_CHART_DIR}/values-${K8S_PRODUCT_RELEASE}.yaml'
-  - !reference [.stop_k8_containers, script]
-  - !reference [.k8s.deploy.template, script]
+  # ANSIBLE_* variables at https://gitlab.nxvms.dev/admin/application_settings/ci_cd
+  # ref: https://docs.ansible.com/ansible/latest/collections/community/hashi_vault/hashi_vault_lookup.html
+  - ansible-playbook -i deployment/inventory-master.yml deployment/deployment.yml
   rules:
   - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "master"
     changes:

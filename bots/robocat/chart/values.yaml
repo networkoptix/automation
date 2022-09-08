@@ -9,6 +9,13 @@ image:
   tag: latest
   pullPolicy: Always
 
+# create image pull secret, all fields are required
+# when defined, overrides imagePullSecrets below
+# createImagePullSecret:
+  # registry:
+  # user:
+  # password:
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -24,10 +31,10 @@ jiraPassword:
 webHookSecret:
 
 service:
-  type: LoadBalancer
+  type: ClusterIP
   frontendPort: 80
   backendPort: 8080
-  domainName: robocat.ru.nxteam.dev
+  domainName: ""
 
 # robocat config file
 robocatConfig: |
@@ -90,9 +97,10 @@ robocatConfig: |
       - open/conan_profiles
 
 persistence:
-  existingClaim: '{{ .Release.Name }}'
-  hostPath: /srv/workflow_robocat-{{ .Release.Name }}
-  size: 1G
+  enabled: true
+  size: 3Gi
+  # storageClassName, set to "-" to define empty storageclass
+  storageClass: ""
   # Clean data volume on start: remove last_check file, repository.
   wipeData: false
 
@@ -148,8 +156,7 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-nodeSelector:
-  workflow-police: deploy
+nodeSelector: {}
 
 tolerations: []
 

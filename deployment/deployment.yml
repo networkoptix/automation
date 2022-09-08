@@ -1,0 +1,32 @@
+- import_playbook: "nx.common.setup_env.yml"
+
+- name: "Deploy `{{ helmChart }}` at k8s"
+  hosts: localhost
+
+  tasks:
+  - name: "Update helm repository"
+    command: helm repo update
+
+  - name: "Prepare configuration"
+    template:
+      src: "values.yaml.j2"
+      dest: "/tmp/values.yaml"
+
+  - name: "Scale robocat deployment"
+    command: >-
+        kubectl -n '{{ deployNamespace }}' scale deployment '{{ helmRelease }}' --replicas=0
+    ignore_errors: true
+
+  - name: "Deploy release: `{{ helmRelease }}` to k8s cluster: `{{ k8_cluster_name }}`"
+    command: >-
+      helm upgrade --install '{{ helmRelease }}' 'nx-helm/{{ helmChart }}'
+        --create-namespace
+        --namespace '{{ deployNamespace }}'
+        --version '{{ helmChartVersion }}'
+        --wait
+        --values /tmp/values.yaml
+
+  environment:
+    AWS_ACCESS_KEY_ID: "{{ aws_access_key_id | default('') }}"
+    AWS_SECRET_ACCESS_KEY: "{{ aws_secret_access_key | default('') }}"
+    AWS_REGION: "{{ aws_region | default ('') }}"

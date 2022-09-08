@@ -1,0 +1,28 @@
+image:
+  repository: {{ lookup("env", "TARGET_IMAGE") }}
+  tag: {{ lookup("env", "TARGET_IMAGE_TAG") }}
+
+createImagePullSecret:
+  registry: {{ lookup("env", "CI_REGISTRY") }}
+  user: {{ lookup("env", "CI_DEPLOY_USER") }}
+  password: {{ lookup("env", "CI_DEPLOY_PASSWORD") }}
+
+jiraPassword: {{ lookup("hashi_vault", "secret=/apptokens/data/jira")["service@networkoptix.com"] }}
+
+gelfServer: {{ lookup("env", "GRAYLOG_URL") }}
+
+gitlabToken: {{ lookup("hashi_vault", "secret=/apptokens/data/gitlab/aws-gitlab-01")["workflow-police-app-token"] }}
+
+gitlabUrl:  {{ lookup("env", "CI_SERVER_URL") }}
+
+gitSshKey: |-
+  {{ lookup("hashi_vault", "secret=/apptokens/data/gitlab/aws-gitlab-01")["workflow-robocat-ssh-private-key"]
+      | indent( width=2 ) }}
+
+logLevel: {{ lookup("env", "LOG_LEVEL") }}
+
+webHookSecret: {{ lookup("env", "WEBHOOK_SECRET") }}
+
+repositoryUrl: git@{{ lookup("env", "CI_SERVER_HOST") }}:dev/nx.git
+
+repositoryServer: {{ lookup("env", "CI_SERVER_HOST") }}

@@ -1,0 +1,26 @@
+#
+# AWS ci-prod cluster inventory
+#
+all:
+  vars:
+    k8_cluster_name: "aws-ci-prod-eu-central-1-EKS-01"
+    aws_account: "ci-prod"
+    aws_region: "eu-central-1"
+    aws_access_key_id: "{{ lookup('hashi_vault', 'secret=/apptokens/data/aws/' + aws_account)
+                          ['aws_access_key_id'] }}"
+    aws_secret_access_key: "{{ lookup('hashi_vault', 'secret=/apptokens/data/aws/' + aws_account)
+                          ['aws_secret_access_key'] }}"
+
+    # helm deployment settings
+    deployNamespace: "{{ lookup('env', 'K8S_DEPLOY_NAMESPACE') }}"
+    helmChart: "{{ (lookup('file', '../' + lookup('env', 'HELM_CHART_DIR') + '/Chart.yaml') |
+                          from_yaml).get('name') }}"
+    helmChartVersion: "{{ (lookup('file', '../' + lookup('env', 'HELM_CHART_DIR') + '/Chart.yaml') |
+                          from_yaml).get('version') }}"
+    helmRelease: "aws-{{ helmChart }}"
+
+  children:
+    ansible_node_host:
+      hosts:
+        localhost:
+          ansible_connection: local
