@@ -14,7 +14,7 @@
 
   - name: "Scale robocat deployment"
     command: >-
-        kubectl -n '{{ deployNamespace }}' scale deployment '{{ helmRelease }}' --replicas=0
+        kubectl -n '{{ deployNamespace }}' scale statefulset '{{ helmRelease }}' --replicas=0
     ignore_errors: true
 
   - name: "Deploy release: `{{ helmRelease }}` to k8s cluster: `{{ k8_cluster_name }}`"
