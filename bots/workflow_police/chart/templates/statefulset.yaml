@@ -8,8 +8,6 @@ metadata:
 spec:
   serviceName: "workflow-police"
   replicas: {{ .Values.replicaCount }}
-  strategy:
-    type: Recreate
   selector:
     matchLabels:
       {{- include "workflow_police.selectorLabels" . | nindent 6 }}

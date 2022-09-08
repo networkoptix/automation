@@ -1,6 +1,6 @@
 image:
-  repository: {{ lookup("env", "TARGET_IMAGE") }}
-  tag: {{ lookup("env", "TARGET_IMAGE_TAG") }}
+  repository: "{{ lookup("env", "TARGET_IMAGE") }}"
+  tag: "{{ lookup("env", "TARGET_IMAGE_TAG") }}"
 
 createImagePullSecret:
   registry: {{ lookup("env", "CI_REGISTRY") }}
