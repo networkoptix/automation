@@ -183,6 +183,7 @@ k8s:workflow_police:deploy:
     - $DOCKER_DIR/**/*
     - $HELM_CHART_DIR/**/*
     - automation_tools/**/*
+    - deployment/**/*
     - .gitlab-ci.yml
 
 # Deploy form web ui using branch pipeline
@@ -212,6 +213,7 @@ k8s:robocat:deploy:
     - $DOCKER_DIR/**/*
     - $HELM_CHART_DIR/**/*
     - automation_tools/**/*
+    - deployment/**/*
     - .gitlab-ci.yml
 
 # Deploy form web ui using branch pipeline

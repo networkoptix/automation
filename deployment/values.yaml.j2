@@ -21,7 +21,7 @@ gitSshKey: |-
 
 logLevel: {{ lookup("env", "LOG_LEVEL") }}
 
-webHookSecret: {{ lookup("env", "WEBHOOK_SECRET") }}
+webHookSecret: {{ lookup("env", "ROBOCAT_WEBHOOK_SECRET") }}
 
 repositoryUrl: git@{{ lookup("env", "CI_SERVER_HOST") }}:dev/nx.git
 
