@@ -111,12 +111,9 @@ def _find_trademarks(line, consider_exceptions=True):
         if consider_exceptions and _is_a_trademark_exception(line, m):
             continue
         words = m.group().split(' ')
-        if len(words) > 1:
-            yield m
-        # Can't use _is_a_morpheme() for words like 'InParas', 'AgileVision', 'IncoreSoft' etc.
-        # In case if match is a full word just yielding it
-        elif any([words == [elem] for elem in line.split(' ')]):
+        if len(words) > 1 or any([words == [elem] for elem in line.split(' ')]):
             yield WordSearchResult(m.start(), m.group(), m.group())
+        # The pattern found is not a whole word.
         elif full_word := _get_word_by_substring(line, m.start(), m.end()):
             yield WordSearchResult(m.start(), m.group(), full_word)
 
