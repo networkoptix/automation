@@ -110,7 +110,7 @@ def main():
 
     if arguments.check_dir:
         logging.info(
-            f"Checking open-source requirements for {arguments.check_dir.as_posix()!r} directory "
+            f"Checking open-source requirements for {arguments.check_dir!r} directory "
             f"in {repo_directory.as_posix()!r}")
         check_files = (repo_directory / arguments.check_dir).rglob("*")
     elif arguments.check_file_list:

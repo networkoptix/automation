@@ -57,7 +57,7 @@ class WordError:
         if self.stem != self.word:
             quoted_word = f'`{self.word}` (stem `{self.stem}`)'
         else:
-            quoted_word = '`{self.word}`'
+            quoted_word = f'`{self.word}`'
         return f"{self.path}:{self.line}:{self.col}: {self.reason} word: {quoted_word}"
 
 
@@ -235,6 +235,10 @@ def check_file_content(path, content) -> Collection[Union[WordError, LineError, 
         _check_has_mpl(line_idx=0, prefix='<!-- ', postfix=' -->')
         _check_has_empty_line(line_idx=1)
         _check_no_bad_words(start_line_idx=2)
+    elif ext == '.css':
+        _check_has_mpl(line_idx=0, prefix='/* ', postfix=' */')
+        _check_has_empty_line(line_idx=1)
+        _check_no_bad_words(start_line_idx=1)
     else:
         errors.append(FileError(path))
 
