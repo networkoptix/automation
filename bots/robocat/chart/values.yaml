@@ -98,7 +98,7 @@ robocatConfig: |
 
 persistence:
   enabled: true
-  size: 3Gi
+  size: 6Gi
   # storageClassName, set to "-" to define empty storageclass
   storageClass: ""
   # Clean data volume on start: remove last_check file, repository.
