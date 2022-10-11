@@ -70,6 +70,7 @@ robocatConfig: |
         approvers:
           - sivanov
           - mshevchenko
+          - ikulaychuk
       -
         patterns:
           - open/.+
@@ -77,6 +78,7 @@ robocatConfig: |
         approvers:
           - ptolstov
           - mshevchenko
+          - ikulaychuk
 
   # Configuration for processing Issues from related Projects.
   process_related_merge_requests_rule:
