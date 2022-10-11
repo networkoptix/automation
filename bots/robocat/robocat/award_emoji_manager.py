@@ -14,7 +14,7 @@ class AwardEmojiManager():
     PIPELINE_EMOJI = "construction_site"
     NO_PIPELINE_EMOJI = "no_entry"
     INITIAL_EMOJI = "cat2"
-    RETURN_TO_DEVELOPMENT_EMOJI = "exclamation"
+    CHECK_FAIL_EXPLANATION_EMOJI = "exclamation"
     AUTOCHECK_FAILED_EMOJI = "stop_sign"
     AUTOCHECK_OK_EMOJI = "white_check_mark"
     MERGED_EMOJI = "white_check_mark"
@@ -38,6 +38,10 @@ class AwardEmojiManager():
         MessageId.CommandFollowup: NOTIFICATION_EMOJI,
         MessageId.OpenSourceNeedApproval: NEED_MANUAL_CHECK_EMOJI,
         MessageId.CommandNotExecuted: COMMAND_NOT_EXECUTED,
+        MessageId.FailedCheckForSuccessfulPipeline: CHECK_FAIL_EXPLANATION_EMOJI,
+        MessageId.FailedCheckForConflictsWithTargetBranch: CHECK_FAIL_EXPLANATION_EMOJI,
+        MessageId.FailedCheckForUnresolvedThreads: CHECK_FAIL_EXPLANATION_EMOJI,
+        MessageId.FailedCheckForNoSupportedProject: CHECK_FAIL_EXPLANATION_EMOJI,
     }
 
     def __init__(self, gitlab_award_emoji_manager, current_user):

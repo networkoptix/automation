@@ -28,19 +28,6 @@ Lets wait until it finishes."""
 approval_wait_message = """Not enough approvals, **{approvals_left} more** required.
 I will start merging process once all approvals are collected."""
 
-unresolved_threads_message = f"""Merge Request returned to development.
-Please, resolve all discussions and [mark as Ready]({_mark_as_ready_url}) to continue merging
-process."""
-
-no_supported_jira_projects = f"""
-Merge Request returned to development. Please, link this Merge Request to the Jira Issues from at
-least one of the supported Jira Projects (%s) and [mark as Ready]({_mark_as_ready_url}) to
-continue the merge process.
-"""
-
-conflicts_message = f"""Merge Request returned to development.
-Please, do manual rebase and [mark as Ready]({_mark_as_ready_url}) to continue merging process."""
-
 has_new_files_in_open_source = """This merge request contains new or renamed files in the
 open-source part of the project, so it **must be approved** by one of: @{approvers}.
 """
@@ -58,10 +45,6 @@ needed.
 """
 
 commit_message_is_ok = "Commit message is ok."
-
-failed_pipeline_message = f"""Merge Request returned to development.
-Please, fix the errors and [mark as Ready]({_mark_as_ready_url}) to continue merging process.\n
-You may rebase or run new pipeline manually if errors are resolved outside MR."""
 
 template = """### :{emoji}: {title}
 
@@ -152,6 +135,10 @@ bot_readable_comment_title = {
     MessageId.CommandFollowup: "User command action",
     MessageId.OpenSourceNeedApproval: "Manual check is needed",
     MessageId.CommandNotExecuted: "Command was not executed",
+    MessageId.FailedCheckForSuccessfulPipeline: "Pipeline failed",
+    MessageId.FailedCheckForConflictsWithTargetBranch: "Conflicts with target branch",
+    MessageId.FailedCheckForUnresolvedThreads: "Unresolved threads",
+    MessageId.FailedCheckForNoSupportedProject: "No supported project found",
 }
 bot_readable_comment = {
     MessageId.CommandProcess: "Re-checking Merge Request",
@@ -162,4 +149,22 @@ This merge request contains new or renamed files in the open-source part of the 
 **must be approved** by one of: @{approvers}.
 """,
     MessageId.CommandNotExecuted: "Command **{command}** is not executed: {explanation}.",
+    MessageId.FailedCheckForSuccessfulPipeline: """
+Pipeline [{last_pipeline_id}]({last_pipeline_web_url}) failed. The Merge Request can not be merged
+until the errors are fixed. You may rebase or run a new pipeline manually if these errors are
+resolved outside the MR.
+""",
+    MessageId.FailedCheckForConflictsWithTargetBranch: """
+Can not merge due to the conflicts with the target branch. Do a manual rebase to continue the
+merging process.
+""",
+    MessageId.FailedCheckForUnresolvedThreads: """
+Can not merge due to the unresolved discussions. Resolve all the discussions to continue the
+merging process.
+""",
+    MessageId.FailedCheckForNoSupportedProject: """
+The Merge Request is not linked to any Jira Issue known to Robocat. Link this MR to Jira
+Issue(s) from at least one of the supported Jira Projects ({jira_projects_list}) to continue the
+merging process.
+""",
 }

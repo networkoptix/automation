@@ -38,14 +38,16 @@ class TestBot:
             )],
         }),
     ])
-    def test_autoreturn_to_develop(self, bot, mr, mr_manager):
+    def test_no_merge_on_check_fail(self, bot, mr, mr_manager):
         bot.handle(mr_manager)
         assert not mr.state == "merged"
         assert not mr.blocking_discussions_resolved
 
         bot.handle(mr_manager)
         assert not mr.state == "merged"
-        assert mr.work_in_progress
+        assert not mr.work_in_progress
+
+        mr_manager._mr.load_discussions()  # Update notes in the Merge Request object.
 
         # Nothing changes after the third handler run.
         comments_before = mr.mock_comments()
@@ -54,7 +56,7 @@ class TestBot:
 
         bot.handle(mr_manager)
         assert not mr.state == "merged"
-        assert mr.work_in_progress
+        assert not mr.work_in_progress
 
         comments_after = mr.mock_comments()
         pipelines_after = mr.pipelines()

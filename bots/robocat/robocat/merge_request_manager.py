@@ -13,11 +13,10 @@ from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.pipeline import (
     Pipeline,
     PipelineStatus,
-    PlayPipelineError,
     RunPipelineReason,
     Job,
     JobStatus)
-from robocat.action_reasons import WaitReason, ReturnToDevelopmentReason
+from robocat.action_reasons import WaitReason, CheckFailureReason
 from robocat.merge_request import MergeRequest
 from robocat.note import Comment, MessageId, Note
 from robocat.project import MergeRequestDiffData
@@ -417,28 +416,34 @@ class MergeRequestManager:
         self._get_last_pipeline_by_status.cache_clear()
         return self._get_last_pipeline(include_skipped=True)
 
-    def return_to_development(self, reason, *params) -> None:
-        logger.info(f"{self}: Marking as Draft: {reason}")
+    def explain_check_failure(self, reason: CheckFailureReason, *params) -> None:
+        logger.info(f"{self}: Add comment explaining check failure: {reason}")
 
-        if reason == ReturnToDevelopmentReason.failed_pipeline:
+        message_params: Dict[str, str] = None
+        if reason == CheckFailureReason.failed_pipeline:
             last_pipeline = self._get_last_pipeline()
-            title = f"Pipeline [{last_pipeline.id}]({last_pipeline.web_url}) failed"
-            message = robocat.comments.failed_pipeline_message
-        elif reason == ReturnToDevelopmentReason.conflicts:
-            title = "Conflicts with target branch"
-            message = robocat.comments.conflicts_message
-        elif reason == ReturnToDevelopmentReason.unresolved_threads:
-            title = "Unresolved threads"
-            message = robocat.comments.unresolved_threads_message
-        elif reason == ReturnToDevelopmentReason.bad_project_list:
-            title = "No supported project found"
-            message = robocat.comments.no_supported_jira_projects % params
-        else:
-            assert False, f"Unknown reason: {reason}"
+            message_id = MessageId.FailedCheckForSuccessfulPipeline
+            message_params = {
+                "last_pipeline_id": str(last_pipeline.id),
+                "last_pipeline_web_url": last_pipeline.web_url,
+            }
+        elif reason == CheckFailureReason.conflicts:
+            message_id = MessageId.FailedCheckForConflictsWithTargetBranch
+        elif reason == CheckFailureReason.unresolved_threads:
+            message_id = MessageId.FailedCheckForUnresolvedThreads
+        elif reason == CheckFailureReason.bad_project_list:
+            message_id = MessageId.FailedCheckForNoSupportedProject
+            message_params = {"jira_projects_list": '"{}"'.format('", "'.join(params[0]))}
 
-        self._mr.set_draft_flag()
-        if message is not None:
-            self._add_comment(title, message, AwardEmojiManager.RETURN_TO_DEVELOPMENT_EMOJI)
+        assert message_id is not None, f"Unknown reason: {reason}"
+
+        for note in self.notes():
+            # Do not add comment if the same comment for the same commit is already added.
+            if note.message_id == message_id and note.sha == self._mr.sha:
+                self.unset_wait_state()
+                return
+
+        self.add_comment_with_message_id(message_id=message_id, message_params=message_params)
         self.unset_wait_state()
 
     def ensure_wait_state(self, reason) -> None:

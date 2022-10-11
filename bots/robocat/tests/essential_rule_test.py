@@ -353,39 +353,39 @@ class TestEssentialRule:
         ({
             "needed_approvers_number": 0,
             "has_conflicts": True
-        }, EssentialRule.ExecutionResult.has_conflicts, "Please, do manual rebase"),
+        }, EssentialRule.ExecutionResult.has_conflicts, "Do a manual rebase"),
         # Has unresolved threads, and the pipeline has succeeded.
         ({
             "needed_approvers_number": 0,
             "blocking_discussions_resolved": False,
             "pipelines_list": [(DEFAULT_COMMIT["sha"], "success")]
-        }, EssentialRule.ExecutionResult.unresolved_threads, "Please, resolve all discussions"),
+        }, EssentialRule.ExecutionResult.unresolved_threads, "Resolve all the discussions"),
         # Has unresolved threads, and the pipeline has failed.
         ({
             "needed_approvers_number": 0,
             "blocking_discussions_resolved": False,
             "pipelines_list": [(DEFAULT_COMMIT["sha"], "failed")]
-        }, EssentialRule.ExecutionResult.unresolved_threads, "Please, resolve all discussions"),
+        }, EssentialRule.ExecutionResult.unresolved_threads, "Resolve all the discussions"),
         # No unresolved threads, pipeline has failed, and no new commits.
         ({
             "needed_approvers_number": 0,
             "pipelines_list": [(DEFAULT_COMMIT["sha"], "failed")]
-        }, EssentialRule.ExecutionResult.pipeline_failed, "Please, fix the errors"),
+        }, EssentialRule.ExecutionResult.pipeline_failed, "You may rebase or run a new pipeline"),
         # Bad Jira Project.
         ({
             "title": "UNKNOWN-666: Test mr",
-        }, EssentialRule.ExecutionResult.bad_project_list, "Please, link this Merge Request"),
+        }, EssentialRule.ExecutionResult.bad_project_list, "Link this MR"),
     ])
-    def test_return_to_development(
+    def test_comment_check_failure(
             self, essential_rule, mr, mr_manager, expected_result, expected_comment):
 
         assert essential_rule.execute(mr_manager) == expected_result
 
-        assert mr.work_in_progress
+        assert not mr.work_in_progress
 
         comments = mr.mock_comments()
-        assert "Merge Request returned to development" in comments[-1], (
-            f"Got comments: {comments}")
+        assert comments[-1].startswith(
+            f"### :{AwardEmojiManager.CHECK_FAIL_EXPLANATION_EMOJI}:"), f"Got comments: {comments}"
         assert expected_comment in comments[-1], f"Got comment: {comments[-1]}"
 
         assert essential_rule.execute(mr_manager) in [

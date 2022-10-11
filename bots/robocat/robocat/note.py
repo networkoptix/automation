@@ -42,6 +42,11 @@ class MessageId(Enum):
     CommandFollowup = auto()
     CommandNotExecuted = auto()
 
+    FailedCheckForSuccessfulPipeline = auto()
+    FailedCheckForConflictsWithTargetBranch = auto()
+    FailedCheckForUnresolvedThreads = auto()
+    FailedCheckForNoSupportedProject = auto()
+
 
 class Comment(NamedTuple):
     id: MessageId

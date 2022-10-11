@@ -5,7 +5,7 @@ from typing import Set
 from automation_tools.checkers.checkers import WorkflowPolicyChecker
 from robocat.merge_request_manager import MergeRequestManager, ApprovalRequirements
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
-from robocat.action_reasons import WaitReason, ReturnToDevelopmentReason
+from robocat.action_reasons import WaitReason, CheckFailureReason
 from robocat.pipeline import PipelineStatus
 
 logger = logging.getLogger(__name__)
@@ -55,15 +55,15 @@ class EssentialRule(BaseRule):
             True for k in mr_manager.data.issue_keys
             if WorkflowPolicyChecker(project_keys=self._project_keys).is_applicable(k)])
         if not belongs_to_supported_projects:
-            mr_manager.return_to_development(
-                ReturnToDevelopmentReason.bad_project_list, self._project_keys)
+            mr_manager.explain_check_failure(
+                CheckFailureReason.bad_project_list, self._project_keys)
             return self.ExecutionResult.bad_project_list
 
         mr_manager.ensure_watching()
         mr_manager.ensure_user_requested_pipeline_run()
 
         if mr_data.has_conflicts:
-            mr_manager.return_to_development(ReturnToDevelopmentReason.conflicts)
+            mr_manager.explain_check_failure(CheckFailureReason.conflicts)
             return self.ExecutionResult.has_conflicts
 
         first_pipeline_started = mr_manager.ensure_first_pipeline_run()
@@ -85,11 +85,11 @@ class EssentialRule(BaseRule):
             return self.ExecutionResult.pipeline_running
 
         if not mr_data.blocking_discussions_resolved:
-            mr_manager.return_to_development(ReturnToDevelopmentReason.unresolved_threads)
+            mr_manager.explain_check_failure(CheckFailureReason.unresolved_threads)
             return self.ExecutionResult.unresolved_threads
 
         if last_pipeline_status == PipelineStatus.failed:
-            mr_manager.return_to_development(ReturnToDevelopmentReason.failed_pipeline)
+            mr_manager.explain_check_failure(CheckFailureReason.failed_pipeline)
             return self.ExecutionResult.pipeline_failed
 
         assert last_pipeline_status == PipelineStatus.succeeded, "Unexpected pipeline status"
