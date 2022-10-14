@@ -74,9 +74,8 @@ _trademarks_criteria_reference = [
         (trademark, 'positive') for trademark in
         get_trademarks_from_file(Path(__file__).parent / 'organization_domains.txt')
         ],
-    ('Nvidia Tegra', 'negative'),
     ('Google Test', 'negative'),
-    ('Nvidia', 'positive'),
+    ('Nvidia', 'negative'),
     ('Google Inc.', 'positive'),
     ('application/x-noptix-videowall-items', 'negative'),
     ('application/x-noptix-resources', 'negative'),

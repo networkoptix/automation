@@ -26,11 +26,11 @@ _disclosure_words_re = re.compile(
 _mpl = (
     'Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/')
 _trademark_exceptions_re = re.compile(
-    r'com/networkoptix/nxwitness|spaceX|Nvidia (Tegra|GPU|GeForce)|Google {0,1}Test|'
+    r'com/networkoptix/nxwitness|spaceX|Google {0,1}Test|'
     r'application/x-noptix-[\w-]+|google-services\.json|GoogleService-Info\.plist|InitGoogleMock|'
     r'\"mts\"|SEI UNIT|Bad SEI detected. SEI too short|skip this sei message|_?sei_message|'
     r'sub_pic_cpb_params_in_pic_timing_sei_flag|SEI_MSG|sei_payload|github.com/google/googletest|'
-    r'googletest|groups.google.com|developer.download.nvidia.com|'
+    r'googletest|groups.google.com|'
     r'nx_copyright_owner \"Network Optix\"|networkoptix.atlassian.net')
 _license_words_exceptions_re = re.compile(
     r'\"copyright\"|\bcopyright_identification_|\b1 - Copyrighted\.(?:\s|$)|'
