@@ -30,7 +30,7 @@ _trademark_exceptions_re = re.compile(
     r'application/x-noptix-[\w-]+|google-services\.json|GoogleService-Info\.plist|InitGoogleMock|'
     r'\"mts\"|SEI UNIT|Bad SEI detected. SEI too short|skip this sei message|_?sei_message|'
     r'sub_pic_cpb_params_in_pic_timing_sei_flag|SEI_MSG|sei_payload|github.com/google/googletest|'
-    r'googletest|groups.google.com|'
+    r'googletest|groups.google.com|hanwha_edge1|'
     r'nx_copyright_owner \"Network Optix\"|networkoptix.atlassian.net')
 _license_words_exceptions_re = re.compile(
     r'\"copyright\"|\bcopyright_identification_|\b1 - Copyrighted\.(?:\s|$)|'
