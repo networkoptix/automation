@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 class WorkflowPolicyChecker:
-    """ All the subclasses of this class are expected to return "None" if the check is successfull
+    """ All the subclasses of this class are expected to return "None" if the check is successful
     and the string containing information about the reason why the check failed otherwise. Check
-    considered as successfull if this check is not applicable to the Issue."""
+    considered as successful if this check is not applicable to the Issue."""
 
     def __init__(self, project_keys: Set[str], repo: Repo = None):
         self._repo = repo

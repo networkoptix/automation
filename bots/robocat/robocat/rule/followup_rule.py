@@ -3,6 +3,7 @@ from enum import Enum
 from typing import List
 
 from robocat.merge_request_manager import MergeRequestManager, FollowupCreationResult
+import robocat.merge_request_actions.followup_actions
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from automation_tools.jira import JiraAccessor
@@ -75,7 +76,10 @@ class FollowupRule(BaseRule):
             logger.info(
                 f"{mr_manager}: Merge request is a primary merge request. Trying to move to "
                 "QA/close single-branch Jira issues and create follow-up merge requests.")
-            self._create_followup_merge_requests(original_mr_manager=mr_manager)
+            robocat.merge_request_actions.followup_actions.create_followup_merge_requests(
+                jira=self._jira,
+                project_manager=self._project_manager,
+                mr_manager=mr_manager)
             self._try_close_single_branch_jira_issues(
                 target_branch=mr_data.target_branch,
                 issue_keys=jira_issue_keys,
@@ -112,46 +116,3 @@ class FollowupRule(BaseRule):
         for issue in self._jira.get_issues(issue_keys):
             if issue.branches(exclude_already_merged=True) == {target_branch}:
                 issue.try_finalize() or mr_manager.add_issue_not_finalized_notification(str(issue))
-
-    def _create_followup_merge_requests(self, original_mr_manager: MergeRequestManager):
-        original_target_branch = original_mr_manager.data.target_branch
-        issue_branches_with_merged_mr = {original_target_branch}
-        for issue in self._jira.get_issues(original_mr_manager.data.issue_keys):
-            issue_branches = issue.branches(exclude_already_merged=True)
-            if issue_branches == {original_target_branch}:
-                continue
-            current_issue_followup_branches = set()
-
-            for target_branch in issue_branches:
-                if target_branch in issue_branches_with_merged_mr:
-                    continue
-
-                logger.debug(
-                    f"{original_mr_manager}: Trying to create follow-up merge requests for issue "
-                    f"{issue} (branch {target_branch}).")
-                is_followup_created = self._create_followup_merge_request(
-                    original_mr_manager=original_mr_manager,
-                    target_branch=target_branch)
-
-                if is_followup_created:
-                    issue_branches_with_merged_mr.add(target_branch)
-                    current_issue_followup_branches.add(target_branch)
-                else:
-                    issue.add_already_in_version_label(target_branch)
-            if current_issue_followup_branches:
-                issue.add_followups_created_comment(current_issue_followup_branches)
-
-    def _create_followup_merge_request(
-            self, original_mr_manager: MergeRequestManager, target_branch: str) -> bool:
-        new_mr = self._project_manager.create_followup_merge_request(
-            target_branch=target_branch, original_mr_manager=original_mr_manager)
-
-        if new_mr is None:
-            return False
-
-        new_mr_manager = MergeRequestManager(new_mr)
-        original_mr_manager.add_followup_creation_comment(FollowupCreationResult(
-            branch=target_branch,
-            url=new_mr_manager.data.url,
-            successfull=True))
-        return True

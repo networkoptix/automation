@@ -30,18 +30,18 @@ logger = logging.getLogger(__name__)
 @dataclasses.dataclass
 class FollowupCreationResult:
     branch: str
-    successfull: bool
+    successful: bool
     url: str = ""
 
     @property
     def title(self):
-        if self.successfull:
+        if self.successful:
             return "Follow-up merge request added"
         return "Failed to add follow-up merge request"
 
     @property
     def message(self):
-        if self.successfull:
+        if self.successful:
             return robocat.comments.followup_merge_request_message.format(
                 branch=self.branch,
                 url=self.url)
@@ -49,7 +49,7 @@ class FollowupCreationResult:
 
     @property
     def emoji(self):
-        if self.successfull:
+        if self.successful:
             return AwardEmojiManager.FOLLOWUP_CREATED_EMOJI
         return AwardEmojiManager.FOLOWUP_CREATION_FAILED_EMOJI
 
