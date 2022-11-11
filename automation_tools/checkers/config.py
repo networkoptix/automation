@@ -1,9 +1,7 @@
 ALLOWED_VERSIONS_SETS = {
     "VMS": [
-        set(['4.2', '4.2_patch', '5.0', '5.0_patch', 'master']),
-        set(['4.2_patch', '5.0', '5.0_patch', 'master']),
-        set(['4.2_patch', '5.0_patch', 'master']),
-        set(['5.0', '5.0_patch', 'master']),
+        set(['4.2_patch', '5.0', '5.0_patch', '5.1', 'master']),
+        set(['4.2_patch', '5.0_patch', '5.1', 'master']),
         set(['5.0', '5.0_patch', '5.1', 'master']),
         set(['5.0_patch', '5.1', 'master']),
         set(['5.1', 'master']),
