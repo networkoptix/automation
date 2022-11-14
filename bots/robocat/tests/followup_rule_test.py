@@ -4,6 +4,7 @@ import pytest
 from automation_tools.tests.fixtures import jira, repo_accessor
 from automation_tools.tests.mocks.git_mocks import RemoteMock
 from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.bot import GitlabEventData, GitlabEventType
 from automation_tools.tests.gitlab_constants import (
     DEFAULT_COMMIT,
     DEFAULT_NXLIB_COMMIT,
@@ -267,6 +268,7 @@ class TestFollowupRule:
                 f"### :{AwardEmojiManager.CHERRY_PICK_EMOJI}: Manual conflict resolution required")
         else:
             assert len(new_mr.commits()) == len(mr.commits())
+            assert not new_mr.work_in_progress, "New MR is in Draft state."
             assert len(new_comments) == 1
 
         assert new_comments[0].startswith(
@@ -743,3 +745,54 @@ class TestFollowupRule:
         else:
             expected_transition = "moved to QA"
         assert issue.fields.comment.comments[0].body.startswith(f"Issue {expected_transition}")
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        # Squashed merge request (issue detection from the title).
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.1"]}], {
+            "state": "opened",
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
+            "squash_commit_sha": DEFAULT_COMMIT["sha"],
+            "target_branch": "master",
+        }),
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.1"]}], {
+            "state": "merged",
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
+            "squash_commit_sha": DEFAULT_COMMIT["sha"],
+            "target_branch": "master",
+        }),
+    ])
+    def test_create_draft_followup(
+            self, bot: Bot, project, followup_rule, mr, mr_manager, repo_accessor):
+        # Init git repo state. TODO: Move git repo state to parameters.
+
+        project_remote = project.namespace["full_path"]
+        repo_accessor.create_branch(
+            target_remote=project_remote, new_branch="vms_5.1", source_branch="master")
+        for c in mr.commits_list:
+            repo_accessor.repo.add_mock_commit(c["sha"], c["message"])
+        repo_accessor.repo.remotes[project_remote].mock_attach_gitlab_project(project)
+        repo_accessor.repo.mock_add_gitlab_project(project)
+        repo_accessor.repo.mock_cherry_pick_conflicts.append(CONFLICTING_COMMIT_SHA)
+
+        # Start tests
+
+        # Set follow-up draft mode.
+
+        event_data = GitlabEventData(
+            mr_id=mr.iid,
+            event_type=GitlabEventType.comment,
+            added_comment=f"@{BOT_USERNAME} draft-follow-up")
+        bot.process_event(event_data)
+        mr_manager._mr.load_discussions()
+
+        # If the Merge Request is already merged, the follow-ups should be created during
+        # "draft-follow-up" command execution; otherwise merge this MR and run followup_rule.
+        if mr.state != "merged":
+            mr.merge()
+            assert followup_rule.execute(mr_manager)
+
+        mrs = project.mergerequests.list()
+        assert len(mrs) == 2, "Follow-up Merge Request not created."
+
+        new_mr = sorted(mrs, key=lambda mr: mr.iid)[-1]
+        assert new_mr.work_in_progress, "New MR is not in Draft state."

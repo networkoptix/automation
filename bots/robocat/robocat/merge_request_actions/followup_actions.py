@@ -8,7 +8,10 @@ logger = logging.getLogger(__name__)
 
 
 def create_followup_merge_requests(
-        jira: JiraAccessor, project_manager: ProjectManager, mr_manager: MergeRequestManager):
+        jira: JiraAccessor,
+        project_manager: ProjectManager,
+        mr_manager: MergeRequestManager,
+        set_draft_flag: bool = False):
     original_target_branch = mr_manager.data.target_branch
     issue_branches_with_merged_mr = {original_target_branch}
     for issue in jira.get_issues(mr_manager.data.issue_keys):
@@ -27,7 +30,8 @@ def create_followup_merge_requests(
             is_followup_created = create_followup_merge_request(
                 project_manager=project_manager,
                 mr_manager=mr_manager,
-                target_branch=target_branch)
+                target_branch=target_branch,
+                set_draft_flag=set_draft_flag)
 
             if is_followup_created:
                 issue_branches_with_merged_mr.add(target_branch)
@@ -41,9 +45,10 @@ def create_followup_merge_requests(
 def create_followup_merge_request(
         project_manager: ProjectManager,
         mr_manager: MergeRequestManager,
-        target_branch: str) -> bool:
+        target_branch: str,
+        set_draft_flag: bool = False) -> bool:
     new_mr = project_manager.create_followup_merge_request(
-        target_branch=target_branch, original_mr_manager=mr_manager)
+        target_branch=target_branch, original_mr_manager=mr_manager, set_draft_flag=set_draft_flag)
 
     if new_mr is None:
         return False

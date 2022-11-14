@@ -45,7 +45,10 @@ class ProjectManager:
         return self._project.get_file_content(sha=sha, file=file)
 
     def create_followup_merge_request(
-            self, target_branch: str, original_mr_manager: MergeRequestManager) -> MergeRequest:
+            self,
+            target_branch: str,
+            original_mr_manager: MergeRequestManager,
+            set_draft_flag: bool) -> MergeRequest:
         commits = original_mr_manager.get_merged_commits()
         assert len(commits) > 0, "No commits for cherry-pick"
 
@@ -74,6 +77,9 @@ class ProjectManager:
             source_project=source_project,
             commits=commits,
             cherry_picked_commit_count=cherry_picked_commit_count)
+
+        if set_draft_flag:
+            mr.set_draft_flag()
 
         return mr
 

@@ -17,6 +17,7 @@ from robocat.commands.commands import (
     RunPipelineCommand,
     FollowupCommand)
 import robocat.commands.parser
+from robocat.note import MessageId
 from tests.fixtures import *
 
 
@@ -164,3 +165,20 @@ class TestRobocatCommands:
         assert len(comments) == 3, f"Got comments: {comments}"
         assert f":{AwardEmojiManager.FOLLOWUP_CREATED_EMOJI}:" in comments[-1], (
             f"Last comment: {comments[-1]}.")
+
+    @pytest.mark.parametrize(("mr_state", "jira_issues"), [({}, [])])
+    def test_set_draft_followup_mode(
+            self,
+            bot: Bot,
+            mr: MergeRequestMock,
+            mr_manager: MergeRequestManager):
+        event_data = GitlabEventData(
+            mr_id=mr.iid,
+            event_type=GitlabEventType.comment,
+            added_comment=f"@{BOT_USERNAME} draft-follow-up")
+        bot.process_event(event_data)
+
+        mr_manager._mr.load_discussions()
+        notes = mr_manager.notes()
+        assert notes[0].message_id == MessageId.CommandSetDraftFollowupMode, (
+            f"Draft follow-up mode marker is not found in notes: {[n.message_id for n in notes]}")

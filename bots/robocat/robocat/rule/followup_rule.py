@@ -2,11 +2,12 @@ import logging
 from enum import Enum
 from typing import List
 
-from robocat.merge_request_manager import MergeRequestManager, FollowupCreationResult
+from robocat.merge_request_manager import MergeRequestManager
 import robocat.merge_request_actions.followup_actions
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from automation_tools.jira import JiraAccessor
+from robocat.note import MessageId
 
 logger = logging.getLogger(__name__)
 
@@ -76,10 +77,14 @@ class FollowupRule(BaseRule):
             logger.info(
                 f"{mr_manager}: Merge request is a primary merge request. Trying to move to "
                 "QA/close single-branch Jira issues and create follow-up merge requests.")
+            create_followups_in_draft_state = any([
+                n for n in mr_manager.notes()
+                if n.message_id == MessageId.CommandSetDraftFollowupMode])
             robocat.merge_request_actions.followup_actions.create_followup_merge_requests(
                 jira=self._jira,
                 project_manager=self._project_manager,
-                mr_manager=mr_manager)
+                mr_manager=mr_manager,
+                set_draft_flag=create_followups_in_draft_state)
             self._try_close_single_branch_jira_issues(
                 target_branch=mr_data.target_branch,
                 issue_keys=jira_issue_keys,

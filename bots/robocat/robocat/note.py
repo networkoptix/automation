@@ -40,6 +40,7 @@ class MessageId(Enum):
     CommandProcess = auto()
     CommandRunPipeline = auto()
     CommandFollowup = auto()
+    CommandSetDraftFollowupMode = auto()
     CommandNotExecuted = auto()
 
     FailedCheckForSuccessfulPipeline = auto()

@@ -133,6 +133,7 @@ bot_readable_comment_title = {
     MessageId.CommandProcess: "User command action",
     MessageId.CommandRunPipeline: "User command action",
     MessageId.CommandFollowup: "User command action",
+    MessageId.CommandSetDraftFollowupMode: "Follow-up mode set to \"Draft\"",
     MessageId.OpenSourceNeedApproval: "Manual check is needed",
     MessageId.CommandNotExecuted: "Command was not executed",
     MessageId.FailedCheckForSuccessfulPipeline: "Pipeline failed",
@@ -144,6 +145,10 @@ bot_readable_comment = {
     MessageId.CommandProcess: "Re-checking Merge Request",
     MessageId.CommandRunPipeline: "Initiating pipeline run",
     MessageId.CommandFollowup: "Executing follow-up actions",
+    MessageId.CommandSetDraftFollowupMode: """
+Follow-up Merge Requests will be created in "Draft" status. To **restore the default behavior**,
+remove **this** comment.
+""",
     MessageId.OpenSourceNeedApproval: """
 This merge request contains new or renamed files in the open-source part of the project, so it
 **must be approved** by one of: @{approvers}.
