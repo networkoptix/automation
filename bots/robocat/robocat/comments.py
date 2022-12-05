@@ -55,19 +55,19 @@ template = """### :{emoji}: {title}
 ###### Robocat rev. {revision}. See its [documentation](https://networkoptix.atlassian.net/wiki/spaces/SD/pages/1486749741/Automation+Workflow+Police+bot)
 """  # noqa
 
-followup_merge_request_message = """Follow-up merge request {url} is created for merging changes
+follow_up_merge_request_message = """Follow-up merge request {url} is created for merging changes
 added in this merge request into `{branch}` branch.
 """
 
-failed_followup_merge_request_message = """Failed to create follow-up merge request for merging
+failed_follow_up_merge_request_message = """Failed to create follow-up merge request for merging
 changes added in this merge request into `{branch}` branch: {comment}.
 """
 
-followup_initial_message = """This merge request is created as a follow-up for merging changes
+follow_up_initial_message = """This merge request is created as a follow-up for merging changes
 added in merge request {original_mr_url} into `{branch}` branch.
 """
-conflicting_commit_followup_message = """Cherry-picking creates conflicts. Please, fetch `{branch}`
-branch and cherry-pick the following commits manually:
+conflicting_commit_follow_up_message = """Cherry-picking creates conflicts. Please, fetch
+`{branch}` branch and cherry-pick the following commits manually:
 
 `git cherry-pick -x {commits}`
 """
@@ -132,8 +132,8 @@ current status. Check the Issue status and fix in manually if necessary."""
 bot_readable_comment_title = {
     MessageId.CommandProcess: "User command action",
     MessageId.CommandRunPipeline: "User command action",
-    MessageId.CommandFollowup: "User command action",
-    MessageId.CommandSetDraftFollowupMode: "Follow-up mode set to \"Draft\"",
+    MessageId.CommandFollowUp: "User command action",
+    MessageId.CommandSetDraftFollowUpMode: "Follow-up mode set to \"Draft\"",
     MessageId.OpenSourceNeedApproval: "Manual check is needed",
     MessageId.CommandNotExecuted: "Command was not executed",
     MessageId.FailedCheckForSuccessfulPipeline: "Pipeline failed",
@@ -144,8 +144,8 @@ bot_readable_comment_title = {
 bot_readable_comment = {
     MessageId.CommandProcess: "Re-checking Merge Request",
     MessageId.CommandRunPipeline: "Initiating pipeline run",
-    MessageId.CommandFollowup: "Executing follow-up actions",
-    MessageId.CommandSetDraftFollowupMode: """
+    MessageId.CommandFollowUp: "Executing follow-up actions",
+    MessageId.CommandSetDraftFollowUpMode: """
 Follow-up Merge Requests will be created in "Draft" status. To **restore the default behavior**,
 remove **this** comment.
 """,

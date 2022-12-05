@@ -17,7 +17,7 @@ from robocat.rule.essential_rule import EssentialRule
 from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
 from robocat.rule.open_source_check_rule import OpenSourceCheckRule
 from robocat.rule.process_related_projects_issues import ProcessRelatedProjectIssuesRule
-from robocat.rule.followup_rule import FollowupRule
+from robocat.rule.follow_up_rule import FollowUpRule
 from robocat.rule.workflow_check_rule import WorkflowCheckRule
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.project_manager import ProjectManager
@@ -92,9 +92,9 @@ def workflow_rule(project, jira):
 
 
 @pytest.fixture
-def followup_rule(project, jira, monkeypatch, repo_accessor):
+def follow_up_rule(project, jira, monkeypatch, repo_accessor):
     project_manager = ProjectManager(project, BOT_USERNAME, repo=repo_accessor)
-    rule = FollowupRule(project_manager=project_manager, jira=jira)
+    rule = FollowUpRule(project_manager=project_manager, jira=jira)
 
     def return_gitlab_object(*_, private_token):
         gitlab = project.manager.gitlab
@@ -120,7 +120,7 @@ def bot(
         essential_rule,
         nx_submodule_check_rule,
         open_source_rule,
-        followup_rule,
+        follow_up_rule,
         workflow_rule,
         process_related_projects_issues_rule,
         repo_accessor,
@@ -132,7 +132,7 @@ def bot(
         bot._rule_essential = essential_rule
         bot._rule_nx_submodules_check = nx_submodule_check_rule
         bot._rule_open_source_check = open_source_rule
-        bot._rule_followup = followup_rule
+        bot._rule_follow_up = follow_up_rule
         bot._rule_workflow_check = workflow_rule
         bot._rule_process_related_projects_issues = process_related_projects_issues_rule
         bot._username = BOT_USERNAME

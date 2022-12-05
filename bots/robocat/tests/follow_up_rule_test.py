@@ -23,7 +23,7 @@ from automation_tools.tests.gitlab_constants import (
 from tests.fixtures import *
 
 
-class TestFollowupRule:
+class TestFollowUpRule:
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Don't create follow-up merge request for opened merge request.
         ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.1"]}], {
@@ -36,8 +36,8 @@ class TestFollowupRule:
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI]
         }),
     ])
-    def test_dont_create_followup(
-            self, project, followup_rule, mr, mr_manager, jira, repo_accessor):
+    def test_dont_create_follow_up(
+            self, project, follow_up_rule, mr, mr_manager, jira, repo_accessor):
         # Init git repo state. TODO: Move git repo state to parameters.
 
         project_remote = project.namespace["full_path"]
@@ -50,9 +50,9 @@ class TestFollowupRule:
         # Start tests.
 
         for _ in range(2):
-            assert followup_rule.execute(mr_manager) in (
-                followup_rule.ExecutionResult.rule_execution_successful,
-                followup_rule.ExecutionResult.not_eligible)
+            assert follow_up_rule.execute(mr_manager) in (
+                follow_up_rule.ExecutionResult.rule_execution_successful,
+                follow_up_rule.ExecutionResult.not_eligible)
 
             issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
             assert len(issue.fields.comment.comments) == 0, (
@@ -89,7 +89,7 @@ class TestFollowupRule:
             "source_branch": "feature",
         }),
     ])
-    def test_failed_create_followup(self, project, followup_rule, mr, mr_manager, jira):
+    def test_failed_create_follow_up(self, project, follow_up_rule, mr, mr_manager, jira):
         # Init project state. TODO: Move project state to parameters.
         MergeRequestMock(
             project=project, source_branch="feature_vms_5.1",
@@ -97,7 +97,7 @@ class TestFollowupRule:
         project.branches.create(
             {"branch": "existing_branch_vms_5.1", "ref": "vms_5.1"})
 
-        assert not followup_rule.execute(mr_manager)
+        assert not follow_up_rule.execute(mr_manager)
 
         issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
         assert len(issue.fields.comment.comments) == 1, (
@@ -191,7 +191,7 @@ class TestFollowupRule:
             "target_branch": "master",
         }),
     ])
-    def test_create_followup(self, project, followup_rule, mr, mr_manager, jira, repo_accessor):
+    def test_create_follow_up(self, project, follow_up_rule, mr, mr_manager, jira, repo_accessor):
         # Init project state. TODO: Move project state to parameters.
 
         MergeRequestMock(project=project, **MERGED_TO_4_1_MERGE_REQUESTS["opened"])
@@ -223,7 +223,7 @@ class TestFollowupRule:
         # Start tests.
 
         before_mergrequests_count = len(project.mergerequests.list())
-        assert followup_rule.execute(mr_manager)
+        assert follow_up_rule.execute(mr_manager)
 
         issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
         assert issue.fields.status.name != "Closed"
@@ -287,7 +287,7 @@ class TestFollowupRule:
             "target_branch": "master",
         }),
     ])
-    def test_empty_followup(self, project, followup_rule, mr, mr_manager, jira, repo_accessor):
+    def test_empty_follow_up(self, project, follow_up_rule, mr, mr_manager, jira, repo_accessor):
         # Init git repo state. TODO: Move git repo state to parameters.
 
         project_remote = project.namespace["full_path"]
@@ -301,7 +301,7 @@ class TestFollowupRule:
         # Start tests.
 
         before_mergrequests_count = len(project.mergerequests.list())
-        assert followup_rule.execute(mr_manager)
+        assert follow_up_rule.execute(mr_manager)
 
         issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
         assert issue.fields.status.name == "Closed"
@@ -344,7 +344,7 @@ class TestFollowupRule:
             "target_branch": "master",
         })
     ])
-    def test_dont_close_jira_issue(self, project, followup_rule, mr, mr_manager, jira):
+    def test_dont_close_jira_issue(self, project, follow_up_rule, mr, mr_manager, jira):
         # Init project state. TODO: Move project state to parameters.
         MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS["merged"])
         MergeRequestMock(project=project, **MERGED_TO_4_1_MERGE_REQUESTS["opened"])
@@ -354,7 +354,7 @@ class TestFollowupRule:
         issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
         issue_state_before = issue.fields.status.name
 
-        assert followup_rule.execute(mr_manager)
+        assert follow_up_rule.execute(mr_manager)
         assert len(mr.mock_comments()) == 0
         assert len(project.mergerequests.list()) == mr_count_before
 
@@ -378,7 +378,7 @@ class TestFollowupRule:
             "target_branch": "vms_5.1",
         }),
     ])
-    def test_bad_jira_issue_status(self, project, followup_rule, mr, mr_manager, jira):
+    def test_bad_jira_issue_status(self, project, follow_up_rule, mr, mr_manager, jira):
         # Init project state. TODO: Move project state to parameters.
         MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS["merged"])
         MergeRequestMock(project=project, **MERGED_TO_4_1_MERGE_REQUESTS["opened"])
@@ -388,7 +388,7 @@ class TestFollowupRule:
         issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
         issue_state_before = issue.fields.status.name
 
-        assert not followup_rule.execute(mr_manager)
+        assert not follow_up_rule.execute(mr_manager)
         assert len(mr.mock_comments()) == 0
         assert len(project.mergerequests.list()) == mr_count_before
 
@@ -427,7 +427,7 @@ class TestFollowupRule:
         }),
     ])
     def test_in_progress_jira_issue(
-            self, project, followup_rule, mr, mr_manager, jira, jira_issues):
+            self, project, follow_up_rule, mr, mr_manager, jira, jira_issues):
         # Init the Project state.
         # TODO: Move the Project state to parameters.
         MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS["merged"])
@@ -438,7 +438,7 @@ class TestFollowupRule:
         issue = jira._jira.issue(jira_issues[0]["key"])
         issue_state_before = issue.fields.status.name
 
-        assert followup_rule.execute(mr_manager)
+        assert follow_up_rule.execute(mr_manager)
         assert len(project.mergerequests.list()) == mr_count_before
         comments = mr.mock_comments()
         assert len(comments) == 1
@@ -491,7 +491,8 @@ class TestFollowupRule:
             "target_branch": "vms_5.1",
         }),
     ])
-    def test_finalized_jira_issue(self, project, followup_rule, mr, mr_manager, jira, jira_issues):
+    def test_finalized_jira_issue(
+            self, project, follow_up_rule, mr, mr_manager, jira, jira_issues):
         # Init the Project state.
         # TODO: Move the Project state to parameters.
         MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS["merged"])
@@ -502,7 +503,7 @@ class TestFollowupRule:
         issue = jira._jira.issue(jira_issues[0]["key"])
         issue_state_before = issue.fields.status.name
 
-        assert followup_rule.execute(mr_manager)
+        assert follow_up_rule.execute(mr_manager)
         assert len(project.mergerequests.list()) == mr_count_before
         assert len(mr.mock_comments()) == 0
 
@@ -721,7 +722,7 @@ class TestFollowupRule:
         }, "Closed"),
     ])
     def test_finalize_jira_issue(
-            self, project, followup_rule, mr, mr_manager, jira_issues, jira, expected_status):
+            self, project, follow_up_rule, mr, mr_manager, jira_issues, jira, expected_status):
         # Init project state. TODO: Move project state to parameters.
         MergeRequestMock(project=project, **MERGED_TO_MASTER_MERGE_REQUESTS["merged"])
         MergeRequestMock(project=project, **MERGED_TO_4_1_MERGE_REQUESTS["merged"])
@@ -733,7 +734,7 @@ class TestFollowupRule:
 
         mr_count_before = len(project.mergerequests.list())
 
-        assert followup_rule.execute(mr_manager)
+        assert follow_up_rule.execute(mr_manager)
         assert len(mr.mock_comments()) == 0
         assert len(project.mergerequests.list()) == mr_count_before
 
@@ -761,8 +762,8 @@ class TestFollowupRule:
             "target_branch": "master",
         }),
     ])
-    def test_create_draft_followup(
-            self, bot: Bot, project, followup_rule, mr, mr_manager, repo_accessor):
+    def test_create_draft_follow_up_mr(
+            self, bot: Bot, project, follow_up_rule, mr, mr_manager, repo_accessor):
         # Init git repo state. TODO: Move git repo state to parameters.
 
         project_remote = project.namespace["full_path"]
@@ -786,10 +787,10 @@ class TestFollowupRule:
         mr_manager._mr.load_discussions()
 
         # If the Merge Request is already merged, the follow-ups should be created during
-        # "draft-follow-up" command execution; otherwise merge this MR and run followup_rule.
+        # "draft-follow-up" command execution; otherwise merge this MR and run follow_up_rule.
         if mr.state != "merged":
             mr.merge()
-            assert followup_rule.execute(mr_manager)
+            assert follow_up_rule.execute(mr_manager)
 
         mrs = project.mergerequests.list()
         assert len(mrs) == 2, "Follow-up Merge Request not created."

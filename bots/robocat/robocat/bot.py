@@ -21,7 +21,7 @@ from robocat.rule.commit_message_check_rule import CommitMessageCheckRule
 from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
 from robocat.rule.essential_rule import EssentialRule
 from robocat.rule.open_source_check_rule import OpenSourceCheckRule
-from robocat.rule.followup_rule import FollowupRule
+from robocat.rule.follow_up_rule import FollowUpRule
 from robocat.rule.workflow_check_rule import WorkflowCheckRule
 from robocat.rule.process_related_projects_issues import ProcessRelatedProjectIssuesRule
 
@@ -79,7 +79,7 @@ class Bot(threading.Thread):
         self._rule_open_source_check = OpenSourceCheckRule(
             project_manager=self._project_manager, **config["open_source_check_rule"])
         self._rule_workflow_check = WorkflowCheckRule(jira=self._jira)
-        self._rule_followup = FollowupRule(project_manager=self._project_manager, jira=self._jira)
+        self._rule_follow_up = FollowUpRule(project_manager=self._project_manager, jira=self._jira)
         self._rule_process_related_projects_issues = ProcessRelatedProjectIssuesRule(
             jira=self._jira, **config["process_related_merge_requests_rule"])
 
@@ -124,8 +124,8 @@ class Bot(threading.Thread):
         logger.debug(f"{mr_manager}: {process_related_result}")
 
         if self._polling:
-            followup_result = self._rule_followup.execute(mr_manager)
-            logger.debug(f"{mr_manager}: {followup_result}")
+            follow_up_result = self._rule_follow_up.execute(mr_manager)
+            logger.debug(f"{mr_manager}: {follow_up_result}")
 
         mr_manager.update_unfinished_processing_flag(False)
 
@@ -197,8 +197,8 @@ class Bot(threading.Thread):
             self.handle(mr_manager)
         elif current_mr_state == "merged" and previous_mr_state in ["opened", "locked"]:
             logger.info(f"{mr_manager}: Merge Request is just merged; executing follow-up rule.")
-            followup_result = self._rule_followup.execute(mr_manager)
-            logger.debug(f"{mr_manager}: {followup_result}")
+            follow_up_result = self._rule_follow_up.execute(mr_manager)
+            logger.debug(f"{mr_manager}: {follow_up_result}")
 
     def get_merge_requests_manager(self, mr_poll_rate):
         while True:

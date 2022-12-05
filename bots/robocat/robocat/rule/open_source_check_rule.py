@@ -96,7 +96,7 @@ class OpenSourceCheckRule(CheckChangesMixin, BaseRule):
         return any(e for e in check_result.new_errors if e.type == error_type)
 
     def _is_manual_check_required(self, mr_manager: MergeRequestManager) -> bool:
-        if mr_manager.is_followup():
+        if mr_manager.is_follow_up():
             return False
         if approve_rule_helpers.is_mr_author_keeper(self._approve_rules, mr_manager):
             return False

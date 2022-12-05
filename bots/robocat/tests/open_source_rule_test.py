@@ -228,7 +228,7 @@ class TestOpenSourceRule:
                 [("open-source:check", "success"), ("new-open-source-files:check", "failed")],
             )],
         },
-        # Has new files in non-followup Merge Request but the author is an authorized approver.
+        # Has new files in non-follow_up Merge Request but the author is an authorized approver.
         {
             "blocking_discussions_resolved": True,
             "commits_list": [GOOD_README_COMMIT_NEW_FILE],
@@ -276,7 +276,7 @@ class TestOpenSourceRule:
             mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
 
     @pytest.mark.parametrize("mr_state", [
-        # Bad changes in the new file of the non-followup Merge Request.
+        # Bad changes in the new file of the non-follow_up Merge Request.
         {
             "blocking_discussions_resolved": True,
             "commits_list": [BAD_OPENCANDIDATE_COMMIT],
@@ -311,7 +311,7 @@ class TestOpenSourceRule:
             assert len(comments) == 2, f"Got comments: {comments}"
             assert f":{AwardEmojiManager.NEED_MANUAL_CHECK_EMOJI}:" in comments[0], (
                 f"First comment is: {comments[0]}")
-            if mr_manager.is_followup():
+            if mr_manager.is_follow_up():
                 message_details = (
                     f"{Note.ID_KEY}: {MessageId.OpenSourceHasBadChangesCallKeeperOptional.value}")
             else:

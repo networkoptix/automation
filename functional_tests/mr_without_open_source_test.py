@@ -214,7 +214,7 @@ class TestNoOpenSource:
                 status=helpers.jira.IssueStatus.InReview),
         ]
     ])
-    def test_empty_followup_workflow(
+    def test_empty_follow_up_workflow(
             issue_descriptions, jira_handler, jira_issues, repo, branch, project, bot):
 
         # Delete everything left from the previous test runs. It is too costly to re-create gitlab

@@ -3,7 +3,7 @@ from enum import Enum
 from typing import List
 
 from robocat.merge_request_manager import MergeRequestManager
-import robocat.merge_request_actions.followup_actions
+import robocat.merge_request_actions.follow_up_actions
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from automation_tools.jira import JiraAccessor
@@ -12,7 +12,7 @@ from robocat.note import MessageId
 logger = logging.getLogger(__name__)
 
 
-class FollowupRuleExecutionResultClass(RuleExecutionResultClass, Enum):
+class FollowUpRuleExecutionResultClass(RuleExecutionResultClass, Enum):
     def __bool__(self):
         return self == self.rule_execution_successful
 
@@ -20,9 +20,9 @@ class FollowupRuleExecutionResultClass(RuleExecutionResultClass, Enum):
         return str(self.value)
 
 
-class FollowupRule(BaseRule):
-    ExecutionResult = FollowupRuleExecutionResultClass.create(
-        "FollowupRuleExecutionResult", {
+class FollowUpRule(BaseRule):
+    ExecutionResult = FollowUpRuleExecutionResultClass.create(
+        "FollowUpRuleExecutionResult", {
             "rule_execution_successful": "All operations completed successfully",
             "not_eligible": "Merge request is not eligible for cherry-pick",
             "rule_execution_failed": "Some of operations failed",
@@ -58,7 +58,7 @@ class FollowupRule(BaseRule):
             # A follow-up Merge Request. Close Jira Issues mentioned by the current Merge Request,
             # if all their branches (defined by the "fixVersions" field) have the respective Merge
             # Requests merged.
-            if mr_manager.is_followup():
+            if mr_manager.is_follow_up():
                 logger.info(
                     f"{mr_manager}: The Merge Request is a follow-up. Trying to move to "
                     "QA/close Jira issues.")
@@ -77,14 +77,14 @@ class FollowupRule(BaseRule):
             logger.info(
                 f"{mr_manager}: Merge request is a primary merge request. Trying to move to "
                 "QA/close single-branch Jira issues and create follow-up merge requests.")
-            create_followups_in_draft_state = any([
+            create_follow_ups_in_draft_state = any([
                 n for n in mr_manager.notes()
-                if n.message_id == MessageId.CommandSetDraftFollowupMode])
-            robocat.merge_request_actions.followup_actions.create_followup_merge_requests(
+                if n.message_id == MessageId.CommandSetDraftFollowUpMode])
+            robocat.merge_request_actions.follow_up_actions.create_follow_up_merge_requests(
                 jira=self._jira,
                 project_manager=self._project_manager,
                 mr_manager=mr_manager,
-                set_draft_flag=create_followups_in_draft_state)
+                set_draft_flag=create_follow_ups_in_draft_state)
             self._try_close_single_branch_jira_issues(
                 target_branch=mr_data.target_branch,
                 issue_keys=jira_issue_keys,
@@ -95,7 +95,7 @@ class FollowupRule(BaseRule):
             logger.error(
                 f"{mr_manager}: Follow-up processing was crashed for {mr_manager}: {error}")
             for issue in self._jira.get_issues(jira_issue_keys):
-                issue.add_followup_error_comment(error=error, mr_url=mr_data.url)
+                issue.add_follow_up_error_comment(error=error, mr_url=mr_data.url)
             return self.ExecutionResult.rule_execution_failed
 
     def _try_close_jira_issues(self, mr_manager, target_branch: str, issue_keys: List[str]):

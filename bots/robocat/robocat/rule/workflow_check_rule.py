@@ -136,7 +136,7 @@ class WorkflowCheckRule(BaseRule):
                     f"while {actual_commit_issue_keys} are mentioned in the commit messages.")
                 return Comment(id=MessageId.WorkflowDifferentJiraIssueSets, text=comment_text)
 
-        if not (mr_manager.is_followup() or mr_data.squash or len(commits_data.messages) > 1):
+        if not (mr_manager.is_follow_up() or mr_data.squash or len(commits_data.messages) > 1):
             expected_commit_message = f"{mr_data.title}\n\n{mr_data.description}".strip()
             if commits_data.messages[0].strip() != expected_commit_message:
                 comment_text = (
@@ -146,7 +146,7 @@ class WorkflowCheckRule(BaseRule):
                     f"{commits_data.messages[0].strip()!r}")
                 return Comment(id=MessageId.WorkflowDifferentCommitMessage, text=comment_text)
 
-        if mr_manager.is_followup() and mr_data.squash:
+        if mr_manager.is_follow_up() and mr_data.squash:
             if re.match(r'^(?:.+?\:)?\s*\(.+\)', mr_data.title):
                 comment_text = (
                     "Parentheses right after the Jira Issue ref (or at the beginning, if no Jira "

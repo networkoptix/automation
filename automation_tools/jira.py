@@ -262,13 +262,13 @@ class JiraIssue:
                 f'"{self._project_status_name(JIRA_STATUS_OPEN)}".')
             self._set_status(JIRA_STATUS_OPEN)
 
-    def add_followups_created_comment(self, branches: Set[str]):
+    def add_follow_ups_created_comment(self, branches: Set[str]):
         self._add_comment(
-            jira_messages.followup_mrs_created.format(branches="\n* ".join(branches)))
+            jira_messages.follow_up_mrs_created.format(branches="\n* ".join(branches)))
 
-    def add_followup_error_comment(self, error: Exception, mr_url: str):
+    def add_follow_up_error_comment(self, error: Exception, mr_url: str):
         self._add_comment(
-            jira_messages.followup_error.format(error=str(error), mr_url=mr_url))
+            jira_messages.follow_up_error.format(error=str(error), mr_url=mr_url))
 
     def has_label(self, label: str) -> bool:
         return label in self._raw_issue.fields.labels

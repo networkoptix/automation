@@ -32,13 +32,13 @@ Police inspection. Please, consider changing resolution value if the issue *does
 changes*.{{color}}
 """
 
-followup_mrs_created = """Merge requests for cherry-picking changes were autocreated for the
+follow_up_mrs_created = """Merge requests for cherry-picking changes were autocreated for the
 following branches:
 
 * {branches}
 """
 
-followup_error = """An error occurred while trying to execute follow-up actions for merge request
+follow_up_error = """An error occurred while trying to execute follow-up actions for merge request
 [{mr_url}|{mr_url}]:
 
 {{noformat}}{error}{{noformat}}

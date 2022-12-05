@@ -35,8 +35,8 @@ class AwardEmojiManager():
     EMOJI_BY_MESSAGE_ID = {
         MessageId.CommandProcess: NOTIFICATION_EMOJI,
         MessageId.CommandRunPipeline: NOTIFICATION_EMOJI,
-        MessageId.CommandFollowup: NOTIFICATION_EMOJI,
-        MessageId.CommandSetDraftFollowupMode: NOTIFICATION_EMOJI,
+        MessageId.CommandFollowUp: NOTIFICATION_EMOJI,
+        MessageId.CommandSetDraftFollowUpMode: NOTIFICATION_EMOJI,
         MessageId.OpenSourceNeedApproval: NEED_MANUAL_CHECK_EMOJI,
         MessageId.CommandNotExecuted: COMMAND_NOT_EXECUTED,
         MessageId.FailedCheckForSuccessfulPipeline: CHECK_FAIL_EXPLANATION_EMOJI,

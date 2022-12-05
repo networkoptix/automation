@@ -15,7 +15,7 @@ from robocat.commands.commands import (
     BaseCommand,
     ProcessCommand,
     RunPipelineCommand,
-    FollowupCommand)
+    FollowUpCommand)
 import robocat.commands.parser
 from robocat.note import MessageId
 from tests.fixtures import *
@@ -31,7 +31,7 @@ class TestRobocatCommands:
         (f"@{BOT_USERNAME} serves", None),
         (f"{BOT_USERNAME} process", None),
         (f"@{BOT_USERNAME} run_pipeline", RunPipelineCommand),
-        (f"@{BOT_USERNAME} follow-up", FollowupCommand)
+        (f"@{BOT_USERNAME} follow-up", FollowUpCommand)
     ])
     def test_command_parsing(self, comment: str, command_class: BaseCommand):
         command = robocat.commands.parser.create_command_from_text(
@@ -167,7 +167,7 @@ class TestRobocatCommands:
             f"Last comment: {comments[-1]}.")
 
     @pytest.mark.parametrize(("mr_state", "jira_issues"), [({}, [])])
-    def test_set_draft_followup_mode(
+    def test_set_draft_follow_up_mode(
             self,
             bot: Bot,
             mr: MergeRequestMock,
@@ -180,5 +180,5 @@ class TestRobocatCommands:
 
         mr_manager._mr.load_discussions()
         notes = mr_manager.notes()
-        assert notes[0].message_id == MessageId.CommandSetDraftFollowupMode, (
+        assert notes[0].message_id == MessageId.CommandSetDraftFollowUpMode, (
             f"Draft follow-up mode marker is not found in notes: {[n.message_id for n in notes]}")

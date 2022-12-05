@@ -1,11 +1,11 @@
 import logging
 
 from automation_tools.jira import JiraAccessor
-import robocat.merge_request_actions.followup_actions
+import robocat.merge_request_actions.follow_up_actions
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
 from robocat.project_manager import ProjectManager
-from robocat.rule.followup_rule import FollowupRule
+from robocat.rule.follow_up_rule import FollowUpRule
 
 
 logger = logging.getLogger(__name__)
@@ -48,8 +48,8 @@ class RunPipelineCommand(BaseCommand):
         mr_manager.run_user_requested_pipeline()
 
 
-@robocat_command(verb='follow-up', confirmation_message_id=MessageId.CommandFollowup)
-class FollowupCommand(BaseCommand):
+@robocat_command(verb='follow-up', confirmation_message_id=MessageId.CommandFollowUp)
+class FollowUpCommand(BaseCommand):
     """This command is used for executing follow-up actions upon the related Merge Request"""
 
     def run(
@@ -59,9 +59,9 @@ class FollowupCommand(BaseCommand):
             jira: JiraAccessor):
         super().run(mr_manager)
         if mr_manager.data.is_merged:
-            followup_rule = FollowupRule(project_manager=project_manager, jira=jira)
-            followup_result = followup_rule.execute(mr_manager)
-            logger.debug(f"{mr_manager}: {followup_result}")
+            follow_up_rule = FollowUpRule(project_manager=project_manager, jira=jira)
+            follow_up_result = follow_up_rule.execute(mr_manager)
+            logger.debug(f"{mr_manager}: {follow_up_result}")
         else:
             mr_manager.add_comment_with_message_id(
                 MessageId.CommandNotExecuted,
@@ -74,8 +74,8 @@ class FollowupCommand(BaseCommand):
 
 @robocat_command(
     verb='draft-follow-up',
-    confirmation_message_id=MessageId.CommandSetDraftFollowupMode)
-class DraftFollowupCommand(BaseCommand):
+    confirmation_message_id=MessageId.CommandSetDraftFollowUpMode)
+class DraftFollowUpCommand(BaseCommand):
     '''This command is used for setting follow-up creation mode to "Draft"'''
 
     def run(
@@ -87,14 +87,14 @@ class DraftFollowupCommand(BaseCommand):
 
         # Do nothing if the Merge Request is not merged. The follow-up creation mode is changed
         # by the fact of the presence of the confirming bot comment (the one with
-        # 'CommandSetDraftFollowupMode' id).
+        # 'CommandSetDraftFollowUpMode' id).
         if not mr_manager.data.is_merged:
             return
 
         # If the Merge Request is already merged, create the follow-up Merge Requests.
-        robocat.merge_request_actions.followup_actions.create_followup_merge_requests(
+        robocat.merge_request_actions.follow_up_actions.create_follow_up_merge_requests(
             jira=jira,
             project_manager=project_manager,
             mr_manager=mr_manager,
             set_draft_flag=True)
-        mr_manager.add_comment_with_message_id(MessageId.CommandFollowup)
+        mr_manager.add_comment_with_message_id(MessageId.CommandFollowUp)

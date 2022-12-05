@@ -24,7 +24,7 @@ class ProjectData:
     ssh_url: str
 
 
-class EmptyFollowupError(RuntimeError):
+class EmptyFollowUpError(RuntimeError):
     pass
 
 
@@ -44,7 +44,7 @@ class ProjectManager:
     def file_get_content(self, sha: str, file: str) -> str:
         return self._project.get_file_content(sha=sha, file=file)
 
-    def create_followup_merge_request(
+    def create_follow_up_merge_request(
             self,
             target_branch: str,
             original_mr_manager: MergeRequestManager,
@@ -53,25 +53,27 @@ class ProjectManager:
         assert len(commits) > 0, "No commits for cherry-pick"
 
         original_mr_data = original_mr_manager.data
-        followup_mr_source_branch = f"{original_mr_data.source_branch}_{target_branch}"
+        follow_up_mr_source_branch = f"{original_mr_data.source_branch}_{target_branch}"
         source_project = self._gitlab.get_project(
             original_mr_data.source_branch_project_id, lazy=False)
         self._create_new_branch(
-            new_branch=followup_mr_source_branch,
+            new_branch=follow_up_mr_source_branch,
             base_branch=target_branch,
             project=source_project)
 
         try:
             cherry_picked_commit_count = self._add_commits_to_branch(
-                branch=followup_mr_source_branch, remote=source_project.namespace, commits=commits)
-        except EmptyFollowupError:
+                branch=follow_up_mr_source_branch,
+                remote=source_project.namespace,
+                commits=commits)
+        except EmptyFollowUpError:
             logger.info(
                 f"Seems that all the changes from '{original_mr_manager}' are already in branch "
                 f"{target_branch}. Follow-up merge request is not created.")
             return None
 
-        mr = self._create_followup_mr_from_branch(
-            source_branch=followup_mr_source_branch,
+        mr = self._create_follow_up_mr_from_branch(
+            source_branch=follow_up_mr_source_branch,
             target_branch=target_branch,
             original_mr_data=original_mr_data,
             source_project=source_project,
@@ -103,7 +105,7 @@ class ProjectManager:
                 # 2. Nothing to cherry-pick (incoming changes are already in the target branch).
                 #
                 # In the first case cherry_pick() throws an exception, because we have to stop the
-                # cherry-picking process. In the second case we can procede, but we must be aware
+                # cherry-picking process. In the second case we can proceed, but we must be aware
                 # of the fact that no changes were picked, so cherry_pick() returns "False".
                 cherry_pick_result = self._repo.cherry_pick(sha=sha, branch=branch, remote=remote)
                 if cherry_pick_result:
@@ -115,11 +117,11 @@ class ProjectManager:
 
         # No error occurred but nothing was cherry-picked, thus no need to create the follow-up MR.
         if not cherry_picked_commit_count:
-            raise EmptyFollowupError
+            raise EmptyFollowUpError
 
         return cherry_picked_commit_count
 
-    def _create_followup_mr_from_branch(
+    def _create_follow_up_mr_from_branch(
             self, source_branch: str, target_branch: str, original_mr_data: MergeRequestData,
             source_project: Project, commits: List[str],
             cherry_picked_commit_count: int) -> MergeRequest:
@@ -155,7 +157,7 @@ class ProjectManager:
         mr.award_emoji.create(AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI)
         mr.create_note(body=robocat.comments.template.format(
             title="Follow-up merge request",
-            message=robocat.comments.followup_initial_message.format(
+            message=robocat.comments.follow_up_initial_message.format(
                 branch=target_branch, original_mr_url=original_mr_data.url),
             emoji=AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI,
             revision=automation_tools.bot_info.revision()))
@@ -163,7 +165,7 @@ class ProjectManager:
         if cherry_picked_commit_count < len(commits):
             mr.create_note(body=robocat.comments.template.format(
                 title="Manual conflict resolution required",
-                message=robocat.comments.conflicting_commit_followup_message.format(
+                message=robocat.comments.conflicting_commit_follow_up_message.format(
                     branch=source_branch, commits=" ".join(commits[cherry_picked_commit_count:])),
                 emoji=AwardEmojiManager.CHERRY_PICK_EMOJI,
                 revision=automation_tools.bot_info.revision()))

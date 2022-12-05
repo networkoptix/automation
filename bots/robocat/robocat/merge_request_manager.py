@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
-class FollowupCreationResult:
+class FollowUpCreationResult:
     branch: str
     successful: bool
     url: str = ""
@@ -42,10 +42,10 @@ class FollowupCreationResult:
     @property
     def message(self):
         if self.successful:
-            return robocat.comments.followup_merge_request_message.format(
+            return robocat.comments.follow_up_merge_request_message.format(
                 branch=self.branch,
                 url=self.url)
-        return robocat.comments.failed_followup_merge_request_message.format(branch=self.branch)
+        return robocat.comments.failed_follow_up_merge_request_message.format(branch=self.branch)
 
     @property
     def emoji(self):
@@ -514,7 +514,7 @@ class MergeRequestManager:
                 message_id=message_id, sha=self._mr.sha, data=message_data)
         return self._mr.create_discussion(body=body, position=position, autoresolve=autoresolve)
 
-    def is_followup(self):
+    def is_follow_up(self):
         if self._mr.award_emoji.find(AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI, own=True):
             return True
 
@@ -526,8 +526,8 @@ class MergeRequestManager:
 
         return False
 
-    def add_followup_creation_comment(self, followup: FollowupCreationResult):
-        self._add_comment(followup.title, followup.message, followup.emoji)
+    def add_follow_up_creation_comment(self, follow_up: FollowUpCreationResult):
+        self._add_comment(follow_up.title, follow_up.message, follow_up.emoji)
 
     def get_merged_commits(self) -> List[str]:
         if not self._mr.is_merged:
