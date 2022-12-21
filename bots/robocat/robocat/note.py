@@ -11,7 +11,7 @@ class MessageId(Enum):
     def _generate_next_value_(name, *_):
         return name
 
-    Initial = auto()
+    InitialMessage = auto()
     OpenSourceNeedApproval = auto()
 
     InconsistentNxSubmoduleChange = auto()

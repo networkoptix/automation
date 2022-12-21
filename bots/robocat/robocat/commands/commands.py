@@ -19,6 +19,10 @@ class BaseCommand:
     def __str__(self):
         return self.verb
 
+    @classmethod
+    def description(cls):
+        return f"`{cls.verb}`: {cls.__doc__}"
+
     def run(self, mr_manager: MergeRequestManager, **_):
         logger.info(f'Executing "{self}" for {mr_manager}')
         mr_manager.add_comment_with_message_id(self._confirmation_message_id)
@@ -43,7 +47,7 @@ def robocat_command(
 
 @robocat_command(verb='process', confirmation_message_id=MessageId.CommandProcess, process_mr=True)
 class ProcessCommand(BaseCommand):
-    """This command is used for manual initiating of processing the related Merge Request"""
+    """Manually initiate processing of the related Merge Request."""
     pass
 
 
@@ -52,7 +56,7 @@ class ProcessCommand(BaseCommand):
     confirmation_message_id=MessageId.CommandRunPipeline,
     aliases=['run_pipeline'])
 class RunPipelineCommand(BaseCommand):
-    """This command is used for manual running the pipeline for the related Merge Request"""
+    """Manually run the pipeline for the related Merge Request."""
 
     def run(self, mr_manager: MergeRequestManager, **kwargs):
         super().run(mr_manager, **kwargs)
@@ -64,7 +68,7 @@ class RunPipelineCommand(BaseCommand):
     confirmation_message_id=MessageId.CommandFollowUp,
     aliases=['follow_up'])
 class FollowUpCommand(BaseCommand):
-    """This command is used for executing follow-up actions upon the related Merge Request"""
+    """Execute follow-up actions for the related Merge Request."""
 
     def run(
             self,
@@ -91,7 +95,7 @@ class FollowUpCommand(BaseCommand):
     confirmation_message_id=MessageId.CommandSetDraftFollowUpMode,
     aliases=['draft_follow_up'])
 class DraftFollowUpCommand(BaseCommand):
-    '''This command is used for setting follow-up creation mode to "Draft"'''
+    '''Set the follow-up creation mode to "Draft."'''
 
     def run(
             self,

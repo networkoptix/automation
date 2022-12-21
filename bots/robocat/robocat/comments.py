@@ -4,17 +4,6 @@ _mark_as_ready_url = (
     "https://docs.gitlab.com/ee/user/project/merge_requests/work_in_progress_merge_requests.html"
     "#removing-the-draft-flag-from-a-merge-request")
 
-initial_message = """Hi, I am Robocat and I will help you merging this MR.
-Once the Merge Request is ready I will run the pipeline and automatically merge it.
-
-Please note, I consider Merge Request ready when:
-1. It's approved by reviewers *({approvals_left} more required at the moment)*
-2. It's not in Draft status
-3. It's assigned to me
-
-P.S. You may set :construction_site: emoji on Merge Request and I will run the pipeline even if MR
-isn't ready."""
-
 merged_message = "Merge request was successfully merged into `{branch}` branch."
 run_pipeline_message = "Running pipeline {pipeline_id}: {reason}."
 refuse_run_pipeline_message = """
@@ -140,6 +129,7 @@ bot_readable_comment_title = {
     MessageId.FailedCheckForConflictsWithTargetBranch: "Conflicts with target branch",
     MessageId.FailedCheckForUnresolvedThreads: "Unresolved threads",
     MessageId.FailedCheckForNoSupportedProject: "No supported project found",
+    MessageId.InitialMessage: "Looking after this MR",
 }
 bot_readable_comment = {
     MessageId.CommandProcess: "Re-checking Merge Request",
@@ -171,5 +161,20 @@ merging process.
 The Merge Request is not linked to any Jira Issue known to Robocat. Link this MR to Jira
 Issue(s) from at least one of the supported Jira Projects ({jira_projects_list}) to continue the
 merging process.
+""",
+    MessageId.InitialMessage: """
+This message is added because Robocat the Automation Bot is assigned to this Merge Request. Robocat
+will check that the Merge Request complies to all the necessary criteria and then merge it. After
+the merge, Merge Requests with the same changes will be created automatically for all other target
+branches determined by the `fixVersions` field of the Jira Issue.
+
+You can ask the bot to perform some actions using comments to this Merge Request. To do this, add
+the comment with the following format:
+```
+@{bot_gitlab_username} <command>
+```
+where "command" is one of:
+- {command_list}
+
 """,
 }

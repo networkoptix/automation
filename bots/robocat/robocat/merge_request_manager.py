@@ -191,13 +191,14 @@ class MergeRequestManager:
 
         logger.info(f"{self}: New merge request to take care of")
         self._mr.award_emoji.create(AwardEmojiManager.WATCH_EMOJI)
-        message = robocat.comments.initial_message.format(
-            approvals_left=self._cached_approvals_left())
-        self._add_comment(
-            "Looking after this MR",
-            message,
-            emoji=AwardEmojiManager.INITIAL_EMOJI,
-            message_id=MessageId.Initial)
+        self.add_comment_with_message_id(
+            MessageId.InitialMessage,
+            message_params={
+                "bot_gitlab_username": self._current_user,
+                "bot_revision": automation_tools.bot_info.revision(),
+                "command_list": "\n- ".join(
+                    cls.description() for cls in robocat.commands.parser.command_classes()),
+            })
 
         # Gitlab automatically appends `Closes-<issue_key>.` to Merge Request descriptions. We
         # don't need this, and, moreover, it conflicts with our sanity checks. So, if the bot
