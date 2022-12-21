@@ -1,4 +1,5 @@
 import logging
+from typing import Set
 
 from automation_tools.jira import JiraAccessor
 import robocat.merge_request_actions.follow_up_actions
@@ -23,9 +24,16 @@ class BaseCommand:
         mr_manager.add_comment_with_message_id(self._confirmation_message_id)
 
 
-def robocat_command(verb: str, confirmation_message_id: MessageId, process_mr: bool = False):
+def robocat_command(
+        verb: str,
+        confirmation_message_id: MessageId,
+        aliases: Set[str] = None,
+        process_mr: bool = False):
     def command_class_decorator(cls: BaseCommand) -> BaseCommand:
         cls.verb = verb
+        cls.verb_aliases = {verb}
+        if aliases:
+            cls.verb_aliases.update(aliases)
         cls.should_handle_mr_after_run = process_mr
         cls._confirmation_message_id = confirmation_message_id
         return cls
@@ -39,7 +47,10 @@ class ProcessCommand(BaseCommand):
     pass
 
 
-@robocat_command(verb='run_pipeline', confirmation_message_id=MessageId.CommandRunPipeline)
+@robocat_command(
+    verb='run-pipeline',
+    confirmation_message_id=MessageId.CommandRunPipeline,
+    aliases=['run_pipeline'])
 class RunPipelineCommand(BaseCommand):
     """This command is used for manual running the pipeline for the related Merge Request"""
 
@@ -48,7 +59,10 @@ class RunPipelineCommand(BaseCommand):
         mr_manager.run_user_requested_pipeline()
 
 
-@robocat_command(verb='follow-up', confirmation_message_id=MessageId.CommandFollowUp)
+@robocat_command(
+    verb='follow-up',
+    confirmation_message_id=MessageId.CommandFollowUp,
+    aliases=['follow_up'])
 class FollowUpCommand(BaseCommand):
     """This command is used for executing follow-up actions upon the related Merge Request"""
 
@@ -74,7 +88,8 @@ class FollowUpCommand(BaseCommand):
 
 @robocat_command(
     verb='draft-follow-up',
-    confirmation_message_id=MessageId.CommandSetDraftFollowUpMode)
+    confirmation_message_id=MessageId.CommandSetDraftFollowUpMode,
+    aliases=['draft_follow_up'])
 class DraftFollowUpCommand(BaseCommand):
     '''This command is used for setting follow-up creation mode to "Draft"'''
 

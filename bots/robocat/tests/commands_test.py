@@ -31,7 +31,9 @@ class TestRobocatCommands:
         (f"@{BOT_USERNAME} serves", None),
         (f"{BOT_USERNAME} process", None),
         (f"@{BOT_USERNAME} run_pipeline", RunPipelineCommand),
-        (f"@{BOT_USERNAME} follow-up", FollowUpCommand)
+        (f"@{BOT_USERNAME} run-pipeline", RunPipelineCommand),
+        (f"@{BOT_USERNAME} follow-up", FollowUpCommand),
+        (f"@{BOT_USERNAME} follow_up", FollowUpCommand)
     ])
     def test_command_parsing(self, comment: str, command_class: BaseCommand):
         command = robocat.commands.parser.create_command_from_text(
