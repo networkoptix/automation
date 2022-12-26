@@ -166,6 +166,7 @@ helm:build:workflow_police:
 k8s:workflow_police:deploy:
   image: ${DOCKER_REGISTRY}/nx/deploy-pod
   variables:
+    DOCKER_DIR: "bots/workflow_police"
     HELM_CHART_DIR: "bots/workflow_police/chart"
     LOG_LEVEL:  "${WORKFLOW_POLICE_LOG_LEVEL}"
     TARGET_IMAGE: "${CI_REGISTRY_IMAGE}/workflow_police"
@@ -196,6 +197,7 @@ k8s:workflow_police:manual:deploy:
 k8s:robocat:deploy:
   image: ${DOCKER_REGISTRY}/nx/deploy-pod
   variables:
+    DOCKER_DIR: "bots/robocat"
     HELM_CHART_DIR: "bots/robocat/chart"
     LOG_LEVEL:  "${ROBOCAT_LOG_LEVEL}"
     TARGET_IMAGE: "${CI_REGISTRY_IMAGE}/robocat"
