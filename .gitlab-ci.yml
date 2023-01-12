@@ -34,7 +34,7 @@ pep8:
   - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 robocat:test:
-  image: ${DOCKER_REGISTRY}/python:3.8
+  image: ${DOCKER_REGISTRY}/python:3.9
   stage: test
   tags:
   - service
@@ -55,7 +55,7 @@ robocat:test:
     - automation_tools/**/*
 
 workflow_police:test:
-  image: ${DOCKER_REGISTRY}/python:3.8
+  image: ${DOCKER_REGISTRY}/python:3.9
   stage: test
   tags:
   - service
@@ -76,7 +76,7 @@ workflow_police:test:
     - automation_tools/**/*
 
 source_files_compliance:test:
-  image: ${DOCKER_REGISTRY}/python:3.8
+  image: ${DOCKER_REGISTRY}/python:3.9
   stage: test
   tags:
   - service

@@ -9,7 +9,7 @@ from robocat.project_manager import ProjectManager
 from robocat.note import MessageId
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.rule.helpers.nx_submodule_checker import NxSubmoduleChecker
-from robocat.rule.helpers.statefull_checker_helpers import (
+from robocat.rule.helpers.stateful_checker_helpers import (
     CheckError,
     CheckChangesMixin,
     ErrorCheckResult,
@@ -26,7 +26,9 @@ class NxSubmoduleRuleExecutionResultClass(RuleExecutionResultClass, Enum):
 
 
 class NxSubmoduleStoredCheckResults(StoredCheckResults):
-    ERROR_MESSAGE_IDS = {
+    MESSAGE_IDS = {
+        MessageId.NxSubmoduleCheckHugeDiffUncheckable,
+        MessageId.NxSubmoduleCheckPassed,
         MessageId.InconsistentNxSubmoduleChange,
         MessageId.NxSubmoduleConfigDeleted,
         MessageId.NxSubmoduleConfigMalformed,
@@ -35,12 +37,7 @@ class NxSubmoduleStoredCheckResults(StoredCheckResults):
     }
     OK_MESSAGE_IDS = {
         MessageId.NxSubmoduleCheckPassed,
-    }
-    UNCHECKABLE_MESSAGE_IDS = {
         MessageId.NxSubmoduleCheckHugeDiffUncheckable,
-    }
-    NEEDS_MANUAL_CHECK_MESSAGE_IDS = {
-         MessageId.NxSubmoduleCheckHugeDiffUncheckable,
     }
 
 
@@ -67,20 +64,15 @@ class NxSubmoduleCheckRule(CheckChangesMixin, BaseRule):
         error_check_result = self._do_error_check(
             mr_manager=mr_manager, check_results_class=NxSubmoduleStoredCheckResults)
 
-        if error_check_result.has_errors:
+        if error_check_result.current_errors:
             self._ensure_problem_comments(mr_manager, error_check_result)
             return self.ExecutionResult.invalid_changes
 
         self._ensure_problems_not_found_comment(mr_manager, error_check_result)
         return self.ExecutionResult.nx_submodule_check_rule_ok
 
-    def _find_errors(
-            self,
-            old_errors_info: NxSubmoduleStoredCheckResults,
-            mr_manager: MergeRequestManager) -> Tuple[bool, Set[CheckError]]:
-        has_errors = False
-        new_errors = set()
-
+    def _find_errors(self, mr_manager: MergeRequestManager) -> Set[CheckError]:
+        errors = set()
         mr_sha = mr_manager.data.sha
         with NxSubmoduleChecker(self._submodule_dirs, self._project_manager, mr_sha) as checker:
             for file_changes in mr_manager.get_changes().changes:
@@ -88,20 +80,16 @@ class NxSubmoduleCheckRule(CheckChangesMixin, BaseRule):
                     file_name=file_changes["new_path"],
                     is_executable=file_changes["b_mode"] == "100755",  # Git executable file mode
                     is_deleted=file_changes["deleted_file"])
-
                 if error:
-                    has_errors = True
-                    if not old_errors_info.is_error_actual(error=error):
-                        new_errors.add(error)
-
-        return (has_errors, new_errors)
+                    errors.add(error)
+        return errors
 
     def _ensure_problem_comments(
-            self, mr_manager: MergeRequestManager, error_check_result: ErrorCheckResult):
-        if not error_check_result.must_add_comment:
+            self, mr_manager: MergeRequestManager, errors: ErrorCheckResult):
+        if not errors.has_changed_since_last_check:
             return
 
-        for error in error_check_result.new_errors:
+        for error in errors.new_errors:
             self._create_invalid_changes_discussion(mr_manager, error)
 
     def _create_invalid_changes_discussion(
@@ -135,7 +123,7 @@ class NxSubmoduleCheckRule(CheckChangesMixin, BaseRule):
 
     def _ensure_problems_not_found_comment(
             self, mr_manager: MergeRequestManager, error_check_result: ErrorCheckResult):
-        if not error_check_result.must_add_comment:
+        if not error_check_result.has_changed_since_last_check:
             return
 
         if self._is_diff_complete(mr_manager):

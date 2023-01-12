@@ -34,6 +34,8 @@ FILE_COMMITS_SHA = {
     "nx_submodule_changes_base": "109",
     "opensource_bad_new_file": "110",
     "opensource_deleted_new_file": "111",
+    "apidoc_changes_commit": "112",
+    "apidoc_changes_and_new_open_source_files_commit": "113",
 }
 CONFLICTING_COMMIT_SHA = "1001"
 BAD_OPENSOURCE_COMMIT = {
@@ -67,25 +69,61 @@ GOOD_README_COMMIT_DELETED_FILE = {
     "diffs": [],
     "files": {"open/dontreadme.md": {"is_new": False, "is_deleted": True, "raw_data": ""}},
 }
+APIDOC_INFO_CHANGED_COMMIT = {
+    "sha": FILE_COMMITS_SHA["apidoc_changes_commit"],
+    "message": f"{DEFAULT_JIRA_ISSUE_KEY}: some title\nsome msg",
+    "diffs": [{"diff": "@@ -4,1 +4,1 @@\n- Old string\n+ New string"}],
+    "files": {
+        "somefile.cpp": {
+            "is_new": False,
+            "is_deleted": False,
+            "raw_data": "",
+            "diff": "@@ -4,1 +4,1 @@\n- Old string\n+    /**%apidoc Integration id. */",
+        },
+    },
+}
+APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT = {
+    "sha": FILE_COMMITS_SHA["apidoc_changes_and_new_open_source_files_commit"],
+    "message": f"{DEFAULT_JIRA_ISSUE_KEY}: some title\nsome msg",
+    "diffs": [{"diff": "@@ -4,1 +4,1 @@\n- Old string\n+ New string"}],
+    "files": {
+        "open/dontreadme.md": {"is_new": True, "is_deleted": False, "raw_data": ""},
+        "somefile.cpp": {
+            "is_new": False,
+            "is_deleted": False,
+            "raw_data": "",
+            "diff": "@@ -4,1 +4,1 @@\n- Old string\n+    /**%apidoc Integration id. */",
+        },
+    },
+}
 OPEN_SOURCE_APPROVER_COMMON = "approver1"
 OPEN_SOURCE_APPROVER_CLIENT = "approver2"
 OPEN_SOURCE_APPROVER_COMMON_2 = "approver3"
-DEFAULT_APPROVE_RULES_LIST = [
-    {
-        "patterns": ["open_candidate/vms/client/.+", "open_candidate/cloud/.+"],
-        "approvers": [OPEN_SOURCE_APPROVER_CLIENT],
-    }, {
-        "patterns": ["open_candidate/.+", "open/((?!unknown_approver_prefix_).+)"],
-        "approvers": [OPEN_SOURCE_APPROVER_COMMON, OPEN_SOURCE_APPROVER_COMMON_2],
-    },
-]
+APIDOC_APPROVER = "apidoc_approver1"
+DEFAULT_APPROVE_RULESET = {
+    "relevance_checker": "is_file_open_sourced",
+    "rules": [
+        {
+            "patterns": ["open_candidate/vms/client/.+", "open_candidate/cloud/.+"],
+            "approvers": [OPEN_SOURCE_APPROVER_CLIENT],
+        }, {
+            "patterns": ["open_candidate/.+", "open/((?!unknown_approver_prefix_).+)"],
+            "approvers": [OPEN_SOURCE_APPROVER_COMMON, OPEN_SOURCE_APPROVER_COMMON_2],
+        },
+    ],
+}
+DEFAULT_APIDOC_APPROVE_RULESET = {
+    "relevance_checker": "does_file_diff_contain_apidoc_changes",
+    "rules": [{"patterns": [".+"], "approvers": [APIDOC_APPROVER]}],
+}
 DEFAULT_SUBMODULE_DIRS = ["conan_profiles"]
 USERS = [
     {"username": "user1", "name": "User 1", "id": 1, "email": "user1@foo.bar"},
     {"username": "user2", "name": "User 2", "id": 2, "email": "user2@foo.bar"},
     {"username": "approver1", "name": "Approver 1", "id": 10, "email": "approver1@foo.bar"},
     {"username": "approver2", "name": "Approver 2", "id": 11, "email": "approver2@foo.bar"},
-    {"username": "approver3", "name": "Approver 4", "id": 13, "email": "approver3@foo.bar"},
+    {"username": "approver3", "name": "Approver 3", "id": 13, "email": "approver3@foo.bar"},
+    {"username": "apidoc_approver1", "name": "Approver 4", "id": 14, "email": "approver4@foo.bar"},
     {"username": BOT_USERNAME, "name": BOT_NAME, "id": BOT_USERID, "email": BOT_EMAIL}
 ]
 MERGED_TO_MASTER_MERGE_REQUESTS = {

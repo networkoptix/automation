@@ -1,4 +1,4 @@
-FROM python:3.8-slim-buster
+FROM python:3.9-slim-buster
 
 ARG GIT_COMMIT=unknown
 ENV BOT_REVISION=$GIT_COMMIT

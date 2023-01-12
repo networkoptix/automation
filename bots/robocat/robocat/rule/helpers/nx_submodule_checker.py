@@ -7,7 +7,7 @@ from typing import List, Optional
 
 import git
 from robocat.project_manager import ProjectManager
-from robocat.rule.helpers.statefull_checker_helpers import CheckError
+from robocat.rule.helpers.stateful_checker_helpers import CheckError
 
 logger = logging.getLogger(__name__)
 

@@ -346,6 +346,7 @@ class MergeRequestMock:
                     "new_file": descr.get("is_new", False),
                     "renamed_file": descr.get("is_renamed", False),
                     "b_mode": descr.get("mode", "100644"),
+                    "diff": descr.get("diff", ""),
                 } for name, descr in files.items()],
             "changes_count": str(len(files)) + ("+" if self.mock_huge_mr else ""),
         }

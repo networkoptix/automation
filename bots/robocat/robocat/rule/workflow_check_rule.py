@@ -8,14 +8,15 @@ from automation_tools.checkers.checkers import (WrongVersionChecker, IssueIgnore
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId, Comment
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
-from robocat.rule.helpers.statefull_checker_helpers import StoredCheckResults, CheckError
+from robocat.rule.helpers.stateful_checker_helpers import StoredCheckResults
 from automation_tools.jira import JiraAccessor
 
 logger = logging.getLogger(__name__)
 
 
 class WorkflowStoredCheckResults(StoredCheckResults):
-    ERROR_MESSAGE_IDS = {
+    MESSAGE_IDS = {
+        MessageId.WorkflowOk,
         MessageId.WorkflowBadFixVersions,
         MessageId.WorkflowDifferentCommitMessage,
         MessageId.WorkflowDifferentJiraIssueSets,
@@ -24,9 +25,7 @@ class WorkflowStoredCheckResults(StoredCheckResults):
         MessageId.WorkflowNoJiraIssueInMr,
         MessageId.WorkflowParenthesesNotAllowed,
     }
-    OK_MESSAGE_IDS = {
-        MessageId.WorkflowOk,
-    }
+    OK_MESSAGE_IDS = {MessageId.WorkflowOk}
 
 
 class WorkflowCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
@@ -77,8 +76,7 @@ class WorkflowCheckRule(BaseRule):
     def _update_workflow_errors_info(
             self, mr_manager: MergeRequestManager, errors: List[Comment], title: str):
         current_errors_info = WorkflowStoredCheckResults(mr_manager)
-        reported_errors_by_id = current_errors_info.get_errors() \
-            if current_errors_info.does_latest_revision_have_errors() else {}
+        reported_errors_by_id = current_errors_info.get_errors()
         for error in errors:
             if error.id not in reported_errors_by_id:
                 mr_manager.add_workflow_error_info(error=error, title=title)

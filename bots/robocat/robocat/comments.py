@@ -123,7 +123,8 @@ bot_readable_comment_title = {
     MessageId.CommandRunPipeline: "User command action",
     MessageId.CommandFollowUp: "User command action",
     MessageId.CommandSetDraftFollowUpMode: "Follow-up mode set to \"Draft\"",
-    MessageId.OpenSourceNeedApproval: "Manual check is needed",
+    MessageId.JobStatusCheckNeedsApproval: "Manual check is needed",
+    MessageId.JobStatusChecksPassed: "Job status checks passed",
     MessageId.CommandNotExecuted: "Command was not executed",
     MessageId.FailedCheckForSuccessfulPipeline: "Pipeline failed",
     MessageId.FailedCheckForConflictsWithTargetBranch: "Conflicts with target branch",
@@ -139,9 +140,13 @@ bot_readable_comment = {
 Follow-up Merge Requests will be created in "Draft" status. To **restore the default behavior**,
 remove **this** comment.
 """,
-    MessageId.OpenSourceNeedApproval: """
-This merge request contains new or renamed files in the open-source part of the project, so it
-**must be approved** by one of: @{approvers}.
+    MessageId.JobStatusCheckNeedsApproval: """
+This merge request contains changes that **must be approved** by one of: @{approvers}. For the
+details, see the results of `{job_name}` job in the pipeline.
+""",
+    MessageId.JobStatusChecksPassed: """"
+Auto-check for job statuses passed successfully. The Merge Request can be merged once all other
+criteria are met.
 """,
     MessageId.CommandNotExecuted: "Command **{command}** is not executed: {explanation}.",
     MessageId.FailedCheckForSuccessfulPipeline: """

@@ -25,27 +25,39 @@ repo:
     path: /var/workflow_robocat/nx
     url: "git@gitlab.nxvms.dev:dev/nx.git"
 
-# Configuration for checking open-source part of the project.
-open_source_check_rule:
-    approve_rules:
-        -
-            patterns:
-                - open_candidate/vms/client/.+
-                - open_candidate/cloud/.+
-            approvers:
-                - sivanov
-                - mshevchenko
-        -
-            patterns:
-                - open/.+
-                - open_candidate/build_utils/.+
-                - open_candidate/cmake/.+
-                - open_candidate/dependencies/.+
-                - open_candidate/vms/libs/.+
-                - open_candidate/libs/.+
-            approvers:
-                - ptolstov
-                - mshevchenko
+job_status_check_rule:
+    open_source:
+        approve_ruleset:
+            relevance_checker: is_file_open_sourced
+            rules:
+                -
+                    patterns:
+                        - open_candidate/vms/client/.+
+                        - open_candidate/cloud/.+
+                    approvers:
+                        - sivanov
+                        - mshevchenko
+                -
+                    patterns:
+                        - open/.+
+                        - open_candidate/build_utils/.+
+                        - open_candidate/cmake/.+
+                        - open_candidate/dependencies/.+
+                        - open_candidate/vms/libs/.+
+                        - open_candidate/libs/.+
+                    approvers:
+                        - ptolstov
+                        - mshevchenko
+    apidoc:
+        approve_ruleset:
+            relevance_checker: does_file_diff_contain_apidoc_changes
+            rules:
+                -
+                    patterns:
+                        - .+
+                    approvers:
+                        - muskov
+                        - ekarpov
 
 # Configuration for processing Issues from the related Projects.
 process_related_merge_requests_rule:

@@ -1,6 +1,6 @@
+import dataclasses
 import logging
-import re
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set
 from dataclasses import asdict
 from enum import Enum
 
@@ -8,15 +8,21 @@ from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 import robocat.rule.helpers.approve_rule_helpers as approve_rule_helpers
-import robocat.rule.helpers.commit_message_checker as commit_message_checker
-from robocat.rule.helpers.statefull_checker_helpers import (
+from robocat.rule.helpers.stateful_checker_helpers import (
     CheckChangesMixin,
+    CheckError,
     ErrorCheckResult,
     StoredCheckResults)
 from robocat.award_emoji_manager import AwardEmojiManager
 import robocat.comments
+import source_file_compliance
 
 logger = logging.getLogger(__name__)
+
+
+@dataclasses.dataclass(frozen=True)
+class CommitMessageError(CheckError):
+    raw_text: str = ""
 
 
 class CommitMessageCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
@@ -26,17 +32,14 @@ class CommitMessageCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum)
 
 
 class CommitMessageStoredCheckResults(StoredCheckResults):
-    CheckErrorClass = commit_message_checker.CommitMessageError
+    CheckErrorClass = CommitMessageError
 
-    ERROR_MESSAGE_IDS = {
+    MESSAGE_IDS = {
+        MessageId.CommitMessageIsOk,
         MessageId.BadCommitMessageByKeeper,
         MessageId.BadCommitMessage,
     }
-    OK_MESSAGE_IDS = {
-        MessageId.CommitMessageIsOk,
-    }
-    UNCHECKABLE_MESSAGE_IDS = set()
-    NEEDS_MANUAL_CHECK_MESSAGE_IDS = set()
+    OK_MESSAGE_IDS = {MessageId.CommitMessageIsOk}
 
 
 class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
@@ -48,11 +51,12 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
             "commit_message_is_ok": "Commit message check didn't find any problems",
         })
 
-    def __init__(self, approve_rules: List[Dict[str, List[str]]]):
-        self._approve_rules = []
-        for rule_dict in approve_rules:
-            self._approve_rules.append(approve_rule_helpers.ApproveRule(
-                approvers=rule_dict["approvers"], patterns=rule_dict["patterns"]))
+    def __init__(self, approve_ruleset: approve_rule_helpers.ApproveRuleDict):
+        checker = getattr(approve_rule_helpers, approve_ruleset["relevance_checker"])
+        self._approve_rules = [
+            approve_rule_helpers.ApproveRule(
+                approvers=rule["approvers"], patterns=rule["patterns"], relevance_checker=checker)
+            for rule in approve_ruleset["rules"]]
         logger.info(
             f"Commit message check rule created. Approvers list is {self._approve_rules!r}")
         super().__init__()
@@ -71,7 +75,7 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
         error_check_result = self._do_error_check(
             mr_manager=mr_manager, check_results_class=CommitMessageStoredCheckResults)
 
-        if error_check_result.has_errors:
+        if error_check_result.current_errors:
             self._ensure_problem_comments(mr_manager, error_check_result)
             approval_requirements = approve_rule_helpers.get_approval_requirements(
                 approve_rules=self._approve_rules, mr_manager=mr_manager)
@@ -92,34 +96,28 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
         open_source_check_result = mr_manager.last_pipeline_check_job_status("open-source:check")
         return open_source_check_result is not None
 
-    def _find_errors(
-            self,
-            old_errors_info: StoredCheckResults,
-            mr_manager: MergeRequestManager) -> commit_message_checker.FindErrorsResult:
-        has_errors = False
-        new_errors = set()
-
-        commit_message_errors = commit_message_checker.commit_message_errors(
-            mr_manager.last_commit_message())
-
-        for error in commit_message_errors:
-            has_errors = True
-            if not old_errors_info.have_error(error=error):
-                new_errors.add(error)
-
-        return (has_errors, new_errors)
+    def _find_errors(self, mr_manager: MergeRequestManager) -> Set[CommitMessageError]:
+        errors = set()
+        for raw_error in source_file_compliance.check_text(mr_manager.last_commit_message()):
+            error_type = f"{raw_error.reason}_word"
+            error_text = (
+                "This commit seems to contain licensing-related or other sensitive functionality: "
+                f"commit message contains `{raw_error.word}` (stem `{raw_error.stem}`) at "
+                f"line {raw_error.line}:{raw_error.col}. Some of the open-source keepers must "
+                "review this commit before it can be merged.")
+            errors.add(CommitMessageError(type=error_type, raw_text=error_text))
+        return errors
 
     def _ensure_problem_comments(
-            self, mr_manager: MergeRequestManager, error_check_result: ErrorCheckResult):
-        if not error_check_result.must_add_comment:
+            self, mr_manager: MergeRequestManager, errors: ErrorCheckResult):
+        if not errors.has_changed_since_last_check:
             return
-        for error in error_check_result.new_errors:
+
+        for error in errors.new_errors:
             self._create_commit_message_discussion(mr_manager, error)
 
     def _create_commit_message_discussion(
-            self,
-            mr_manager: MergeRequestManager,
-            error: commit_message_checker.CommitMessageError):
+            self, mr_manager: MergeRequestManager, error: CommitMessageError):
         title = "Commit message auto-check failed"
 
         if approve_rule_helpers.is_mr_author_keeper(self._approve_rules, mr_manager):
@@ -142,8 +140,8 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
             emoji=AwardEmojiManager.AUTOCHECK_FAILED_EMOJI)
 
     def _ensure_problems_not_found_comment(
-            self, mr_manager: MergeRequestManager, error_check_result: ErrorCheckResult):
-        if not error_check_result.must_add_comment:
+            self, mr_manager: MergeRequestManager, errors: ErrorCheckResult):
+        if errors.current_errors or not errors.has_changed_since_last_check:
             return
 
         mr_manager.create_thread(

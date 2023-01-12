@@ -13,49 +13,33 @@ from automation_tools.tests.gitlab_constants import (
     OPEN_SOURCE_APPROVER_COMMON,
     OPEN_SOURCE_APPROVER_COMMON_2,
     OPEN_SOURCE_APPROVER_CLIENT,
-    DEFAULT_REQUIRED_APPROVALS_COUNT)
+    APIDOC_APPROVER,
+    DEFAULT_REQUIRED_APPROVALS_COUNT,
+    APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT,
+    APIDOC_INFO_CHANGED_COMMIT)
 from automation_tools.tests.mocks.file import (
-    GOOD_README_RAW_DATA, BAD_README_RAW_DATA, BAD_README_RAW_DATA_2, GOOD_CPP_RAW_DATA)
+    GOOD_README_RAW_DATA, BAD_README_RAW_DATA_2, GOOD_CPP_RAW_DATA)
 from tests.fixtures import *
 
 
-class TestOpenSourceRule:
+class TestJobStatusCheckRule:
     @pytest.mark.parametrize("mr_state", [
-        # MR without open source files.
+        # The MR without open-source files (no check job in the pipeline list).
         {
             "commits_list": [{
                 "sha": FILE_COMMITS_SHA["no_open_source_files"],
                 "message": "msg",
-                "diffs": [],
-                "files": {"dontreadme.md": {"is_new": True, "raw_data": BAD_README_RAW_DATA}},
-            }]
-        },
-        # MR is changing only the files that are excluded from the open-source compliance check.
-        {
-            "commits_list": [{
-                "sha": FILE_COMMITS_SHA["excluded_open_source_files"],
-                "message": "msg",
-                "diffs": [],
-                "files": {
-                    "open/readme.md": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
-                    "open/licenses/file.md": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
-                    "open/artifacts/nx_kit/src/json11/a/b/c.c": {
-                        "is_new": True, "raw_data": BAD_README_RAW_DATA},
-                    "open_candidate/some_path/go.mod": {
-                        "is_new": True, "raw_data": BAD_README_RAW_DATA},
-                    "open/1/2/go.sum": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
-                    "open/1/2/SomeData.json": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
-                    "open/1/2/file.ts": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
-                    "open/1/2/file.ts": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
-                    "open/1/2/file.svg": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
-                    "open/1/2/file.ui": {"is_new": True, "raw_data": BAD_README_RAW_DATA},
-                },
             }],
+            "pipelines_list": [(
+                FILE_COMMITS_SHA["no_open_source_files"],
+                "success",
+                [],
+            )],
         },
     ])
-    def test_not_applicable(self, open_source_rule, mr, mr_manager):
-        for _ in range(2):  # State must not change after any number of rule executions.
-            assert open_source_rule.execute(mr_manager)
+    def test_not_applicable(self, job_status_rule, mr, mr_manager):
+        for _ in range(2):  # The state must not change after any number of rule executions.
+            assert job_status_rule.execute(mr_manager)
 
     @pytest.mark.parametrize("mr_state", [
         {
@@ -113,7 +97,7 @@ class TestOpenSourceRule:
                 [("open-source:check", "success"), ("new-open-source-files:check", "failed")],
             )],
         },
-        # Not a follow-up Merge Request with new files.
+        # Non-follow-up Merge Request with new files.
         {
             "commits_list": [{
                 "sha": FILE_COMMITS_SHA["good_dontreadme"],
@@ -131,17 +115,19 @@ class TestOpenSourceRule:
             "assignees": [],
         },
     ])
-    def test_set_assignee(self, open_source_rule, mr, mr_manager):
+    def test_set_open_source_approvers(self, job_status_rule, mr, mr_manager):
         reviewers_before = {r["username"] for r in mr.reviewers}
         approvers_before = (
             {a["username"] for a in mr.assignees} | reviewers_before | set([mr.author["username"]])
         )
         authorized_approvers = {
-            OPEN_SOURCE_APPROVER_COMMON, OPEN_SOURCE_APPROVER_COMMON_2,
-            OPEN_SOURCE_APPROVER_CLIENT}
+            OPEN_SOURCE_APPROVER_COMMON,
+            OPEN_SOURCE_APPROVER_COMMON_2,
+            OPEN_SOURCE_APPROVER_CLIENT,
+        }
 
-        for _ in range(2):  # State must not change after any number of rule executions.
-            assert not open_source_rule.execute(mr_manager)
+        for _ in range(2):  # The state must not change after any number of rule executions.
+            assert not job_status_rule.execute(mr_manager)
 
             assignees = {a["username"] for a in mr.assignees}
             if reviewers_before.intersection(authorized_approvers):
@@ -168,6 +154,54 @@ class TestOpenSourceRule:
                 assert mr_manager._mr.get_approvers_count() == DEFAULT_REQUIRED_APPROVALS_COUNT + 1
 
     @pytest.mark.parametrize("mr_state", [
+        {
+            "commits_list": [APIDOC_INFO_CHANGED_COMMIT],
+            "assignees": [{"username": "user1"}],
+            "pipelines_list": [(
+                GOOD_README_COMMIT_NEW_FILE["sha"],
+                "success",
+                [("apidoc:check", "failed")],
+            )],
+        },
+    ])
+    def test_set_apidoc_approvers(self, job_status_rule, mr, mr_manager):
+        for _ in range(2):  # The state must not change after any number of rule executions.
+            assert not job_status_rule.execute(mr_manager)
+
+            assignees = {a["username"] for a in mr.assignees}
+            assert APIDOC_APPROVER in assignees, (
+                f"Authorized approver(s) not assigned: {assignees}")
+
+    @pytest.mark.parametrize("mr_state", [
+        {
+            "commits_list": [APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT],
+            "assignees": [{"username": "user1"}],
+            "pipelines_list": [(
+                APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT["sha"],
+                "success",
+                [
+                    ("apidoc:check", "failed"),
+                    ("open-source:check", "success"),
+                    ("new-open-source-files:check", "failed"),
+                ],
+            )],
+        },
+    ])
+    def test_set_all_approvers(self, job_status_rule, mr, mr_manager):
+        expected_assignees = {
+            "user1",
+            OPEN_SOURCE_APPROVER_COMMON,
+            OPEN_SOURCE_APPROVER_COMMON_2,
+            APIDOC_APPROVER,
+        }
+        for _ in range(2):  # The state must not change after any number of rule executions.
+            assert not job_status_rule.execute(mr_manager)
+
+            assignees = {a["username"] for a in mr.assignees}
+            assert expected_assignees == assignees, (
+                f"Authorized approver(s) not assigned: {assignees}")
+
+    @pytest.mark.parametrize("mr_state", [
         # Simple Merge Request with "good" changes in a new file.
         {
             "blocking_discussions_resolved": True,
@@ -179,9 +213,9 @@ class TestOpenSourceRule:
             )],
         },
     ])
-    def test_good_new_files_comments(self, open_source_rule, mr, mr_manager):
-        for _ in range(2):  # State must not change after any number of rule executions.
-            assert not open_source_rule.execute(mr_manager)
+    def test_good_new_files_comments(self, job_status_rule, mr, mr_manager):
+        for _ in range(2):  # The state must not change after any number of rule executions.
+            assert not job_status_rule.execute(mr_manager)
 
             assert mr.blocking_discussions_resolved
 
@@ -192,7 +226,8 @@ class TestOpenSourceRule:
             is_manual_check_emoji_in_comment = (
                 f":{AwardEmojiManager.NEED_MANUAL_CHECK_EMOJI}:" in comments[0])
             is_message_id_right = (
-                f"{Note.ID_KEY}: {MessageId.OpenSourceNeedApproval.value}" in comments[0])
+                f"{Note.ID_KEY}: {MessageId.JobStatusCheckNeedsApproval.value}"
+                in comments[0])
             assert is_manual_check_emoji_in_comment and is_message_id_right, (
                 f"First comment is: {comments[0]}")
 
@@ -228,7 +263,7 @@ class TestOpenSourceRule:
                 [("open-source:check", "success"), ("new-open-source-files:check", "failed")],
             )],
         },
-        # Has new files in non-follow_up Merge Request but the author is an authorized approver.
+        # Has new files in non-follow-up Merge Request, but the author is an authorized approver.
         {
             "blocking_discussions_resolved": True,
             "commits_list": [GOOD_README_COMMIT_NEW_FILE],
@@ -265,9 +300,9 @@ class TestOpenSourceRule:
             )],
         },
     ])
-    def test_no_new_files(self, open_source_rule, mr, mr_manager):
-        for _ in range(2):  # State must not change after any number of rule executions.
-            assert open_source_rule.execute(mr_manager)
+    def test_no_new_files(self, job_status_rule, mr, mr_manager):
+        for _ in range(2):  # The state must not change after any number of rule executions.
+            assert job_status_rule.execute(mr_manager)
             assert mr.blocking_discussions_resolved
 
             comments = mr.mock_comments()
@@ -276,7 +311,7 @@ class TestOpenSourceRule:
             mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
 
     @pytest.mark.parametrize("mr_state", [
-        # Bad changes in the new file of the non-follow_up Merge Request.
+        # Bad changes in the new file of the non-follow-up Merge Request.
         {
             "blocking_discussions_resolved": True,
             "commits_list": [BAD_OPENCANDIDATE_COMMIT],
@@ -302,28 +337,25 @@ class TestOpenSourceRule:
             )],
         },
     ])
-    def test_bad_changes_new_files(self, open_source_rule, mr, mr_manager):
-        for _ in range(2):  # State must not change after any number of rule executions.
-            assert not open_source_rule.execute(mr_manager)
+    def test_bad_changes_new_files(self, job_status_rule, mr, mr_manager):
+        for _ in range(2):  # The state must not change after any number of rule executions.
+            assert not job_status_rule.execute(mr_manager)
             assert mr.blocking_discussions_resolved
 
             comments = mr.mock_comments()
             assert len(comments) == 2, f"Got comments: {comments}"
             assert f":{AwardEmojiManager.NEED_MANUAL_CHECK_EMOJI}:" in comments[0], (
                 f"First comment is: {comments[0]}")
-            if mr_manager.is_follow_up():
-                message_details = (
-                    f"{Note.ID_KEY}: {MessageId.OpenSourceHasBadChangesCallKeeperOptional.value}")
-            else:
-                message_details = (
-                    f"{Note.ID_KEY}: {MessageId.OpenSourceNeedApproval.value}")
+            message_details = (
+                f"{Note.ID_KEY}: {MessageId.JobStatusCheckNeedsApproval.value}")
             assert message_details in comments[0], f"First comment is: {comments[0]}"
             assert f"Update assignee list" in comments[1], f"Last comment is: {comments[1]}"
 
             mr_manager._mr.load_discussions()  # Update notes in the MergeRequest object.
 
     @pytest.mark.parametrize("mr_state", [
-        # Merge allowed if everything is good and merge request approved by an eligible user.
+        # Merging is allowed if everything is good and the Merge Request is approved by an eligible
+        # user.
         {
             "blocking_discussions_resolved": True,
             "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
@@ -334,8 +366,8 @@ class TestOpenSourceRule:
                 [("open-source:check", "success"), ("new-open-source-files:check", "success")],
             )],
         },
-        # Merge allowed even if there are bad files, but merge request approved by an eligible
-        # user.
+        # Merging is allowed even if there are bad files, but the Merge request is approved by an
+        # eligible user.
         {
             "blocking_discussions_resolved": True,
             "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
@@ -347,11 +379,11 @@ class TestOpenSourceRule:
             )],
         },
     ])
-    def test_merge_allowed(self, open_source_rule, mr, mr_manager):
-        assert open_source_rule.execute(mr_manager)
+    def test_merge_allowed(self, job_status_rule, mr, mr_manager):
+        assert job_status_rule.execute(mr_manager)
 
-    # Don't add comments for the errors already found after new commits are added to the merge
-    # request.
+    # Don't add comments for the errors already found after new commits are added to the Merge
+    # Request.
     @pytest.mark.parametrize("mr_state", [
         {
             "commits_list": [BAD_OPENSOURCE_COMMIT],
@@ -362,9 +394,9 @@ class TestOpenSourceRule:
             )],
         },
     ])
-    def test_update_comments_for_found_errors(self, open_source_rule, mr, mr_manager):
+    def test_update_comments_for_found_errors(self, job_status_rule, mr, mr_manager):
         def add_commit_and_execute_rule(sha, files, has_errors, has_new_files):
-            # Add new commit.
+            # Add a new commit.
             commit_data = BAD_OPENSOURCE_COMMIT.copy()
             commit_data["sha"] = sha
             commit_data["files"] = files
@@ -380,16 +412,16 @@ class TestOpenSourceRule:
 
             # Reload discussions and execute the rule for the new Merge Request state.
             mr_manager._mr.load_discussions()
-            open_source_rule.execute(mr_manager)
+            job_status_rule.execute(mr_manager)
 
         expected_comments_number = 0
 
-        open_source_rule.execute(mr_manager)
+        job_status_rule.execute(mr_manager)
         comments = mr.mock_comments()
         assert len(comments) == expected_comments_number, f"Got comments: {comments}"
 
-        # Add commit to the Merge Request with a "good" file - now we have new files in the MR, so
-        # it must be checked manually.
+        # Add a commit to the Merge Request with a "good" file - now we have new files in the MR,
+        # so it must be checked manually.
         expected_comments_number += 2
 
         add_commit_and_execute_rule(
@@ -405,7 +437,7 @@ class TestOpenSourceRule:
         assert f":{AwardEmojiManager.NOTIFICATION_EMOJI}:" in comments[-1], (
                 f"Unexpected comment: {comments[-1]}")
 
-        # Add the commit to the MR with the same "bad" file - no comments should be added.
+        # Add a commit to the MR with the same "bad" file - no comments should be added.
         add_commit_and_execute_rule(
             sha=FILE_COMMITS_SHA["new_bad_dontreadme"],
             files={"open/dontreadme.md": {"is_new": True, "raw_data": BAD_README_RAW_DATA_2}},
@@ -415,7 +447,7 @@ class TestOpenSourceRule:
         comments = mr.mock_comments()
         assert len(comments) == expected_comments_number, f"Got comments: {comments}"
 
-        # Add the commit to the Merge Request with the same file, but without bad words - no new
+        # Add a commit to the Merge Request with the same file, but without bad words - no new
         # commits should be added.
         add_commit_and_execute_rule(
             sha=FILE_COMMITS_SHA["good_dontreadme"],
@@ -428,7 +460,7 @@ class TestOpenSourceRule:
         assert f":{AwardEmojiManager.NEED_MANUAL_CHECK_EMOJI}:" in comments[-2], (
                 f"Unexpected comment: {comments[-2]}")
 
-        # Add the commit to the Merge Request removing the new file - no new commits should be
+        # Add a commit to the Merge Request removing the new file - no new commits should be
         # added.
         add_commit_and_execute_rule(
             sha=FILE_COMMITS_SHA["opensource_deleted_new_file"],
@@ -441,7 +473,7 @@ class TestOpenSourceRule:
         assert f":{AwardEmojiManager.NEED_MANUAL_CHECK_EMOJI}:" in comments[-2], (
                 f"Unexpected comment: {comments[-2]}")
 
-    # Re-check files if the merge request target branch changed.
+    # Re-check the files if the Merge Request target branch has changed.
     @pytest.mark.parametrize("mr_state", [
         {
             "commits_list": [BAD_OPENSOURCE_COMMIT],
@@ -452,14 +484,14 @@ class TestOpenSourceRule:
             )],
         },
     ])
-    def test_re_check_after_mr_target_branch_changed(self, open_source_rule, mr, mr_manager):
+    def test_re_check_after_mr_target_branch_changed(self, job_status_rule, mr, mr_manager):
         initial_approvers_count = mr_manager._mr.get_approvers_count()
-        assert open_source_rule.execute(mr_manager)
+        assert job_status_rule.execute(mr_manager)
         assert mr.blocking_discussions_resolved
         assert mr_manager._mr.get_approvers_count() == initial_approvers_count
 
-        # Fix files in commit leaving the same sha. We emulate different changes when the user sets
-        # the new target branch to the Merge Request.
+        # Fix files in the commit, keeping the same sha. We emulate different changes when the user
+        # sets a new target branch to the Merge Request.
         updated_bad_open_source_commit = DEFAULT_COMMIT.copy()
         updated_bad_open_source_commit["sha"] = BAD_OPENSOURCE_COMMIT["sha"]
         mr.commits_list = [updated_bad_open_source_commit]
@@ -470,5 +502,5 @@ class TestOpenSourceRule:
         mr_manager._get_last_pipeline_by_status.cache_clear()
         mr.target_branch = "changed_branch"
 
-        assert not open_source_rule.execute(mr_manager)
+        assert not job_status_rule.execute(mr_manager)
         assert mr_manager._mr.get_approvers_count() == initial_approvers_count + 1

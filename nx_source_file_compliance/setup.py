@@ -7,7 +7,7 @@ with open(f"{Path(__file__).parent}/_version.py") as fp:
 
 setuptools.setup(
     name="nx-source-file-compliance",
-    python_requires='>=3.8',
+    python_requires='>=3.9',
     package_dir={"source_file_compliance": "."},
     packages=["source_file_compliance"],
     include_package_data=True,

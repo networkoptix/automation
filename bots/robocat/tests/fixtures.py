@@ -8,14 +8,15 @@ from automation_tools.tests.mocks.project import ProjectMock
 from automation_tools.tests.mocks.merge_request import MergeRequestMock
 from automation_tools.tests.mocks.pipeline import PipelineMock
 from automation_tools.tests.gitlab_constants import (
-    DEFAULT_APPROVE_RULES_LIST,
+    DEFAULT_APPROVE_RULESET,
+    DEFAULT_APIDOC_APPROVE_RULESET,
     DEFAULT_SUBMODULE_DIRS)
 from automation_tools.tests.jira_constants import DEFAULT_PROJECT_KEYS_TO_CHECK
 from robocat.app import Bot
 from robocat.rule.commit_message_check_rule import CommitMessageCheckRule
 from robocat.rule.essential_rule import EssentialRule
 from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
-from robocat.rule.open_source_check_rule import OpenSourceCheckRule
+from robocat.rule.job_status_check_rule import JobStatusCheckRule
 from robocat.rule.process_related_projects_issues import ProcessRelatedProjectIssuesRule
 from robocat.rule.follow_up_rule import FollowUpRule
 from robocat.rule.workflow_check_rule import WorkflowCheckRule
@@ -76,14 +77,17 @@ def nx_submodule_check_rule(project, repo_accessor):
 
 
 @pytest.fixture
-def open_source_rule(project, repo_accessor):
+def job_status_rule(project, repo_accessor):
     project_manager = ProjectManager(project, BOT_USERNAME, repo=repo_accessor)
-    return OpenSourceCheckRule(project_manager, approve_rules=DEFAULT_APPROVE_RULES_LIST)
+    return JobStatusCheckRule(
+        project_manager,
+        open_source_approve_ruleset=DEFAULT_APPROVE_RULESET,
+        apidoc_changes_approve_ruleset=DEFAULT_APIDOC_APPROVE_RULESET)
 
 
 @pytest.fixture
 def commit_message_rule():
-    return CommitMessageCheckRule(approve_rules=DEFAULT_APPROVE_RULES_LIST)
+    return CommitMessageCheckRule(approve_ruleset=DEFAULT_APPROVE_RULESET)
 
 
 @pytest.fixture
@@ -119,7 +123,7 @@ def bot(
         commit_message_rule,
         essential_rule,
         nx_submodule_check_rule,
-        open_source_rule,
+        job_status_rule,
         follow_up_rule,
         workflow_rule,
         process_related_projects_issues_rule,
@@ -131,7 +135,7 @@ def bot(
         bot._rule_commit_message = commit_message_rule
         bot._rule_essential = essential_rule
         bot._rule_nx_submodules_check = nx_submodule_check_rule
-        bot._rule_open_source_check = open_source_rule
+        bot._rule_job_status_check = job_status_rule
         bot._rule_follow_up = follow_up_rule
         bot._rule_workflow_check = workflow_rule
         bot._rule_process_related_projects_issues = process_related_projects_issues_rule

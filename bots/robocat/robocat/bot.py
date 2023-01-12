@@ -20,7 +20,7 @@ from robocat.pipeline import PlayPipelineError, Pipeline, PipelineStatus
 from robocat.rule.commit_message_check_rule import CommitMessageCheckRule
 from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
 from robocat.rule.essential_rule import EssentialRule
-from robocat.rule.open_source_check_rule import OpenSourceCheckRule
+from robocat.rule.job_status_check_rule import JobStatusCheckRule
 from robocat.rule.follow_up_rule import FollowUpRule
 from robocat.rule.workflow_check_rule import WorkflowCheckRule
 from robocat.rule.process_related_projects_issues import ProcessRelatedProjectIssuesRule
@@ -72,12 +72,18 @@ class Bot(threading.Thread):
         self._rule_nx_submodules_check = NxSubmoduleCheckRule(
             self._project_manager,
             **config["nx_submodule_check_rule"])
-        # For now, use the same approval rules for OpenSourceCheckRule and CommitMessageCheckRule.
+        # For now, use the same approval rules for JobStatusCheckRule and CommitMessageCheckRule.
+        job_status_check_configuration = config["job_status_check_rule"]["open_source"]
         self._rule_commit_message = CommitMessageCheckRule(
-            approve_rules=config["open_source_check_rule"]["approve_rules"])
+            job_status_check_configuration["approve_ruleset"])
         self._rule_essential = EssentialRule(project_keys=config["jira"].get("project_keys"))
-        self._rule_open_source_check = OpenSourceCheckRule(
-            project_manager=self._project_manager, **config["open_source_check_rule"])
+
+        apidoc_check_configuration = config["job_status_check_rule"]["apidoc"]
+        self._rule_job_status_check = JobStatusCheckRule(
+            project_manager=self._project_manager,
+            open_source_approve_ruleset=job_status_check_configuration["approve_ruleset"],
+            apidoc_changes_approve_ruleset=apidoc_check_configuration["approve_ruleset"])
+
         self._rule_workflow_check = WorkflowCheckRule(jira=self._jira)
         self._rule_follow_up = FollowUpRule(project_manager=self._project_manager, jira=self._jira)
         self._rule_process_related_projects_issues = ProcessRelatedProjectIssuesRule(
@@ -96,13 +102,13 @@ class Bot(threading.Thread):
         commit_message_check_result = self._rule_commit_message.execute(mr_manager)
         logger.debug(f"{mr_manager}: {commit_message_check_result}")
 
-        open_source_check_result = self._rule_open_source_check.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {open_source_check_result}")
+        job_status_check_result = self._rule_job_status_check.execute(mr_manager)
+        logger.debug(f"{mr_manager}: {job_status_check_result}")
 
         if (not nx_submodule_check_result or
                 not essential_rule_check_result or
                 not commit_message_check_result or
-                not open_source_check_result):
+                not job_status_check_result):
             return
 
         workflow_check_result = self._rule_workflow_check.execute(mr_manager)

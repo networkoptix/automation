@@ -12,7 +12,9 @@ class MessageId(Enum):
         return name
 
     InitialMessage = auto()
-    OpenSourceNeedApproval = auto()
+
+    JobStatusCheckNeedsApproval = auto()
+    JobStatusChecksPassed = auto()
 
     InconsistentNxSubmoduleChange = auto()
     NxSubmoduleConfigDeleted = auto()

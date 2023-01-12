@@ -56,29 +56,44 @@ robocatConfig: |
     url: {{ .Values.repositoryUrl }}
 
   # Configuration for checking open-source part of the project.
-  open_source_check_rule:
-    approve_rules:
-      # The order of patterns is important: to find the set of the most appropriate approvers,
-      # these patterns are checked in the order listed here, so the most specific patterns must go
-      # first, followed by the least specific ones.
-      -
-        patterns:
-          - open_candidate/vms/client/.+
-          - open_candidate/cloud/.+
-          - open/vms/client/.+
-          - open/cloud/.+
-        approvers:
-          - sivanov
-          - mshevchenko
-          - ikulaychuk
-      -
-        patterns:
-          - open/.+
-          - open_candidate/.+
-        approvers:
-          - ptolstov
-          - mshevchenko
-          - ikulaychuk
+  job_status_check_rule:
+    open_source:
+        approve_ruleset:
+            relevance_checker: is_file_open_sourced
+            rules:
+            # The order of patterns is important: to find the set of the most appropriate
+            # approvers, these patterns are checked in the order listed here, so the most specific
+            # patterns must go first, followed by the least specific ones.
+            -
+                patterns:
+                - open_candidate/vms/client/.+
+                - open_candidate/cloud/.+
+                - open/vms/client/.+
+                - open/cloud/.+
+                approvers:
+                - sivanov
+                - mshevchenko
+                - ikulaychuk
+            -
+                patterns:
+                - open/.+
+                - open_candidate/.+
+                approvers:
+                - ptolstov
+                - mshevchenko
+                - ikulaychuk
+        apidoc:
+            approve_ruleset:
+                relevance_checker: does_file_diff_contain_apidoc_changes
+                rules:
+                -
+                    patterns:
+                    - open/vms/.+
+                    - open_canidate/vms/.+
+                    - vms/.+
+                    approvers:
+                    - muskov
+                    - ekarpov
 
   # Configuration for processing Issues from related Projects.
   process_related_merge_requests_rule:
