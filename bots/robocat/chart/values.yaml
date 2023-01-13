@@ -82,18 +82,18 @@ robocatConfig: |
                 - ptolstov
                 - mshevchenko
                 - ikulaychuk
-        apidoc:
-            approve_ruleset:
-                relevance_checker: does_file_diff_contain_apidoc_changes
-                rules:
-                -
-                    patterns:
-                    - open/vms/.+
-                    - open_canidate/vms/.+
-                    - vms/.+
-                    approvers:
-                    - muskov
-                    - ekarpov
+    apidoc:
+        approve_ruleset:
+            relevance_checker: does_file_diff_contain_apidoc_changes
+            rules:
+            -
+                patterns:
+                - open/vms/.+
+                - open_canidate/vms/.+
+                - vms/.+
+                approvers:
+                - muskov
+                - ekarpov
 
   # Configuration for processing Issues from related Projects.
   process_related_merge_requests_rule:
