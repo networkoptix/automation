@@ -209,7 +209,7 @@ def check_file_content(path, content) -> Collection[Union[WordError, LineError, 
             _check_no_bad_words(start_line_idx=3, license_words=False)
         else:
             _check_no_bad_words(start_line_idx=3)
-    elif ext in {'.h', '.cpp', '.c', '.mm', '.ts', '.js', '.txt', '.inc', '.go', '.qml'}:
+    elif ext in {'.h', '.cpp', '.c', '.mm', '.ts', '.js', '.mjs', '.txt', '.inc', '.go', '.qml'}:
         _check_has_mpl(line_idx=0, prefix='// ')
         _check_has_empty_line(line_idx=1)
         if ext in {'.h', '.cpp', '.inc'}:
