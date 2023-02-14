@@ -167,7 +167,9 @@ def check_file_content(path, content) -> Collection[Union[WordError, LineError, 
             errors.append(LineError(path, line_idx, line, expected))
 
     def _check_has_empty_line(line_idx):
-        line = lines[line_idx] if len(lines) > line_idx else None
+        if line_idx >= len(lines):
+            return
+        line: str = lines[line_idx]
         if line != '':
             errors.append(LineError(path, line_idx, line, ''))
 
@@ -227,10 +229,7 @@ def check_file_content(path, content) -> Collection[Union[WordError, LineError, 
     elif ext in {'.h', '.cpp', '.c', '.mm', '.ts', '.js', '.mjs', '.txt', '.inc', '.go', '.qml'}:
         _check_has_mpl(line_idx=0, prefix='// ')
         _check_has_empty_line(line_idx=1)
-        if ext in {'.h', '.cpp', '.inc'}:
-            _check_no_bad_words(start_line_idx=2)
-        else:
-            _check_no_bad_words(start_line_idx=2)
+        _check_no_bad_words(start_line_idx=2)
     elif ext in {'.sh', '.py'} or name in {'applauncher', 'prerm', 'postinst', 'client'}:
         if ext == '.py':
             _check_no_bad_words(start_line_idx=0, end_line_idx=1)
