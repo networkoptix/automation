@@ -1,7 +1,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Collection, List, NamedTuple, Union
+from typing import Collection, List, NamedTuple, Union, Optional
 
 from ._make_trademarks_re import make_trademarks_re
 from ._generic_repo_check_config import RepoCheckConfig
@@ -177,30 +177,45 @@ def check_file_content(path, content) -> Collection[Union[WordError, LineError, 
             errors.append(LineError(path, 0, lines[0], ' or '.join(allowed_shebangs)))
 
     def _check_no_bad_words(
-            start_line_idx,
-            end_line_idx=None,
-            license_words=True,
-            consider_trademark_exceptions=True):
+            start_line_idx: int,
+            end_line_idx: Optional[int] = None,
+            license_words: bool = True,
+            consider_trademark_exceptions: bool = True,
+            expected_mpl_line_idx: Optional[int] = None,
+            ):
+
+        # Skip the bad words check for the Copyright line.
+        skip_line_idx: Optional[int] = None
+        if expected_mpl_line_idx is not None:
+            if len(lines) > expected_mpl_line_idx:
+                if _mpl in lines[expected_mpl_line_idx]:
+                    skip_line_idx = expected_mpl_line_idx
+
         new_errors = _check_words(
             lines=lines,
             start_line_idx=start_line_idx,
             end_line_idx=end_line_idx,
             license_words=license_words,
             consider_trademark_exceptions=consider_trademark_exceptions,
-            path=path)
+            path=path,
+            skip_line_idx=skip_line_idx)
         errors.extend(new_errors)
 
     errors: List[Union[WordError, LineError, FileError]] = []
 
     lines = content.splitlines()
+
     name = path.name
     stem, ext = os.path.splitext(name)
     if ext == '.in':  # .in files are preprocessed with CMake, where it evaluates its variables.
         name = stem
         stem, ext = os.path.splitext(name)
-    if name in {'CMakeLists.txt', 'Doxyfile'} or ext in {'.cmake', '.yaml', '.yml'}:
+
+    if name in {'CMakeLists.txt', 'Doxyfile'} or ext == '.cmake':
         _check_has_mpl(line_idx=0, prefix='## ')
         _check_no_bad_words(start_line_idx=1)
+    elif ext in {'.json', '.yaml', '.yml'}:
+        _check_no_bad_words(start_line_idx=0, expected_mpl_line_idx=0)
     elif ext == '.md':
         _check_no_bad_words(start_line_idx=0, end_line_idx=1)
         _check_has_empty_line(line_idx=1)
@@ -248,17 +263,22 @@ def check_file_content(path, content) -> Collection[Union[WordError, LineError, 
 def _check_words(
         lines: List[str],
         start_line_idx: int,
-        end_line_idx: int = None,
+        end_line_idx: Optional[int] = None,
         license_words: bool = True,
         disclosure_words: bool = False,
         consider_trademark_exceptions: bool = True,
-        path: Path = None) -> List[WordError]:
+        path: Path = None,
+        skip_line_idx: Optional[int] = None,
+        ) -> List[WordError]:
+
     if start_line_idx >= len(lines):
         return []
     if end_line_idx is None or end_line_idx > len(lines):
         end_line_idx = len(lines)
     errors = []
     for line_idx in range(start_line_idx, end_line_idx):
+        if line_idx == skip_line_idx:
+            continue
         if license_words:
             for search_result in _find_license_words(lines[line_idx]):
                 errors.append(WordError(path, line_idx, search_result, 'license'))
