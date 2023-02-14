@@ -5,6 +5,7 @@ VMS_REPO_CONFIG = RepoCheckConfig(
     excluded_dirs={
         "open/licenses",
         "open/artifacts",
+        "open/conan_config",
         "open_candidate/artifacts",
     },
     excluded_file_paths={
