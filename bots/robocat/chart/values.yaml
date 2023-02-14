@@ -94,6 +94,7 @@ robocatConfig: |
                 approvers:
                 - muskov
                 - ekarpov
+                - mshevchenko
 
   # Configuration for processing Issues from related Projects.
   process_related_merge_requests_rule:
