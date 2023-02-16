@@ -97,7 +97,7 @@ class FollowUpCommand(BaseCommand):
     confirmation_message_id=MessageId.CommandSetDraftFollowUpMode,
     aliases=['draft_follow_up'])
 class DraftFollowUpCommand(BaseCommand):
-    '''Set the follow-up creation mode to "Draft."'''
+    '''Set the follow-up creation mode to "Draft".'''
 
     def run(
             self,
