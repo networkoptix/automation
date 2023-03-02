@@ -169,7 +169,6 @@ class ProjectManager:
                     branch=source_branch, commits=" ".join(commits[cherry_picked_commit_count:])),
                 emoji=AwardEmojiManager.CHERRY_PICK_EMOJI,
                 revision=automation_tools.bot_info.revision()))
-            mr.set_draft_flag()
 
         return mr
 

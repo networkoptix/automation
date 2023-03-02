@@ -268,8 +268,9 @@ class TestFollowUpRule:
                 f"### :{AwardEmojiManager.CHERRY_PICK_EMOJI}: Manual conflict resolution required")
         else:
             assert len(new_mr.commits()) == len(mr.commits())
-            assert not new_mr.work_in_progress, "New MR is in Draft state."
             assert len(new_comments) == 1
+
+        assert not new_mr.work_in_progress, "New MR is in Draft state."
 
         assert new_comments[0].startswith(
             f"### :{AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI}: Follow-up merge request")

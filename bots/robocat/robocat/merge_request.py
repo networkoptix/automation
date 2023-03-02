@@ -228,7 +228,7 @@ class MergeRequest:
         logger.debug(f'{self}: Creating comment. Message: {body!r}')
         self._gitlab_mr.notes.create({'body': body})
 
-    def set_draft_flag(self, state: bool = True):
+    def set_draft_flag(self):
         if self.work_in_progress:
             return
         self.create_note("/draft")
