@@ -69,9 +69,12 @@ class BranchMissingChecker(WorkflowPolicyChecker):
 class VersionMissingIssueCommitChecker(WorkflowPolicyChecker):
     """Checks if the commit with the Issue key in the commit message exists in all the branches
     specified by the "fixVersions" filed. Do not check branches marked using the label
-    "already_in_<branch_name"."""
+    "already_in_<branch_name". Skip this check if the label "done_externally" presents."""
 
     def _class_specific_check_run(self, issue: JiraIssue) -> Optional[str]:
+        if issue.has_label(config.DONE_EXTERNALLY_LABEL):
+            return None
+
         issue_key = str(issue)
         for version, branch in issue.versions_to_branches_map.items():
             if issue.has_label(issue.already_in_version_label(version)):
@@ -84,10 +87,12 @@ class VersionMissingIssueCommitChecker(WorkflowPolicyChecker):
 
 class MasterMissingIssueCommitChecker(WorkflowPolicyChecker):
     """Checks if the commit with the Issue key in its commit message exists in the "master" branch.
-    Not applicable to the Issues marked using the label "version_specific"."""
+    Not applicable to the Issues marked using the label "version_specific" or "done_externally"."""
 
     def _class_specific_check_run(self, issue: JiraIssue) -> Optional[str]:
-        if issue.has_label(config.VERSION_SPECIFIC_LABEL):
+        is_version_specific = issue.has_label(config.VERSION_SPECIFIC_LABEL)
+        is_done_externally = issue.has_label(config.DONE_EXTERNALLY_LABEL)
+        if is_version_specific or is_done_externally:
             return None
 
         issue_key = str(issue)
@@ -105,15 +110,10 @@ class IssueTypeChecker(WorkflowPolicyChecker):
 
 
 class IssueIsFixedChecker(WorkflowPolicyChecker):
-    """Checks if the Resolution of the Issue is supported. Is not applicable to the Issues that are
-    not in QA state or marked with the label "done_externally"."""
+    """Checks if the Resolution of the Issue is supported."""
 
     def _class_specific_check_run(self, issue: JiraIssue) -> Optional[str]:
         if issue.resolution in ["Fixed", "Done"]:
-            return None
-
-        is_issue_done_externally = issue.has_label(config.DONE_EXTERNALLY_LABEL)
-        if issue.status == JIRA_STATUS_QA and not is_issue_done_externally:
             return None
 
         return f"issue resolution [{issue.resolution}], issue status [{issue.status}]"

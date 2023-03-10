@@ -56,11 +56,13 @@ class TestPoliceBot:
             "branches": ["vms_5.1", "vms_4.2", "vms_4.2_patch", "master"],
             "state": "Waiting for QA",
             "typ": "Task",
+            "resolution": "Fixed",
         }, {
             "key": "VMS-2",
             "branches": ["vms_5.1", "vms_4.2", "vms_4.2_patch", "master"],
             "state": "Waiting for QA",
             "typ": "Bug",
+            "resolution": "Fixed",
         }],
     ])
     def test_issue_reopened(self, jira, jira_issues, bot):
