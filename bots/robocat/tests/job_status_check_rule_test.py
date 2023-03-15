@@ -14,8 +14,11 @@ from automation_tools.tests.gitlab_constants import (
     OPEN_SOURCE_APPROVER_COMMON_2,
     OPEN_SOURCE_APPROVER_CLIENT,
     APIDOC_APPROVER,
+    UNIVERSAL_APPROVER,
     DEFAULT_REQUIRED_APPROVALS_COUNT,
-    APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT,
+    APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_1,
+    APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_2,
+    APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_3,
     APIDOC_INFO_CHANGED_COMMIT)
 from automation_tools.tests.mocks.file import (
     GOOD_README_RAW_DATA, BAD_README_RAW_DATA_2, GOOD_CPP_RAW_DATA)
@@ -173,11 +176,27 @@ class TestJobStatusCheckRule:
                 f"Authorized approver(s) not assigned: {assignees}")
 
     @pytest.mark.parametrize("mr_state", [
+        # The MR author is not a keeper.
         {
-            "commits_list": [APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT],
+            "commits_list": [APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_1],
             "assignees": [{"username": "user1"}],
             "pipelines_list": [(
-                APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT["sha"],
+                APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_1["sha"],
+                "success",
+                [
+                    ("apidoc:check", "failed"),
+                    ("open-source:check", "success"),
+                    ("new-open-source-files:check", "failed"),
+                ],
+            )],
+        },
+        # The MR author is an open-source keeper.
+        {
+            "commits_list": [APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_2],
+            "assignees": [{"username": "user1"}],
+            "author": {"username": OPEN_SOURCE_APPROVER_COMMON},
+            "pipelines_list": [(
+                APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_2["sha"],
                 "success",
                 [
                     ("apidoc:check", "failed"),
@@ -188,17 +207,56 @@ class TestJobStatusCheckRule:
         },
     ])
     def test_set_all_approvers(self, job_status_rule, mr, mr_manager):
-        expected_assignees = {
-            "user1",
-            OPEN_SOURCE_APPROVER_COMMON,
-            OPEN_SOURCE_APPROVER_COMMON_2,
-            APIDOC_APPROVER,
-        }
+        opensource_keepers = {OPEN_SOURCE_APPROVER_COMMON, OPEN_SOURCE_APPROVER_COMMON_2}
+        apidoc_keepers = {APIDOC_APPROVER}
+        expected_assignees = {"user1"}
+        if mr.author["username"] not in apidoc_keepers:
+            # The MR author is not an apidoc keeper - apidoc keepers must be assigned.
+            expected_assignees.update({APIDOC_APPROVER})
+        if mr.author["username"] not in opensource_keepers:
+            # The MR author is not an open-source keeper - open-source keepers must be assigned.
+            expected_assignees.update({OPEN_SOURCE_APPROVER_COMMON, OPEN_SOURCE_APPROVER_COMMON_2})
+
         for _ in range(2):  # The state must not change after any number of rule executions.
             assert not job_status_rule.execute(mr_manager)
 
             assignees = {a["username"] for a in mr.assignees}
             assert expected_assignees == assignees, (
+                f"Authorized approver(s) not assigned: {assignees}")
+
+    @pytest.mark.parametrize(
+        ("mr_state", "open_source_approve_ruleset", "apidoc_approve_ruleset"),
+        [({
+            "commits_list": [APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_3],
+            "assignees": [{"username": "user1"}],
+            "author": {"username": OPEN_SOURCE_APPROVER_COMMON},
+            "pipelines_list": [(
+                APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_3["sha"],
+                "success",
+                [
+                    ("apidoc:check", "failed"),
+                    ("open-source:check", "success"),
+                    ("new-open-source-files:check", "failed"),
+                ],
+            )],
+        }, {
+            "relevance_checker": "is_file_open_sourced",
+            "rules": [{
+                "patterns": ["open_candidate/.+"],
+                "approvers": [OPEN_SOURCE_APPROVER_COMMON, UNIVERSAL_APPROVER],
+            }],
+        }, {
+            "relevance_checker": "does_file_diff_contain_apidoc_changes",
+            "rules": [{"patterns": [".+"], "approvers": [APIDOC_APPROVER, UNIVERSAL_APPROVER]}],
+        })])
+    def test_set_universal_approver(self, job_status_rule, mr, mr_manager):
+        expected_approvers_1 = {OPEN_SOURCE_APPROVER_COMMON, UNIVERSAL_APPROVER, "user1"}
+        expected_approvers_2 = {APIDOC_APPROVER, UNIVERSAL_APPROVER, "user1"}
+        for _ in range(2):  # The state must not change after any number of rule executions.
+            assert not job_status_rule.execute(mr_manager)
+
+            assignees = {a["username"] for a in mr.assignees}
+            assert expected_approvers_1 == assignees or expected_approvers_2 == assignees, (
                 f"Authorized approver(s) not assigned: {assignees}")
 
     @pytest.mark.parametrize("mr_state", [

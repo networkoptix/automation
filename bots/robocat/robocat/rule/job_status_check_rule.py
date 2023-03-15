@@ -156,16 +156,15 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
         }
 
     def _enforce_manual_check(self, mr_manager: MergeRequestManager, errors: ErrorCheckResult):
-        preferred_approvers = set()
         for issue_type in self.ISSUES_REQUIRING_MANUAL_CHECK:
             if errors.has_error_of_type(issue_type):
-                preferred_approvers.update(approve_rule_helpers.get_keepers(
+                preferred_approvers = approve_rule_helpers.get_keepers(
                     approve_rules=self._approve_rules[issue_type],
                     mr_manager=mr_manager,
-                    for_changed_files=True))
+                    for_changed_files=True)
 
-        if mr_manager.ensure_authorized_approvers(preferred_approvers):
-            logger.debug(f"{mr_manager}: Preferred approvers assigned to MR.")
+                if mr_manager.ensure_authorized_approvers(preferred_approvers):
+                    logger.debug(f"{mr_manager}: Keepers assigned to MR (reason: {issue_type}).")
 
     def _satisfies_approval_requirements(self, mr_manager, errors: ErrorCheckResult) -> bool:
         result = True

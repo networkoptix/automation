@@ -32,6 +32,16 @@ def mr_state():
 
 
 @pytest.fixture
+def open_source_approve_ruleset():
+    return DEFAULT_APPROVE_RULESET
+
+
+@pytest.fixture
+def apidoc_approve_ruleset():
+    return DEFAULT_APIDOC_APPROVE_RULESET
+
+
+@pytest.fixture
 def project(mr_state, monkeypatch):
     project = ProjectMock()
     # create merge request mock object bonded to "project".
@@ -77,12 +87,12 @@ def nx_submodule_check_rule(project, repo_accessor):
 
 
 @pytest.fixture
-def job_status_rule(project, repo_accessor):
+def job_status_rule(project, repo_accessor, open_source_approve_ruleset, apidoc_approve_ruleset):
     project_manager = ProjectManager(project, BOT_USERNAME, repo=repo_accessor)
     return JobStatusCheckRule(
         project_manager,
-        open_source_approve_ruleset=DEFAULT_APPROVE_RULESET,
-        apidoc_changes_approve_ruleset=DEFAULT_APIDOC_APPROVE_RULESET)
+        open_source_approve_ruleset=open_source_approve_ruleset,
+        apidoc_changes_approve_ruleset=apidoc_approve_ruleset)
 
 
 @pytest.fixture

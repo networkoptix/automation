@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from automation_tools.tests.mocks.file import (
     GOOD_README_RAW_DATA, BAD_README_RAW_DATA, BAD_CMAKELISTS_RAW_DATA)
 from automation_tools.tests.mocks.git_mocks import BOT_EMAIL, BOT_NAME, BOT_USERNAME
@@ -35,7 +37,9 @@ FILE_COMMITS_SHA = {
     "opensource_bad_new_file": "110",
     "opensource_deleted_new_file": "111",
     "apidoc_changes_commit": "112",
-    "apidoc_changes_and_new_open_source_files_commit": "113",
+    "apidoc_changes_and_new_open_source_files_commit_1": "113",
+    "apidoc_changes_and_new_open_source_files_commit_2": "114",
+    "apidoc_changes_and_new_open_source_files_commit_3": "115",
 }
 CONFLICTING_COMMIT_SHA = "1001"
 BAD_OPENSOURCE_COMMIT = {
@@ -82,8 +86,8 @@ APIDOC_INFO_CHANGED_COMMIT = {
         },
     },
 }
-APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT = {
-    "sha": FILE_COMMITS_SHA["apidoc_changes_and_new_open_source_files_commit"],
+APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_1 = {
+    "sha": FILE_COMMITS_SHA["apidoc_changes_and_new_open_source_files_commit_1"],
     "message": f"{DEFAULT_JIRA_ISSUE_KEY}: some title\nsome msg",
     "diffs": [{"diff": "@@ -4,1 +4,1 @@\n- Old string\n+ New string"}],
     "files": {
@@ -96,10 +100,20 @@ APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT = {
         },
     },
 }
+APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_2 = deepcopy(
+    APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_1)
+APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_2["sha"] = FILE_COMMITS_SHA[
+    "apidoc_changes_and_new_open_source_files_commit_2"]
+APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_3 = deepcopy(
+    APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_1)
+APIDOC_CHANGES_AND_NEW_OPEN_SOURCE_FILES_COMMIT_3["sha"] = FILE_COMMITS_SHA[
+    "apidoc_changes_and_new_open_source_files_commit_3"]
+
 OPEN_SOURCE_APPROVER_COMMON = "approver1"
 OPEN_SOURCE_APPROVER_CLIENT = "approver2"
 OPEN_SOURCE_APPROVER_COMMON_2 = "approver3"
 APIDOC_APPROVER = "apidoc_approver1"
+UNIVERSAL_APPROVER = "universal_approver"
 DEFAULT_APPROVE_RULESET = {
     "relevance_checker": "is_file_open_sourced",
     "rules": [
@@ -124,6 +138,7 @@ USERS = [
     {"username": "approver2", "name": "Approver 2", "id": 11, "email": "approver2@foo.bar"},
     {"username": "approver3", "name": "Approver 3", "id": 13, "email": "approver3@foo.bar"},
     {"username": "apidoc_approver1", "name": "Approver 4", "id": 14, "email": "approver4@foo.bar"},
+    {"username": "universal_approver", "name": "Approver 5", "id": 15, "email": "app5@foo.bar"},
     {"username": BOT_USERNAME, "name": BOT_NAME, "id": BOT_USERID, "email": BOT_EMAIL}
 ]
 MERGED_TO_MASTER_MERGE_REQUESTS = {
