@@ -77,9 +77,11 @@ class FollowUpCommand(BaseCommand):
             jira: JiraAccessor):
         super().run(mr_manager)
         if mr_manager.data.is_merged:
-            follow_up_rule = FollowUpRule(project_manager=project_manager, jira=jira)
-            follow_up_result = follow_up_rule.execute(mr_manager)
-            logger.debug(f"{mr_manager}: {follow_up_result}")
+            robocat.merge_request_actions.follow_up_actions.create_follow_up_merge_requests(
+                jira=jira,
+                project_manager=project_manager,
+                mr_manager=mr_manager,
+                set_draft_flag=False)
         else:
             mr_manager.add_comment_with_message_id(
                 MessageId.CommandNotExecuted,
@@ -111,9 +113,9 @@ class DraftFollowUpCommand(BaseCommand):
             return
 
         # If the Merge Request is already merged, create the follow-up Merge Requests.
+        mr_manager.add_comment_with_message_id(MessageId.CommandFollowUp)
         robocat.merge_request_actions.follow_up_actions.create_follow_up_merge_requests(
             jira=jira,
             project_manager=project_manager,
             mr_manager=mr_manager,
             set_draft_flag=True)
-        mr_manager.add_comment_with_message_id(MessageId.CommandFollowUp)

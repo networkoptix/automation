@@ -45,6 +45,7 @@ class AwardEmojiManager():
         MessageId.FailedCheckForUnresolvedThreads: CHECK_FAIL_EXPLANATION_EMOJI,
         MessageId.FailedCheckForNoSupportedProject: CHECK_FAIL_EXPLANATION_EMOJI,
         MessageId.InitialMessage: INITIAL_EMOJI,
+        MessageId.FollowUpNotNeeded: NOTIFICATION_EMOJI,
     }
 
     def __init__(self, gitlab_award_emoji_manager, current_user):

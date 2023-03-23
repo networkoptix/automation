@@ -33,6 +33,7 @@ class MessageId(Enum):
     WorkflowOk = auto()
     WorkflowParenthesesNotAllowed = auto()
 
+    FollowUpNotNeeded = auto()
     FollowUpIssueNotMovedToQA = auto()
 
     BadCommitMessage = auto()

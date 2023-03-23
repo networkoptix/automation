@@ -62,6 +62,7 @@ class FollowUpRule(BaseRule):
                 logger.info(
                     f"{mr_manager}: The Merge Request is a follow-up. Trying to move to "
                     "QA/close Jira issues.")
+                mr_manager.add_comment_with_message_id(MessageId.FollowUpNotNeeded)
                 self._try_close_jira_issues(
                     mr_manager=mr_manager,
                     target_branch=mr_data.target_branch,

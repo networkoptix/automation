@@ -131,6 +131,7 @@ bot_readable_comment_title = {
     MessageId.FailedCheckForUnresolvedThreads: "Unresolved threads",
     MessageId.FailedCheckForNoSupportedProject: "No supported project found",
     MessageId.InitialMessage: "Looking after this MR",
+    MessageId.FollowUpNotNeeded: "Follow-up has not been created",
 }
 bot_readable_comment = {
     MessageId.CommandProcess: "Re-checking Merge Request",
@@ -182,4 +183,8 @@ where "command" is one of:
 - {command_list}
 
 """,
+    MessageId.FollowUpNotNeeded: """
+This Merge Request seems to be a follow-up, so no follow-ups will be created for it. If for some
+reason the follow-up(s) must be created, use the `@follow-up` user command.
+"""
 }

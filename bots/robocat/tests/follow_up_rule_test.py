@@ -5,6 +5,7 @@ from automation_tools.tests.fixtures import jira, repo_accessor
 from automation_tools.tests.mocks.git_mocks import RemoteMock
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.bot import GitlabEventData, GitlabEventType
+from robocat.note import MessageId
 from automation_tools.tests.gitlab_constants import (
     DEFAULT_COMMIT,
     DEFAULT_NXLIB_COMMIT,
@@ -48,8 +49,7 @@ class TestFollowUpRule:
         repo_accessor.repo.remotes[project_remote].mock_attach_gitlab_project(project)
 
         # Start tests.
-
-        for _ in range(2):
+        for repetition in range(2):
             assert follow_up_rule.execute(mr_manager) in (
                 follow_up_rule.ExecutionResult.rule_execution_successful,
                 follow_up_rule.ExecutionResult.not_eligible)
@@ -58,8 +58,14 @@ class TestFollowUpRule:
             assert len(issue.fields.comment.comments) == 0, (
                 f"Got Jira issue comments: {issue.fields.comment.comments}")
 
-            assert len(mr.mock_comments()) == 0, (
-                f"Got merge request comments: {mr.mock_comments()}")
+            if mr_manager.data.is_merged:
+                assert len(mr.mock_comments()) == repetition + 1, (
+                    f"Got merge request comments: {mr.mock_comments()}")
+                assert MessageId.FollowUpNotNeeded.value in mr.mock_comments()[-1], (
+                    f"Last comment is: {mr.mock_comments()[-1]}")
+            else:
+                assert len(mr.mock_comments()) == 0, (
+                    f"Got merge request comments: {mr.mock_comments()}")
 
             emojis = mr.awardemojis.list()
             assert not any(
@@ -356,7 +362,9 @@ class TestFollowUpRule:
         issue_state_before = issue.fields.status.name
 
         assert follow_up_rule.execute(mr_manager)
-        assert len(mr.mock_comments()) == 0
+        assert len(mr.mock_comments()) == 1
+        assert MessageId.FollowUpNotNeeded.value in mr.mock_comments()[-1], (
+            f"Last comment is: {mr.mock_comments()[-1]}")
         assert len(project.mergerequests.list()) == mr_count_before
 
         issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
@@ -390,7 +398,9 @@ class TestFollowUpRule:
         issue_state_before = issue.fields.status.name
 
         assert not follow_up_rule.execute(mr_manager)
-        assert len(mr.mock_comments()) == 0
+        assert len(mr.mock_comments()) == 1
+        assert MessageId.FollowUpNotNeeded.value in mr.mock_comments()[-1], (
+            f"Last comment is: {mr.mock_comments()[-1]}")
         assert len(project.mergerequests.list()) == mr_count_before
 
         issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
@@ -442,9 +452,11 @@ class TestFollowUpRule:
         assert follow_up_rule.execute(mr_manager)
         assert len(project.mergerequests.list()) == mr_count_before
         comments = mr.mock_comments()
-        assert len(comments) == 1
-        assert comments[0].startswith(f"### :{AwardEmojiManager.ISSUE_NOT_MOVED_TO_QA_EMOJI}:"), (
-            f"Commenti s: {comments[0]}.")
+        assert len(comments) == 2
+        assert MessageId.FollowUpNotNeeded.value in comments[0], (
+            f"First comment is: {comments[0]}")
+        assert comments[-1].startswith(f"### :{AwardEmojiManager.ISSUE_NOT_MOVED_TO_QA_EMOJI}:"), (
+            f"Last comment is: {comments[-1]}.")
 
         issue = jira._jira.issue(jira_issues[0]["key"])
         assert issue.fields.status.name == issue_state_before
@@ -506,7 +518,9 @@ class TestFollowUpRule:
 
         assert follow_up_rule.execute(mr_manager)
         assert len(project.mergerequests.list()) == mr_count_before
-        assert len(mr.mock_comments()) == 0
+        assert len(mr.mock_comments()) == 1
+        assert MessageId.FollowUpNotNeeded.value in mr.mock_comments()[0], (
+            f"First comment is: {mr.mock_comments()[0]}")
 
         issue = jira._jira.issue(jira_issues[0]["key"])
         assert issue.fields.status.name == issue_state_before
@@ -736,7 +750,12 @@ class TestFollowUpRule:
         mr_count_before = len(project.mergerequests.list())
 
         assert follow_up_rule.execute(mr_manager)
-        assert len(mr.mock_comments()) == 0
+        if mr_manager.is_follow_up():
+            assert len(mr.mock_comments()) == 1
+            assert MessageId.FollowUpNotNeeded.value in mr.mock_comments()[0], (
+                f"First comment is: {mr.mock_comments()[0]}")
+        else:
+            assert len(mr.mock_comments()) == 0
         assert len(project.mergerequests.list()) == mr_count_before
 
         issue = jira._jira.issue(jira_issues[0]["key"])
