@@ -72,7 +72,8 @@ process_related_merge_requests_rule:
 # Configuration for checking changes in Nx Submodules.
 nx_submodule_check_rule:
     nx_submodule_dirs:
-        - conan_profiles
-        - build_utils/nx_submodule
-        - open_candidate/artifacts/analytics_icons
-        - open_candidate/conan_profiles
+    - build_utils/nx_submodule
+    - conan_profiles
+    - open/artifacts/analytics_icons
+    - open/build_utils/ninja
+    - open/conan_profiles
