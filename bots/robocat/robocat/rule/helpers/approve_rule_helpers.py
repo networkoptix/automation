@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 import logging
+from pathlib import Path
 import re
 from typing import Dict, Generator, List, Set, TypedDict
 
@@ -97,7 +98,7 @@ def _get_keepers_for_files(
 
 def is_file_open_sourced(item: Dict[str, str]) -> bool:
     return source_file_compliance.is_check_needed(
-        path=item["new_path"],
+        path=Path(item["new_path"]),
         repo_config=source_file_compliance.repo_configurations["vms"])
 
 

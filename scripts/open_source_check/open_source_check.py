@@ -32,23 +32,20 @@ def check_file_list(
         if entry.is_dir():
             continue
 
-        relative_path = entry.relative_to(repo_directory)
-        is_check_needed = source_file_compliance.is_check_needed(
-            path=str(relative_path),
-            repo_config=repo_configuration)
-        if is_check_needed:
-            logging.debug(f"Checking {entry}...")
-            with open(entry, encoding="latin1") as f:
-                check_path = relative_path if display_relative_paths else entry
-                errors = source_file_compliance.check_file_content(
-                    path=check_path, content=f.read())
-                if not errors:
-                    continue
-                no_errors_found = False
-                errors_as_string = "\n".join(repr(e) for e in errors)
-                logging.info(f"Problems found while checking {entry}:\n{errors_as_string}")
-        else:
+        logging.debug(f"Checking {entry}...")
+        errors = source_file_compliance.check_file_if_needed(
+            path=entry, repo_config=repo_configuration, repo_root=repo_directory)
+        if errors is None:
             logging.debug(f"No check is needed for {entry}")
+        if not errors:
+            continue
+
+        no_errors_found = False
+
+        relative_to = repo_directory if display_relative_paths else None
+        errors_as_string = "\n".join(e.to_string(relative_to=relative_to) for e in errors)
+        logging.info(f"Problems found while checking {entry}:\n{errors_as_string}")
+
     logging.info(f"Done!")
 
     return no_errors_found

@@ -53,12 +53,18 @@ class WordError:
         self.stem = search_result.stem
         self.reason = reason
 
-    def __repr__(self):
+    @property
+    def word_quoted(self):
         if self.stem != self.word:
-            quoted_word = f'`{self.word}` (stem `{self.stem}`)'
-        else:
-            quoted_word = f'`{self.word}`'
-        return f"{self.path}:{self.line}:{self.col}: {self.reason} word: {quoted_word}"
+            return f'`{self.word}` (stem `{self.stem}`)'
+        return f'`{self.word}`'
+
+    def __repr__(self):
+        return f"{self.path}:{self.line}:{self.col}: {self.reason} word: {self.word_quoted}"
+
+    def to_string(self, relative_to: Path = None) -> str:
+        path = str(Path(self.path).relative_to(relative_to)) if relative_to else self.path
+        return f"{path}:{self.line}:{self.col}: {self.reason} word: {self.word_quoted}"
 
 
 class LineError:
@@ -72,6 +78,10 @@ class LineError:
     def __repr__(self):
         return f"{self.path}:{self.line}: line is \"{self.actual}\" expected \"{self.expected}\""
 
+    def to_string(self, relative_to: Path = None) -> str:
+        path = str(Path(self.path).relative_to(relative_to)) if relative_to else self.path
+        return f"{path}:{self.line}: line is \"{self.actual}\" expected \"{self.expected}\""
+
 
 class FileError:
 
@@ -80,6 +90,10 @@ class FileError:
 
     def __repr__(self):
         return f"{self.path}: unknown file type"
+
+    def to_string(self, relative_to: Path = None) -> str:
+        path = str(Path(self.path).relative_to(relative_to)) if relative_to else self.path
+        return f"{path}: unknown file type"
 
 
 def _get_word_by_substring(line: str, start: int, end: int) -> str:
@@ -138,27 +152,28 @@ def _is_a_license_word_exception(line, match):
     return False
 
 
-def is_check_needed(
-        path: str, repo_config: RepoCheckConfig):
+def is_check_needed(path: Path, repo_config: RepoCheckConfig, repo_root: Path = None):
+    check_path = path.relative_to(repo_root) if repo_root else path
     opensource_roots = repo_config["opensource_roots"]
-    if opensource_roots and not any(path.startswith(f"{d}/") for d in opensource_roots):
+    if opensource_roots and not any(check_path.is_relative_to(Path(d)) for d in opensource_roots):
         return False
 
-    if any(d for d in repo_config["excluded_dirs"] if path.startswith(f"{d}/")):
+    if any(check_path.is_relative_to(Path(d)) for d in repo_config["excluded_dirs"]):
         return False
 
-    if path in repo_config["excluded_file_paths"]:
+    if any(check_path == Path(p) for p in repo_config["excluded_file_paths"]):
         return False
 
-    file_path_object = Path(path)
-    for pattern in repo_config["excluded_file_name_patterns"]:
-        if file_path_object.match(pattern):
-            return False
+    if any(check_path.match(p) for p in repo_config["excluded_file_name_patterns"]):
+        return False
 
     return True
 
 
-def check_file_content(path, content) -> Collection[Union[WordError, LineError, FileError]]:
+def check_file_if_needed(
+        path: str,
+        repo_config: RepoCheckConfig = None,
+        repo_root: Path = None) -> Optional[Collection[Union[WordError, LineError, FileError]]]:
 
     def _check_has_mpl(line_idx, prefix, postfix=''):
         line = lines[line_idx] if len(lines) > line_idx else None
@@ -203,9 +218,14 @@ def check_file_content(path, content) -> Collection[Union[WordError, LineError, 
             skip_line_idx=skip_line_idx)
         errors.extend(new_errors)
 
+    if not is_check_needed(path=path, repo_config=repo_config, repo_root=repo_root):
+        return None
+
     errors: List[Union[WordError, LineError, FileError]] = []
 
-    lines = content.splitlines()
+    lines: List[str] = []
+    with open(path, encoding="latin1") as f:
+        lines = f.read().splitlines()
 
     name = path.name
     stem, ext = os.path.splitext(name)
