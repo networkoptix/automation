@@ -1,5 +1,6 @@
 import enum
 import logging
+from pathlib import Path
 import queue
 import requests
 import threading
@@ -62,6 +63,9 @@ class Bot(threading.Thread):
             username=gitlab_user_info.username)
         self._repo = automation_tools.git.Repo(**config["repo"], committer=committer)
 
+        open_source_checker_config_file = (
+            Path(config["repo"]["path"]) / "open-source-checker-config.json")
+
         self._project_manager = ProjectManager(
             gitlab_project=raw_gitlab.projects.get(project_id),
             current_user=self._username,
@@ -75,14 +79,16 @@ class Bot(threading.Thread):
         # For now, use the same approval rules for JobStatusCheckRule and CommitMessageCheckRule.
         job_status_check_configuration = config["job_status_check_rule"]["open_source"]
         self._rule_commit_message = CommitMessageCheckRule(
-            job_status_check_configuration["approve_ruleset"])
+            approve_ruleset=job_status_check_configuration["approve_ruleset"],
+            checker_config_file=open_source_checker_config_file)
         self._rule_essential = EssentialRule(project_keys=config["jira"].get("project_keys"))
 
         apidoc_check_configuration = config["job_status_check_rule"]["apidoc"]
         self._rule_job_status_check = JobStatusCheckRule(
             project_manager=self._project_manager,
             open_source_approve_ruleset=job_status_check_configuration["approve_ruleset"],
-            apidoc_changes_approve_ruleset=apidoc_check_configuration["approve_ruleset"])
+            apidoc_changes_approve_ruleset=apidoc_check_configuration["approve_ruleset"],
+            open_source_checker_config_file=open_source_checker_config_file)
 
         self._rule_workflow_check = WorkflowCheckRule(jira=self._jira)
         self._rule_follow_up = FollowUpRule(project_manager=self._project_manager, jira=self._jira)

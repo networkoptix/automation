@@ -1,6 +1,7 @@
 from enum import Enum
 import logging
-from typing import Dict, List, Set
+from pathlib import Path
+from typing import Set
 
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
@@ -12,6 +13,8 @@ from robocat.rule.helpers.stateful_checker_helpers import (
     CheckChangesMixin,
     ErrorCheckResult,
     StoredCheckResults)
+from source_file_compliance import RepoCheckConfig
+
 logger = logging.getLogger(__name__)
 
 
@@ -57,7 +60,8 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
             self,
             project_manager,
             open_source_approve_ruleset: approve_rule_helpers.ApproveRuleset,
-            apidoc_changes_approve_ruleset: approve_rule_helpers.ApproveRuleset):
+            apidoc_changes_approve_ruleset: approve_rule_helpers.ApproveRuleset,
+            open_source_checker_config_file: Path):
         open_source_relevance_checker = getattr(
             approve_rule_helpers, open_source_approve_ruleset["relevance_checker"])
         apidoc_changes_relevance_checker = getattr(
@@ -68,7 +72,8 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
                     approve_rule_helpers.ApproveRule(
                         approvers=rule["approvers"],
                         patterns=rule["patterns"],
-                        relevance_checker=open_source_relevance_checker)
+                        relevance_checker=open_source_relevance_checker,
+                        checker_config=RepoCheckConfig.load(open_source_checker_config_file))
                     for rule in open_source_approve_ruleset["rules"]
                 ],
             self.HAS_APIDOC_CHANGES_ISSUE:

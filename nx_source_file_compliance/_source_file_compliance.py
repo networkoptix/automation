@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Collection, List, NamedTuple, Union, Optional
 
 from ._make_trademarks_re import make_trademarks_re
-from ._generic_repo_check_config import RepoCheckConfig
+from ._repo_check_config import RepoCheckConfig
 
 _boundary_re = re.compile(
     r'(?<=[a-z])(?=[A-Z])|'
@@ -154,17 +154,17 @@ def _is_a_license_word_exception(line, match):
 
 def is_check_needed(path: Path, repo_config: RepoCheckConfig, repo_root: Path = None):
     check_path = path.relative_to(repo_root) if repo_root else path
-    opensource_roots = repo_config["opensource_roots"]
-    if opensource_roots and not any(check_path.is_relative_to(Path(d)) for d in opensource_roots):
+    opensource_roots = repo_config.opensource_roots
+    if opensource_roots and not any(check_path.is_relative_to(d) for d in opensource_roots):
         return False
 
-    if any(check_path.is_relative_to(Path(d)) for d in repo_config["excluded_dirs"]):
+    if any(check_path.is_relative_to(d) for d in repo_config.excluded_dirs):
         return False
 
-    if any(check_path == Path(p) for p in repo_config["excluded_file_paths"]):
+    if any(check_path == p for p in repo_config.excluded_file_paths):
         return False
 
-    if any(check_path.match(p) for p in repo_config["excluded_file_name_patterns"]):
+    if any(check_path.match(p) for p in repo_config.excluded_file_name_patterns):
         return False
 
     return True

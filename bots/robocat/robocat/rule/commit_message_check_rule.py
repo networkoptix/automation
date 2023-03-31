@@ -1,8 +1,9 @@
 import dataclasses
 import logging
-from typing import Dict, List, Set
+from typing import Set
 from dataclasses import asdict
 from enum import Enum
+from pathlib import Path
 
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
@@ -51,11 +52,17 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
             "commit_message_is_ok": "Commit message check didn't find any problems",
         })
 
-    def __init__(self, approve_ruleset: approve_rule_helpers.ApproveRuleDict):
+    def __init__(
+            self,
+            approve_ruleset: approve_rule_helpers.ApproveRuleDict,
+            checker_config_file: Path):
         checker = getattr(approve_rule_helpers, approve_ruleset["relevance_checker"])
         self._approve_rules = [
             approve_rule_helpers.ApproveRule(
-                approvers=rule["approvers"], patterns=rule["patterns"], relevance_checker=checker)
+                approvers=rule["approvers"],
+                patterns=rule["patterns"],
+                relevance_checker=checker,
+                checker_config=source_file_compliance.RepoCheckConfig.load(checker_config_file))
             for rule in approve_ruleset["rules"]]
         logger.info(
             f"Commit message check rule created. Approvers list is {self._approve_rules!r}")

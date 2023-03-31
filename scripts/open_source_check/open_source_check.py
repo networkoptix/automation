@@ -19,15 +19,17 @@ source_file_compliance library version: {source_file_compliance.__version__}
 
 
 def check_file_list(
-        repo_name: str,
+        config_file_path: Path,
         repo_directory: Path,
         check_files: Iterable[Path],
         display_relative_paths: bool) -> bool:
     no_errors_found = True
 
-    repo_configuration = source_file_compliance.repo_configurations.get(
-        repo_name,
-        source_file_compliance.GENERIC_REPO_CONFIG)
+    if config_file_path:
+        repo_configuration = source_file_compliance.RepoCheckConfig.load(config_file_path)
+    else:
+        repo_configuration = source_file_compliance.RepoCheckConfig([], [], [], [])
+
     for entry in check_files:
         if entry.is_dir():
             continue
@@ -60,16 +62,14 @@ def main():
         required=False,
         default="",
         type=Path,
-        help="Path to the configuration file (CURRENTLY UNUSED).")
+        help="Path to the configuration file.")
     parser.add_argument(
         "--repo-name",
         choices=["vms"],
         required=False,
         default=None,
         type=str,
-        help=(
-            "The repository name. If set, determines repository-specific settings, like ignored "
-            "file extensions, directory paths, etc."))
+        help="LEFT FOR COMPATIBILITY - DO NOT USE.")
     parser.add_argument(
         "--repo-dir",
         type=str,
@@ -130,7 +130,7 @@ def main():
             (repo_directory / "open").rglob("*"),
             (repo_directory / "open_candidate").rglob("*"))
     result = check_file_list(
-        repo_name=arguments.repo_name,
+        config_file_path=arguments.config,
         repo_directory=repo_directory.resolve(),
         check_files=check_files,
         display_relative_paths=arguments.display_relative_paths)

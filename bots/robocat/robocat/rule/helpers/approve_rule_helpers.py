@@ -10,7 +10,7 @@ from robocat.merge_request_manager import MergeRequestManager, ApprovalRequireme
 
 logger = logging.getLogger(__name__)
 
-DiffCheckerFunction = Callable[[Dict[str, str]], bool]
+DiffCheckerFunction = Callable[[Dict[str, str], "ApproveRule"], bool]
 
 
 class ApproveRuleDict(TypedDict):
@@ -28,6 +28,7 @@ class ApproveRule:
     approvers: List[str]
     patterns: List[str]
     relevance_checker: DiffCheckerFunction
+    checker_config: source_file_compliance.RepoCheckConfig = None
 
 
 # The "keepers" are the users that are responsible for compliance of the open-source part to the
@@ -77,7 +78,7 @@ def _relevant_files(
     def is_relevant(item):
         if item["deleted_file"] and not include_deleted:
             return False
-        return approve_rule.relevance_checker(item)
+        return approve_rule.relevance_checker(item, approve_rule)
 
     changes = mr_manager.get_changes()
     return (c["new_path"] for c in changes.changes if is_relevant(c))
@@ -96,11 +97,11 @@ def _get_keepers_for_files(
     return _get_all_keepers(approve_rules)
 
 
-def is_file_open_sourced(item: Dict[str, str]) -> bool:
+def is_file_open_sourced(item: Dict[str, str], approve_rule: ApproveRule) -> bool:
     return source_file_compliance.is_check_needed(
         path=Path(item["new_path"]),
-        repo_config=source_file_compliance.repo_configurations["vms"])
+        repo_config=approve_rule.checker_config)
 
 
-def does_file_diff_contain_apidoc_changes(item: Dict[str, str]) -> bool:
+def does_file_diff_contain_apidoc_changes(item: Dict[str, str], approve_rule: ApproveRule) -> bool:
     return re.search("^\+.+%apidoc", item["diff"], re.MULTILINE)  # noqa W605

@@ -6,13 +6,8 @@ from ._source_file_compliance import (
     check_text,
     is_check_needed)
 
-from ._generic_repo_check_config import GENERIC_REPO_CONFIG
-from ._vms_check_config import VMS_REPO_CONFIG
+from ._repo_check_config import RepoCheckConfig
 from ._version import __version__
-
-repo_configurations = {
-    "vms": VMS_REPO_CONFIG,
-}
 
 __all__ = [
     WordError,
@@ -21,6 +16,5 @@ __all__ = [
     check_file_if_needed,
     check_text,
     is_check_needed,
-    repo_configurations,
-    GENERIC_REPO_CONFIG,
+    RepoCheckConfig,
     __version__]
