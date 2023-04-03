@@ -59,6 +59,12 @@ def main():
         sys.argv[0], description=SCRIPT_DESCRIPTION,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
+        "--config",
+        required=False,
+        default="",
+        type=Path,
+        help="Path to the configuration file (CURRENTLY UNUSED).")
+    parser.add_argument(
         "--repo-name",
         choices=["vms"],
         required=False,
