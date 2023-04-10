@@ -60,7 +60,7 @@ def main():
     parser.add_argument(
         "--config",
         required=False,
-        default="",
+        default=None,
         type=Path,
         help="Path to the configuration file.")
     parser.add_argument(
@@ -129,6 +129,7 @@ def main():
         check_files = itertools.chain(
             (repo_directory / "open").rglob("*"),
             (repo_directory / "open_candidate").rglob("*"))
+
     result = check_file_list(
         config_file_path=arguments.config,
         repo_directory=repo_directory.resolve(),
