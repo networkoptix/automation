@@ -1,6 +1,7 @@
 import enum
 import logging
-from typing import List
+import re
+from typing import Optional, List
 
 import gitlab.v4.objects
 
@@ -62,12 +63,21 @@ class PlayPipelineError(RuntimeError):
 
 
 class Pipeline:
+    _MERGE_REQUEST_REF_RE = re.compile(r"^refs/merge-requests/(\d+)/head$")
+
     def __init__(self, pipeline):
         self._gitlab_pipeline = pipeline
 
     @property
     def id(self):
         return self._gitlab_pipeline.id
+
+    @property
+    def mr_id(self) -> Optional[str]:
+        ref_match = self._MERGE_REQUEST_REF_RE.match(self._gitlab_pipeline.ref)
+        if ref_match:
+            return ref_match[1]
+        return None
 
     @property
     def web_url(self):

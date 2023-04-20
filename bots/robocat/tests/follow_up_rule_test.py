@@ -4,7 +4,7 @@ import pytest
 from automation_tools.tests.fixtures import jira, repo_accessor
 from automation_tools.tests.mocks.git_mocks import RemoteMock
 from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.bot import GitlabEventData, GitlabEventType
+from robocat.bot import GitlabEventData, GitlabCommentEventData, GitlabEventType
 from robocat.note import MessageId
 from automation_tools.tests.gitlab_constants import (
     DEFAULT_COMMIT,
@@ -798,11 +798,10 @@ class TestFollowUpRule:
         # Start tests
 
         # Set follow-up draft mode.
-
+        payload = GitlabCommentEventData(
+            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} draft-follow-up")
         event_data = GitlabEventData(
-            mr_id=mr.iid,
-            event_type=GitlabEventType.comment,
-            added_comment=f"@{BOT_USERNAME} draft-follow-up")
+            payload=payload, event_type=GitlabEventType.comment)
         bot.process_event(event_data)
         mr_manager._mr.load_discussions()
 

@@ -6,6 +6,7 @@ from git import GitCommandError
 from gitlab import GitlabGetError
 from typing import Generator, Set, List
 
+from robocat.pipeline import Pipeline
 from robocat.project import Project
 from robocat.merge_request import MergeRequest
 from robocat.merge_request_manager import MergeRequestManager, MergeRequestData
@@ -84,6 +85,9 @@ class ProjectManager:
             mr.set_draft_flag()
 
         return mr
+
+    def get_pipeline(self, pipeline_id: str) -> Pipeline:
+        return self._gitlab.get_pipeline(project_id=self._project.id, pipeline_id=pipeline_id)
 
     def _create_new_branch(self, new_branch: str, base_branch: str, project: Project):
         logger.debug(

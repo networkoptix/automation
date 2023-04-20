@@ -12,7 +12,15 @@ from gidgetlab.aiohttp import GitLabBot
 import graypy
 
 import automation_tools.utils
-from robocat.bot import Bot, GitlabEventType, GitlabEventData, MrPreviousData
+from robocat.bot import (
+    Bot,
+    GitlabEventType,
+    GitlabEventData,
+    GitlabMrEventData,
+    GitlabPipelineEventData,
+    GitlabCommentEventData,
+    GitlabJobEventData,
+    MrPreviousData)
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +41,17 @@ MR_STATE_ID_TO_STATE_NAME = {
 
 def add_event_hook(
         event_type: str,
-        mr_object_key: str = "object_attributes") -> Callable[[AsyncCallback], AsyncCallback]:
+        object_key: str = None) -> Callable[[AsyncCallback], AsyncCallback]:
     def decorator(func: AsyncCallback) -> AsyncCallback:
         async def event_processor(event, *_):
             try:
-                mr_object = event.data.get(mr_object_key)
-                if mr_object:
-                    await func(event, mr_object)
+                if object_key is None:
+                    await func(event)
+                    return
+
+                event_object = event.data.get(object_key)
+                if event_object:
+                    await func(event, event_object)
                 else:
                     logger.info(
                         f"Got {event_type} event without the Merge Request object. Raw data: "
@@ -52,7 +64,7 @@ def add_event_hook(
     return decorator
 
 
-@add_event_hook("Merge Request")
+@add_event_hook("Merge Request", "object_attributes")
 async def merge_request_event(event, mr_object):
     mr_id = mr_object['iid']
     mr_state = mr_object['state']
@@ -67,11 +79,8 @@ async def merge_request_event(event, mr_object):
 
     mr_previous_data = {
         k: mr_changes.get(k, {}).get("previous") for k in MrPreviousData.__required_keys__}
-    mr_queue.put(GitlabEventData(
-        mr_id=mr_id,
-        mr_state=mr_state,
-        mr_previous_data=mr_previous_data,
-        event_type=GitlabEventType.merge_request))
+    payload = GitlabMrEventData(mr_id=mr_id, mr_state=mr_state, mr_previous_data=mr_previous_data)
+    mr_queue.put(GitlabEventData(event_type=GitlabEventType.merge_request, payload=payload))
 
 
 @add_event_hook("Pipeline", "merge_request")
@@ -80,11 +89,9 @@ async def pipeline_event(event, mr_object):
     mr_state = mr_object['state']
     logger.debug(f'Got Pipeline event. MR id: {mr_id} ({mr_state})')
     raw_pipeline_status = event.data["object_attributes"]["status"]
-    mr_queue.put(GitlabEventData(
-        mr_id=mr_id,
-        mr_state=mr_state,
-        event_type=GitlabEventType.pipeline,
-        raw_pipeline_status=raw_pipeline_status))
+    payload = GitlabPipelineEventData(
+        mr_id=mr_id, mr_state=mr_state, raw_pipeline_status=raw_pipeline_status)
+    mr_queue.put(GitlabEventData(event_type=GitlabEventType.pipeline, payload=payload))
 
 
 @add_event_hook("Note", "merge_request")
@@ -93,11 +100,25 @@ async def note_event(event, mr_object):
     mr_state = mr_object['state']
     logger.debug(f'Got Note event. MR id: {mr_id} ({mr_state})')
     comment = event.data["object_attributes"]["note"]
-    mr_queue.put(GitlabEventData(
-        mr_id=mr_id,
-        mr_state=mr_state,
-        event_type=GitlabEventType.comment,
-        added_comment=comment))
+    payload = GitlabCommentEventData(mr_id=mr_id, mr_state=mr_state, added_comment=comment)
+    mr_queue.put(GitlabEventData(event_type=GitlabEventType.comment, payload=payload))
+
+
+@add_event_hook("Job")
+async def job_event(event):
+    pipeline_id = event.data["pipeline_id"]
+    build_name = event.data["build_name"]
+    build_status = event.data["build_status"]
+    build_allow_failure = event.data["build_allow_failure"]
+
+    logger.debug(
+        f'Got Job event. Pipeline id: {pipeline_id}, status {build_status}, name {build_name}')
+    payload = GitlabJobEventData(
+        pipeline_id=pipeline_id,
+        name=build_name,
+        status=build_status,
+        allow_failure=build_allow_failure)
+    mr_queue.put(GitlabEventData(event_type=GitlabEventType.job, payload=payload))
 
 
 class ServiceNameFilter(logging.Filter):

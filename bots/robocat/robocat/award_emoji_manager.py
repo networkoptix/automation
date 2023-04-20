@@ -31,6 +31,7 @@ class AwardEmojiManager():
     NOTIFICATION_EMOJI = "bell"
     ISSUE_NOT_MOVED_TO_QA_EMOJI = "point_up"
     COMMAND_NOT_EXECUTED = "no_entry"
+    JOB_FAILED_EMOJI = "exclamation"
 
     EMOJI_BY_MESSAGE_ID = {
         MessageId.CommandProcess: NOTIFICATION_EMOJI,
@@ -46,6 +47,7 @@ class AwardEmojiManager():
         MessageId.FailedCheckForNoSupportedProject: CHECK_FAIL_EXPLANATION_EMOJI,
         MessageId.InitialMessage: INITIAL_EMOJI,
         MessageId.FollowUpNotNeeded: NOTIFICATION_EMOJI,
+        MessageId.FailedJobNotification: COMMAND_NOT_EXECUTED,
     }
 
     def __init__(self, gitlab_award_emoji_manager, current_user):

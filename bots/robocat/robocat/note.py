@@ -51,6 +51,8 @@ class MessageId(Enum):
     FailedCheckForUnresolvedThreads = auto()
     FailedCheckForNoSupportedProject = auto()
 
+    FailedJobNotification = auto()
+
 
 class Comment(NamedTuple):
     id: MessageId

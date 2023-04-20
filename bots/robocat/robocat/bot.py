@@ -5,7 +5,7 @@ import queue
 import requests
 import threading
 import time
-from typing import TypedDict
+from typing import TypedDict, Union
 
 import git
 import gitlab
@@ -16,6 +16,7 @@ from automation_tools.jira import JiraAccessor, JiraError
 import automation_tools.git
 import robocat.commands.parser
 from robocat.project_manager import ProjectManager
+from robocat.merge_request_actions.notify_user_actions import add_failed_pipeline_comment_if_needed
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.pipeline import PlayPipelineError, Pipeline, PipelineStatus
 from robocat.rule.commit_message_check_rule import CommitMessageCheckRule
@@ -34,6 +35,7 @@ MR_POLL_RATE_S = 30
 class GitlabEventType(enum.Enum):
     merge_request = enum.auto()
     pipeline = enum.auto()
+    job = enum.auto()
     comment = enum.auto()
 
 
@@ -41,16 +43,45 @@ class MrPreviousData(TypedDict):
     state: str
 
 
-class GitlabEventData(TypedDict):
+class GitlabMrRelatedEventData(TypedDict):
     mr_id: str
     mr_state: str
+
+
+class GitlabMrEventData(GitlabMrRelatedEventData):
     mr_previous_data: MrPreviousData
-    event_type: GitlabEventType
-    added_comment: str
+
+
+class GitlabPipelineEventData(GitlabMrRelatedEventData):
     raw_pipeline_status: str
 
 
+class GitlabCommentEventData(GitlabMrRelatedEventData):
+    added_comment: str
+
+
+class GitlabJobEventData(TypedDict):
+    pipeline_id: str
+    name: str
+    status: str
+    allow_failure: bool
+
+
+class GitlabEventData(TypedDict):
+    payload: Union[GitlabMrRelatedEventData, GitlabJobEventData]
+    event_type: GitlabEventType
+
+
 class Bot(threading.Thread):
+    @property
+    def event_handler(self):
+        return {
+            GitlabEventType.comment: self._process_comment_event,
+            GitlabEventType.pipeline: self._process_pipeline_event,
+            GitlabEventType.job: self._process_job_event,
+            GitlabEventType.merge_request: self._process_mr_event,
+        }
+
     def __init__(self, config, project_id: int, mr_queue: queue.SimpleQueue):
         super().__init__()
 
@@ -151,8 +182,7 @@ class Bot(threading.Thread):
         for mr in self._project_manager.get_next_open_merge_request():
             self._mr_queue.put(
                 GitlabEventData(
-                    mr_id=mr.id,
-                    mr_state='opened',
+                    payload=GitlabMrEventData(mr_id=mr.id, mr_state='opened'),
                     event_type=GitlabEventType.merge_request))
 
         while (True):
@@ -177,40 +207,75 @@ class Bot(threading.Thread):
                 logger.warning(f"{event_data}: Unknown error: {e}")
 
     def process_event(self, event_data: GitlabEventData):
-        mr_id = event_data["mr_id"]
+        (event_type, payload) = (event_data["event_type"], event_data["payload"])
+        if event_type == GitlabEventType.job:
+            pipeline = self._project_manager.get_pipeline(payload["pipeline_id"])
+            mr_id = pipeline.mr_id
+            if not mr_id:
+                return
+        else:
+            mr_id = payload["mr_id"]
+
         mr_manager = self._project_manager.get_merge_request_manager_by_id(mr_id)
         if not mr_manager.is_mr_assigned_to_current_user:
             return
 
-        if event_data["event_type"] == GitlabEventType.comment:
-            command = robocat.commands.parser.create_command_from_text(
-                username=self._username,
-                text=event_data["added_comment"])
-            logger.debug(f'Comment {event_data["added_comment"]} parsed as "{command}" command.')
+        self.event_handler[GitlabEventType.comment](payload=payload, mr_manager=mr_manager)
 
-            if command:
-                command.run(
-                    mr_manager=mr_manager,
-                    project_manager=self._project_manager,
-                    jira=self._jira)
-                if command.should_handle_mr_after_run:
-                    self.handle(mr_manager)
-            return
+    def _handle_mr_if_needed(
+            self, current_mr_state: str, previous_mr_state: str, mr_manager: MergeRequestManager):
 
-        if event_data["event_type"] == GitlabEventType.pipeline:
-            pipeline_status = Pipeline.translate_status(event_data["raw_pipeline_status"])
-            logger.debug(f"New pipeline status for mr {mr_id} is {pipeline_status}.")
-            if pipeline_status == PipelineStatus.running:
-                return
-
-        current_mr_state = event_data["mr_state"]
-        previous_mr_state = event_data.get("mr_previous_data", {}).get("state", "")
-        if current_mr_state == "opened":
-            self.handle(mr_manager)
-        elif current_mr_state == "merged" and previous_mr_state in ["opened", "locked"]:
+        if current_mr_state == "merged" and previous_mr_state in ["opened", "locked"]:
             logger.info(f"{mr_manager}: Merge Request is just merged; executing follow-up rule.")
             follow_up_result = self._rule_follow_up.execute(mr_manager)
             logger.debug(f"{mr_manager}: {follow_up_result}")
+            return
+
+        if current_mr_state == "opened":
+            self.handle(mr_manager)
+
+    def _process_comment_event(
+            self, payload: GitlabCommentEventData, mr_manager: MergeRequestManager):
+        command = robocat.commands.parser.create_command_from_text(
+            username=self._username,
+            text=payload["added_comment"])
+        logger.debug(
+            f'Comment {payload["added_comment"]} parsed as "{command}" command.')
+
+        if command:
+            command.run(
+                mr_manager=mr_manager,
+                project_manager=self._project_manager,
+                jira=self._jira)
+            if command.should_handle_mr_after_run:
+                self.handle(mr_manager)
+
+    def _process_pipeline_event(
+            self, payload: GitlabPipelineEventData, mr_manager: MergeRequestManager):
+        pipeline_status = Pipeline.translate_status(payload["raw_pipeline_status"])
+        logger.debug(f"New pipeline status for MR {mr_manager.data.id} is {pipeline_status}.")
+        if pipeline_status == PipelineStatus.running:
+            return
+
+        self._handle_mr_if_needed(
+            current_mr_state=payload["mr_state"],
+            previous_mr_state=payload.get("mr_previous_data", {}).get("state", ""),
+            mr_manager=mr_manager)
+
+    def _process_job_event(self, payload: GitlabJobEventData, mr_manager: MergeRequestManager):
+        job_name = payload["name"]
+        job_status = payload["status"]
+        logger.debug(f"New {job_name} job status for MR {mr_manager.data.id} is {job_status}.")
+        if job_status != "failed" or payload["allow_failure"]:
+            return
+        add_failed_pipeline_comment_if_needed(mr_manager=mr_manager, job_name=job_name)
+
+    def _process_mr_event(
+            self, payload: GitlabMrRelatedEventData, mr_manager: MergeRequestManager):
+        self._handle_mr_if_needed(
+            current_mr_state=payload["mr_state"],
+            previous_mr_state=payload.get("mr_previous_data", {}).get("state", ""),
+            mr_manager=mr_manager)
 
     def get_merge_requests_manager(self, mr_poll_rate):
         while True:

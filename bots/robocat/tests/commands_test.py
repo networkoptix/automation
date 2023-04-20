@@ -10,7 +10,11 @@ from automation_tools.tests.gitlab_constants import (
     MERGED_TO_MASTER_MERGE_REQUESTS)
 from automation_tools.tests.mocks.git_mocks import BOT_USERNAME
 from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.bot import Bot, GitlabEventData, GitlabEventType
+from robocat.bot import (
+    Bot,
+    GitlabEventData,
+    GitlabCommentEventData,
+    GitlabEventType)
 from robocat.commands.commands import (
     BaseCommand,
     ProcessCommand,
@@ -45,10 +49,9 @@ class TestRobocatCommands:
         ({"pipelines_list": [(f"{DEFAULT_COMMIT['sha']}0", "failed")]}, [])
     ])
     def test_run_pipeline(self, bot: Bot, mr: MergeRequestMock):
-        event_data = GitlabEventData(
-            mr_id=mr.iid,
-            event_type=GitlabEventType.comment,
-            added_comment=f"@{BOT_USERNAME} run_pipeline")
+        payload = GitlabCommentEventData(
+            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} run_pipeline")
+        event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
         bot.process_event(event_data)
 
         comments = mr.mock_comments()
@@ -64,10 +67,9 @@ class TestRobocatCommands:
         ({"pipelines_list": [(DEFAULT_COMMIT['sha'], "failed")]}, [])
     ])
     def test_refuse_run_pipeline(self, bot: Bot, mr: MergeRequestMock):
-        event_data = GitlabEventData(
-            mr_id=mr.iid,
-            event_type=GitlabEventType.comment,
-            added_comment=f"@{BOT_USERNAME} run_pipeline")
+        payload = GitlabCommentEventData(
+            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} run_pipeline")
+        event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
         bot.process_event(event_data)
 
         comments = mr.mock_comments()
@@ -91,19 +93,17 @@ class TestRobocatCommands:
         })
     ])
     def test_process_unmerged(self, bot: Bot, mr: MergeRequestMock):
-        event_data = GitlabEventData(
-            mr_id=mr.iid,
-            event_type=GitlabEventType.comment,
-            added_comment=f"@{BOT_USERNAME} follow-up")
+        payload = GitlabCommentEventData(
+            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} follow-up")
+        event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
         bot.process_event(event_data)
         comments = mr.mock_comments()
         assert f":{AwardEmojiManager.COMMAND_NOT_EXECUTED}:" in comments[-1], (
             f"Last comment: {comments}.")
 
-        event_data = GitlabEventData(
-            mr_id=mr.iid,
-            event_type=GitlabEventType.comment,
-            added_comment=f"@{BOT_USERNAME} process")
+        payload = GitlabCommentEventData(
+            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} process")
+        event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
         bot.process_event(event_data)
         assert mr.state == "merged"
 
@@ -144,10 +144,9 @@ class TestRobocatCommands:
         repo_accessor.repo.remotes[project_remote].mock_attach_gitlab_project(project)
         repo_accessor.repo.mock_add_gitlab_project(source_project)
 
-        event_data = GitlabEventData(
-            mr_id=mr.iid,
-            event_type=GitlabEventType.comment,
-            added_comment=f"@{BOT_USERNAME} process")
+        payload = GitlabCommentEventData(
+            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} process")
+        event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
 
         bot.process_event(event_data)
 
@@ -156,10 +155,9 @@ class TestRobocatCommands:
         assert f":{AwardEmojiManager.NOTIFICATION_EMOJI}:" in comments[-1], (
             f"Last comment: {comments[-1]}.")
 
-        event_data = GitlabEventData(
-            mr_id=mr.iid,
-            event_type=GitlabEventType.comment,
-            added_comment=f"@{BOT_USERNAME} follow-up")
+        payload = GitlabCommentEventData(
+            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} follow-up")
+        event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
 
         bot.process_event(event_data)
 
@@ -174,10 +172,9 @@ class TestRobocatCommands:
             bot: Bot,
             mr: MergeRequestMock,
             mr_manager: MergeRequestManager):
-        event_data = GitlabEventData(
-            mr_id=mr.iid,
-            event_type=GitlabEventType.comment,
-            added_comment=f"@{BOT_USERNAME} draft-follow-up")
+        payload = GitlabCommentEventData(
+            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} draft-follow-up")
+        event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
         bot.process_event(event_data)
 
         mr_manager._mr.load_discussions()
