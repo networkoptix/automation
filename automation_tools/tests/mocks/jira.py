@@ -88,6 +88,7 @@ class Jira:
                 Version("22.3", "<mobile_22.3>"),
                 Version("22.4", "<mobile_22.4>"),
                 Version("22.5", "<mobile_22.5>"),
+                Version("23.1", "<mobile_23.1>"),
                 Version("master", "<master> Ongoing development"),
             ],
             "CB": [
