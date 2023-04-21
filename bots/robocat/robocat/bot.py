@@ -220,7 +220,7 @@ class Bot(threading.Thread):
         if not mr_manager.is_mr_assigned_to_current_user:
             return
 
-        self.event_handler[GitlabEventType.comment](payload=payload, mr_manager=mr_manager)
+        self.event_handler[event_type](payload=payload, mr_manager=mr_manager)
 
     def _handle_mr_if_needed(
             self, current_mr_state: str, previous_mr_state: str, mr_manager: MergeRequestManager):
