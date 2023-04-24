@@ -175,11 +175,16 @@ def check_file_if_needed(
         repo_config: RepoCheckConfig = None,
         repo_root: Path = None) -> Optional[Collection[Union[WordError, LineError, FileError]]]:
 
-    def _check_has_mpl(line_idx, prefix, postfix=''):
+    def _check_has_mpl(
+            line_idx: int, prefix: str, postfix: str = '', dry_run: bool = False) -> bool:
         line = lines[line_idx] if len(lines) > line_idx else None
         expected = prefix + _mpl + postfix
         if line != expected:
-            errors.append(LineError(path, line_idx, line, expected))
+            if not dry_run:
+                errors.append(LineError(path, line_idx, line, expected))
+            return False
+
+        return True
 
     def _check_has_empty_line(line_idx):
         if line_idx >= len(lines):
@@ -194,13 +199,11 @@ def check_file_if_needed(
             errors.append(LineError(path, 0, lines[0], ' or '.join(allowed_shebangs)))
 
     def _check_no_bad_words(
-            start_line_idx: int,
+            start_line_idx: int = 0,
             end_line_idx: Optional[int] = None,
             license_words: bool = True,
             consider_trademark_exceptions: bool = True,
-            expected_mpl_line_idx: Optional[int] = None,
-            ):
-
+            expected_mpl_line_idx: Optional[int] = None):
         # Skip the bad words check for the Copyright line.
         skip_line_idx: Optional[int] = None
         if expected_mpl_line_idx is not None:
@@ -233,34 +236,43 @@ def check_file_if_needed(
         name = stem
         stem, ext = os.path.splitext(name)
 
+    # Files of some types can have a shebang. If the file has it, start searching for the license
+    # string from the third line instead of the first one; the second line must be empty.
+    if lines[0].startswith('#!'):
+        _check_has_empty_line(line_idx=1)
+        mpl_license_line = 2
+    else:
+        mpl_license_line = 0
+
     if name in {'CMakeLists.txt', 'Doxyfile', 'Dockerfile'} or ext == '.cmake':
-        _check_has_mpl(line_idx=0, prefix='## ')
-        _check_no_bad_words(start_line_idx=1)
+        _check_has_mpl(line_idx=mpl_license_line, prefix='## ')
+        _check_has_empty_line(line_idx=mpl_license_line+1)
+        _check_no_bad_words(start_line_idx=mpl_license_line+2)
     elif ext in {'.json', '.yaml', '.yml'}:
-        _check_no_bad_words(start_line_idx=0, expected_mpl_line_idx=0)
+        # TODO: Consider removing mpl check for these types of files.
+        mpl_line_idx = 0 if _check_has_mpl(line_idx=0, prefix='## ', dry_run=True) else None
+        _check_no_bad_words(expected_mpl_line_idx=mpl_line_idx)
     elif ext == '.md':
-        _check_no_bad_words(start_line_idx=0, end_line_idx=1)
         _check_has_empty_line(line_idx=1)
         _check_has_mpl(line_idx=2, prefix='// ')
-        if name == 'readme.md':
-            _check_no_bad_words(start_line_idx=3, license_words=False)
-        else:
-            _check_no_bad_words(start_line_idx=3)
+        _check_no_bad_words(expected_mpl_line_idx=2, license_words=(name != 'readme.md'))
     elif ext in {'.h', '.cpp', '.c', '.mm', '.ts', '.js', '.mjs', '.txt', '.inc', '.go', '.qml'}:
         _check_has_mpl(line_idx=0, prefix='// ')
         _check_has_empty_line(line_idx=1)
         _check_no_bad_words(start_line_idx=2)
     elif ext in {'.sh', '.py'} or name in {'applauncher', 'prerm', 'postinst', 'client'}:
-        if ext == '.py':
-            _check_no_bad_words(start_line_idx=0, end_line_idx=1)
-        else:
+        # TODO: Improve this check: extend the list of the allowed shebangs to include python
+        # files, add checking of the presence of the empty line after the shebang to
+        # _check_has_shebang().
+        if ext != '.py':
             _check_has_shebang()
         _check_has_empty_line(line_idx=1)
         _check_has_mpl(line_idx=2, prefix='## ')
-        _check_no_bad_words(start_line_idx=3)
+        _check_no_bad_words(expected_mpl_line_idx=2)
     elif ext == '.bat':
         _check_has_mpl(line_idx=0, prefix=':: ')
-        _check_no_bad_words(start_line_idx=1)
+        _check_has_empty_line(line_idx=1)
+        _check_no_bad_words(start_line_idx=2)
     elif ext == '.applescript':
         _check_has_mpl(line_idx=0, prefix='-- ')
         _check_has_empty_line(line_idx=1)
@@ -271,8 +283,7 @@ def check_file_if_needed(
         _check_no_bad_words(start_line_idx=2)
     elif ext == '.css':
         _check_has_mpl(line_idx=0, prefix='/* ', postfix=' */')
-        _check_has_empty_line(line_idx=1)
-        _check_no_bad_words(start_line_idx=1)
+        _check_no_bad_words(start_line_idx=2)
     else:
         errors.append(FileError(path))
 
