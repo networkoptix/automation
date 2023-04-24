@@ -9,6 +9,7 @@ from typing import Iterable
 
 import source_file_compliance
 
+DEFAULT_CONFIG_NAME = "open_source_check_config.json"
 
 SCRIPT_DESCRIPTION = f"""
 This script is to be used for checking source files for compatibility with Open Source standards
@@ -67,7 +68,7 @@ def main():
         "--repo-name",
         choices=["vms"],
         required=False,
-        default=None,
+        default=".",
         type=str,
         help="LEFT FOR COMPATIBILITY - DO NOT USE.")
     parser.add_argument(
@@ -110,29 +111,41 @@ def main():
         format='%(asctime)s %(levelname)s\t%(message)s')
 
     repo_directory = (Path(arguments.repo_dir) if arguments.repo_dir else Path.cwd()).resolve()
+    if not arguments.config:
+        config_file_path = (repo_directory / DEFAULT_CONFIG_NAME).resolve()
+    else:
+        config_file_path = arguments.config.resolve()
 
     if arguments.check_dir:
         logging.info(
             f"Checking open-source requirements for {arguments.check_dir!r} directory "
-            f"in {repo_directory.as_posix()!r}")
+            f"in {repo_directory.as_posix()!r} using configuration file "
+            f"{config_file_path.as_posix()!r}")
         check_files = (repo_directory / arguments.check_dir).rglob("*")
     elif arguments.check_file_list:
         logging.info(
             f"Checking open-source requirements for the files listed in "
-            f"{arguments.check_file_list.as_posix()!r} directory")
+            f"file {arguments.check_file_list.as_posix()!r} using configuration file "
+            f"{config_file_path.as_posix()!r}")
         with open(arguments.check_file_list) as file_list:
             check_files = [repo_directory / Path(f.rstrip()) for f in file_list.readlines()]
     else:
         logging.info(
             'Checking open-source requirements for "open/" and "open_candidate/" directories in '
-            f"{repo_directory.as_posix()!r}")
+            f"{repo_directory.as_posix()!r} using configuration file "
+            f"{config_file_path.as_posix()!r}")
         check_files = itertools.chain(
             (repo_directory / "open").rglob("*"),
             (repo_directory / "open_candidate").rglob("*"))
 
+    if arguments.config is None:
+        config_file_path = repo_directory / DEFAULT_CONFIG_NAME
+    else:
+        config_file_path = arguments.config
+
     result = check_file_list(
-        config_file_path=arguments.config,
-        repo_directory=repo_directory.resolve(),
+        config_file_path=config_file_path,
+        repo_directory=repo_directory,
         check_files=check_files,
         display_relative_paths=arguments.display_relative_paths)
 
