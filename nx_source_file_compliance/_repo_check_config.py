@@ -32,3 +32,6 @@ class RepoCheckConfig(NamedTuple):
 
         return cls(
             opensource_roots, excluded_dirs, excluded_file_paths, excluded_file_name_patterns)
+
+
+DEFAULT_REPO_CHECK_CONFIG = RepoCheckConfig(["open", "open_candidate"], [], [], [])
