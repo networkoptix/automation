@@ -1,6 +1,7 @@
 from pathlib import Path
 import pytest
 
+import automation_tools.checkers.config
 from automation_tools.tests.fixtures import jira, repo_accessor
 from automation_tools.tests.mocks.git_mocks import CommitMock, BranchMock
 from automation_tools.tests.mocks.merge_request import MergeRequestMock
@@ -78,6 +79,26 @@ def workflow_enforcer(monkeypatch, jira, police_test_repo, project):
 
     def _related_project_by_class(obj, *_, **__):
         return project
+
+    monkeypatch.setattr(
+        automation_tools.checkers.config,
+        "ALLOWED_VERSIONS_SETS",
+        {
+            "VMS": [
+                set(['5.0', '5.0_patch', '5.1', '5.1_patch', 'master']),
+                set(['5.0_patch', '5.1', '5.1_patch', 'master']),
+                set(['5.1', '5.1_patch', 'master']),
+                set(['5.1_patch', 'master']),
+                set(['master']),
+                set(['Future']),
+            ],
+            "MOBILE": [
+                set(['23.1', '22.5', 'master']),
+                set(['23.1', 'master']),
+                set(['master']),
+                set(['Future']),
+            ],
+        })
 
     monkeypatch.setattr(WorkflowEnforcer, "_update_repos", _update_repos)
     monkeypatch.setattr(WorkflowEnforcer, "_related_project_by_class", _related_project_by_class)
