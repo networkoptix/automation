@@ -26,10 +26,14 @@ def check_file_list(
         display_relative_paths: bool) -> bool:
     no_errors_found = True
 
-    if config_file_path:
+    if config_file_path.exists():
         repo_configuration = source_file_compliance.RepoCheckConfig.load(config_file_path)
     else:
-        repo_configuration = source_file_compliance.RepoCheckConfig([], [], [], [])
+        default_config_file = (Path(__file__).parent / DEFAULT_CONFIG_NAME).resolve()
+        logging.warning(
+            f"Config file {config_file_path.as_posix()!r} is not found. Using the default config "
+            f"from {default_config_file.as_posix()!r}.")
+        repo_configuration = source_file_compliance.RepoCheckConfig.load(default_config_file)
 
     for entry in check_files:
         if entry.is_dir():
