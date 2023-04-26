@@ -60,8 +60,7 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
             self,
             project_manager,
             open_source_approve_ruleset: approve_rule_helpers.ApproveRuleset,
-            apidoc_changes_approve_ruleset: approve_rule_helpers.ApproveRuleset,
-            open_source_checker_config_file: Path):
+            apidoc_changes_approve_ruleset: approve_rule_helpers.ApproveRuleset):
         open_source_relevance_checker = getattr(
             approve_rule_helpers, open_source_approve_ruleset["relevance_checker"])
         apidoc_changes_relevance_checker = getattr(
@@ -72,8 +71,7 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
                     approve_rule_helpers.ApproveRule(
                         approvers=rule["approvers"],
                         patterns=rule["patterns"],
-                        relevance_checker=open_source_relevance_checker,
-                        checker_config=RepoCheckConfig.load(open_source_checker_config_file))
+                        relevance_checker=open_source_relevance_checker)
                     for rule in open_source_approve_ruleset["rules"]
                 ],
             self.HAS_APIDOC_CHANGES_ISSUE:

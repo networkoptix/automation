@@ -92,15 +92,13 @@ def job_status_rule(project, repo_accessor, open_source_approve_ruleset, apidoc_
     return JobStatusCheckRule(
         project_manager,
         open_source_approve_ruleset=open_source_approve_ruleset,
-        apidoc_changes_approve_ruleset=apidoc_approve_ruleset,
-        open_source_checker_config_file=Path(__file__).parent / "open-source-checker-config.json")
+        apidoc_changes_approve_ruleset=apidoc_approve_ruleset)
 
 
 @pytest.fixture
 def commit_message_rule():
     return CommitMessageCheckRule(
-        approve_ruleset=DEFAULT_APPROVE_RULESET,
-        checker_config_file=Path(__file__).parent / "open-source-checker-config.json")
+        approve_ruleset=DEFAULT_APPROVE_RULESET)
 
 
 @pytest.fixture

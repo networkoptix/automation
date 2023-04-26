@@ -54,15 +54,13 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
 
     def __init__(
             self,
-            approve_ruleset: approve_rule_helpers.ApproveRuleDict,
-            checker_config_file: Path):
+            approve_ruleset: approve_rule_helpers.ApproveRuleDict):
         checker = getattr(approve_rule_helpers, approve_ruleset["relevance_checker"])
         self._approve_rules = [
             approve_rule_helpers.ApproveRule(
                 approvers=rule["approvers"],
                 patterns=rule["patterns"],
-                relevance_checker=checker,
-                checker_config=source_file_compliance.RepoCheckConfig.load(checker_config_file))
+                relevance_checker=checker)
             for rule in approve_ruleset["rules"]]
         logger.info(
             f"Commit message check rule created. Approvers list is {self._approve_rules!r}")

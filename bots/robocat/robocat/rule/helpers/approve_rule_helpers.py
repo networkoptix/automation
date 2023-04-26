@@ -10,7 +10,7 @@ from robocat.merge_request_manager import MergeRequestManager, ApprovalRequireme
 
 logger = logging.getLogger(__name__)
 
-DiffCheckerFunction = Callable[[Dict[str, str], "ApproveRule"], bool]
+DiffCheckerFunction = Callable[[Dict[str, str]], bool]
 
 
 class ApproveRuleDict(TypedDict):
@@ -28,7 +28,6 @@ class ApproveRule:
     approvers: List[str]
     patterns: List[str]
     relevance_checker: DiffCheckerFunction
-    checker_config: source_file_compliance.RepoCheckConfig = None
 
 
 # The "keepers" are the users that are responsible for compliance of the open-source part to the
@@ -78,7 +77,7 @@ def _relevant_files(
     def is_relevant(item):
         if item["deleted_file"] and not include_deleted:
             return False
-        return approve_rule.relevance_checker(item, approve_rule)
+        return approve_rule.relevance_checker(item)
 
     changes = mr_manager.get_changes()
     return (c["new_path"] for c in changes.changes if is_relevant(c))
@@ -97,11 +96,14 @@ def _get_keepers_for_files(
     return _get_all_keepers(approve_rules)
 
 
-def is_file_open_sourced(item: Dict[str, str], approve_rule: ApproveRule) -> bool:
+def is_file_open_sourced(item: Dict[str, str]) -> bool:
+    # Default RepoCheckConfig can generate some false positives, but using it minimizes issues
+    # caused by the implicit dependencies between the bot and the checked repo - the check
+    # configuration can be placed in different files, in different branches it can have different
+    # formats, etc.
     return source_file_compliance.is_check_needed(
-        path=Path(item["new_path"]),
-        repo_config=approve_rule.checker_config)
+        path=Path(item["new_path"]), repo_config=source_file_compliance.DEFAULT_REPO_CHECK_CONFIG)
 
 
-def does_file_diff_contain_apidoc_changes(item: Dict[str, str], approve_rule: ApproveRule) -> bool:
+def does_file_diff_contain_apidoc_changes(item: Dict[str, str]) -> bool:
     return re.search("^\+.+%apidoc", item["diff"], re.MULTILINE)  # noqa W605
