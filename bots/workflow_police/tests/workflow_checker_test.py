@@ -66,7 +66,7 @@ class TestPoliceChecker:
         # Commit is not found in branch "vms_5.1_patch". Commits-to-branches relation is defined
         # in bots/workflow_police/tests/fixtures.py.
         ([
-            {"key": "VMS-1", "branches": ["master", "vms_5.1_patch"]}
+            {"key": "VMS-3", "branches": ["master", "vms_5.1_patch"]}
         ], [
             {},
         ]),
@@ -109,11 +109,14 @@ class TestPoliceChecker:
             assert workflow_checker.should_reopen_issue(issue), (
                 f'Issue "{issue_key}" is not to be reopened')
 
+    # Commits-to-branches relation is defined in bots/workflow_police/tests/fixtures.py.
     @pytest.mark.parametrize(("jira_issues", "mr_states"), [
         # "Good" issue.
-        ([
-            {"key": "VMS-1", "branches": ["master", "vms_5.1"], "resolution": "Fixed"},
-        ], [
+        ([{
+            "key": "VMS-1",
+            "branches": ["master", "vms_5.1", "vms_5.1_patch"],
+            "resolution": "Fixed",
+        }], [
             {}
         ]),
         # "Good" issue for another project.
@@ -148,12 +151,12 @@ class TestPoliceChecker:
         }], [
             {},
         ]),
-        # The commit is not found in the branch "vms_4.2_patch" but has "already_in_4.2_patch"
+        # The commit is not found in the branch "vms_5.1_patch" but has "already_in_5.1_patch
         # label.
         ([{
             "key": "VMS-4",
-            "branches": ["master", "vms_5.1"],
-            "labels": ["already_in_5.1"],
+            "branches": ["master", "vms_5.1_patch"],
+            "labels": ["already_in_5.1_patch"],
             "resolution": "Fixed",
         }], [
             {}
@@ -161,7 +164,7 @@ class TestPoliceChecker:
         # Commits for some branches are missing, but the label "done_externally" presents.
         ([{
             "key": "VMS-4",
-            "branches": ["master", "vms_5.1"],
+            "branches": ["master", "vms_5.1", "vms_5.1_patch"],
             "state": "Waiting for QA",
             "labels": ["done_externally"],
             "resolution": "Fixed",

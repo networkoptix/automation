@@ -33,7 +33,7 @@ def police_test_repo(repo_accessor):
     repo_accessor.repo.branches["origin/vms_5.1"] = BranchMock(
         repo_accessor.repo, name="vms_5.1", commits=[vms1_commit_mock,  vms3_commit_mock])
     repo_accessor.repo.branches["origin/vms_5.1_patch"] = BranchMock(
-        repo_accessor.repo, name="vms_5.1_patch", commits=[vms2_commit_mock])
+        repo_accessor.repo, name="vms_5.1_patch", commits=[vms1_commit_mock, vms2_commit_mock])
     repo_accessor.repo.branches["origin/mobile_21.1"] = BranchMock(
         repo_accessor.repo, name="mobile_21.1", commits=[mobile1_commit_mock])
     repo_accessor.repo.branches["origin/mobile_22.1"] = BranchMock(

@@ -1,10 +1,5 @@
 ALLOWED_VERSIONS_SETS = {
     "VMS": [
-        # Compatibility block, shall be removed after branch is created.
-        set(['5.0', '5.0_patch', '5.1', 'master']),
-        set(['5.0_patch', '5.1', 'master']),
-        set(['5.1', 'master']),
-
         set(['5.0', '5.0_patch', '5.1', '5.1_patch', 'master']),
         set(['5.0_patch', '5.1', '5.1_patch', 'master']),
         set(['5.1', '5.1_patch', 'master']),
