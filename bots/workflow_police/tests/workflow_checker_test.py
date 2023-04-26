@@ -1,3 +1,4 @@
+import logging
 import pytest
 
 from automation_tools.tests.fixtures import jira, repo_accessor
@@ -8,6 +9,8 @@ from bots.workflow_police.tests.fixtures import (
     project,
     mr_states,
     workflow_enforcer)
+
+logger = logging.getLogger(__name__)
 
 
 class TestPoliceChecker:
@@ -47,10 +50,10 @@ class TestPoliceChecker:
             assert workflow_checker.should_ignore_issue(issue), (
                 f'Issue "{issue_key}"" is not ignored')
 
+    #
     @pytest.mark.parametrize(("jira_issues", "mr_states"), [
-        # Bad version set.
         ([
-            {"key": "VMS-1", "branches": ["master", "vms_4.2"]}
+            {"key": "VMS-1", "branches": ["master", "vms_5.0"]}
         ], [
             {},
         ]),
@@ -60,15 +63,10 @@ class TestPoliceChecker:
         ], [
             {},
         ]),
-        # Non-existing branch "vms_5.1_patch".
+        # Commit is not found in branch "vms_5.1_patch". Commits-to-branches relation is defined
+        # in bots/workflow_police/tests/fixtures.py.
         ([
-            {"key": "VMS-1", "branches": ["vms_5.1", "vms_4.2", "vms_4.2_patch", "master"]}
-        ], [
-            {},
-        ]),
-        # Commit is not found in branch "vms_4.2_patch".
-        ([
-            {"key": "VMS-2", "branches": ["master", "vms_4.2_patch"]}
+            {"key": "VMS-1", "branches": ["master", "vms_5.1_patch"]}
         ], [
             {},
         ]),
@@ -103,8 +101,10 @@ class TestPoliceChecker:
         }]),
     ])
     def test_should_reopen_issue(self, jira, jira_issues, workflow_checker, mr_states):
+        logger.debug("Testing issues which are not to be reopened")
         for issue_data in jira_issues:
             issue_key = issue_data["key"]
+            logger.debug(f"Checking issue {issue_key}")
             issue = jira.get_issue(issue_key)
             assert workflow_checker.should_reopen_issue(issue), (
                 f'Issue "{issue_key}" is not to be reopened')

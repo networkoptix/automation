@@ -55,7 +55,9 @@ class WorkflowViolationChecker:
     def _run_checkers(issue: JiraIssue, checkers: List) -> Optional[str]:
         for checker in checkers:
             try:
+                logging.debug(f"Running check {checker} for issue {issue}...")
                 reason = checker.run(issue)
+                logging.debug(f"Result: {reason}")
                 if reason:
                     return reason
             except JiraError as e:

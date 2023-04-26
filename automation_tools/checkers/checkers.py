@@ -43,13 +43,20 @@ class WrongVersionChecker(WorkflowPolicyChecker):
 
     def _class_specific_check_run(self, issue: JiraIssue) -> Optional[str]:
         if issue.has_label(config.VERSION_SPECIFIC_LABEL):
+            logger.debug("Issue has version_specific label, ignore it")
             return None
 
         if issue.project not in config.ALLOWED_VERSIONS_SETS:
+            logger.debug(
+                f"Issue project {issue.project} is not in the allowed version sets "
+                f"{config.ALLOWED_VERSIONS_SETS}, ignore it.")
             return None
 
         version_set = set(issue.versions_to_branches_map.keys())
         if version_set in config.ALLOWED_VERSIONS_SETS[issue.project]:
+            logger.debug(
+                f"Issue version set {sorted(version_set)!r} is in the allowed version sets "
+                f"{config.ALLOWED_VERSIONS_SETS[issue.project]}, ignore it.")
             return None
 
         return f"Version set {sorted(version_set)!r} is not allowed."
