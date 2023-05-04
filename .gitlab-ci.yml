@@ -6,7 +6,7 @@ include:
   file: 'pipelines/infra-templates.yml'
 
 variables:
-  DOCKER_REGISTRY_MIRROR: "docker.ru.nxteam.dev"
+  DOCKER_REGISTRY_MIRROR: "docker.us.nxteam.dev"
   WORKFLOW_POLICE_VERSION: "1.14"
   ROBOCAT_VERSION: "2.0"
   K8S_DEPLOY_NAMESPACE: "workflow-police"
@@ -23,10 +23,12 @@ stages:
   - docker image, chart
   - deploy
 
+default:
+  tags:
+  - us-service
+
 pep8:
   image: ${DOCKER_REGISTRY}/nx/deploy-pod
-  tags:
-  - service
   stage: validate
   script:
   - pycodestyle --max-line-length=99 .
@@ -36,8 +38,6 @@ pep8:
 robocat:test:
   image: ${DOCKER_REGISTRY}/python:3.9
   stage: test
-  tags:
-  - service
   variables:
     ROBOCAT_DIR: bots/robocat
     PYTHONPATH: .
@@ -57,8 +57,6 @@ robocat:test:
 workflow_police:test:
   image: ${DOCKER_REGISTRY}/python:3.9
   stage: test
-  tags:
-  - service
   variables:
     POLICE_DIR: bots/workflow_police
     PYTHONPATH: .
@@ -78,8 +76,6 @@ workflow_police:test:
 source_files_compliance:test:
   image: ${DOCKER_REGISTRY}/python:3.9
   stage: test
-  tags:
-  - service
   variables:
     PYTHONPATH: .
   script:
