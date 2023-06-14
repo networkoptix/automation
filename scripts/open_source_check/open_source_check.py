@@ -69,13 +69,6 @@ def main():
         type=Path,
         help="Path to the configuration file.")
     parser.add_argument(
-        "--repo-name",
-        choices=["vms"],
-        required=False,
-        default=".",
-        type=str,
-        help="LEFT FOR COMPATIBILITY - DO NOT USE.")
-    parser.add_argument(
         "--repo-dir",
         type=str,
         required=False,
@@ -141,11 +134,6 @@ def main():
         check_files = itertools.chain(
             (repo_directory / "open").rglob("*"),
             (repo_directory / "open_candidate").rglob("*"))
-
-    if arguments.config is None:
-        config_file_path = repo_directory / DEFAULT_CONFIG_NAME
-    else:
-        config_file_path = arguments.config
 
     result = check_file_list(
         config_file_path=config_file_path,
