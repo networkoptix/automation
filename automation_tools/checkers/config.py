@@ -8,8 +8,8 @@ ALLOWED_VERSIONS_SETS = {
         set(['Future']),
     ],
     "MOBILE": [
-        set(['23.1', '22.5', 'master']),
-        set(['23.1', 'master']),
+        set(['23.2', '23.1', 'master']),
+        set(['23.2', 'master']),
         set(['master']),
         set(['Future']),
     ],
