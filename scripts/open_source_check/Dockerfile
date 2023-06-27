@@ -15,6 +15,9 @@ RUN addgroup --gid $APP_GID user && \
 
 USER user
 
-COPY ./scripts/open_source_check/open_source_check.py ./scripts/open_source_check/open_source_check_config.json /workdir/
+COPY ./scripts/open_source_check/open_source_check.py \
+    ./scripts/open_source_check/no_checkable_open_source_files_check.py \
+    ./scripts/open_source_check/open_source_check_config.json \
+    /workdir/
 
 ENTRYPOINT ["/bin/bash", "-c"]
