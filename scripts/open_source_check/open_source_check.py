@@ -13,7 +13,7 @@ DEFAULT_CONFIG_NAME = "open_source_check_config.json"
 
 SCRIPT_DESCRIPTION = f"""
 This script is to be used for checking source files for compatibility with Open Source standards
-(absence of "bad" words, correc copyright notes etc.)
+(absence of "bad" words, correct copyright notes etc.)
 
 source_file_compliance library version: {source_file_compliance.__version__}
 """
@@ -32,7 +32,7 @@ def check_file_list(
         default_config_file = (Path(__file__).parent / DEFAULT_CONFIG_NAME).resolve()
         logging.warning(
             f"Config file {config_file_path.as_posix()!r} is not found. Using the default config "
-            f"from {default_config_file.as_posix()!r}.")
+            f"from {default_config_file.as_posix()!r}")
         repo_configuration = source_file_compliance.RepoCheckConfig.load(default_config_file)
 
     for entry in check_files:
@@ -53,7 +53,7 @@ def check_file_list(
         errors_as_string = "\n".join(e.to_string(relative_to=relative_to) for e in errors)
         logging.info(f"Problems found while checking {entry}:\n{errors_as_string}")
 
-    logging.info(f"Done!")
+    logging.info(f"Done")
 
     return no_errors_found
 
