@@ -9,7 +9,7 @@ createImagePullSecret:
 
 jiraPassword: {{ lookup("hashi_vault", "secret=/apptokens/data/jira")["service@networkoptix.com"] }}
 
-gelfServer: {{ lookup("env", "GRAYLOG_URL") }}
+gelfServer: {{ lookup("env", "GELF_SERVER") }}
 
 gitlabToken: {{ lookup("hashi_vault", "secret=/apptokens/data/gitlab/aws-gitlab-01")["workflow-police-app-token"] }}
 

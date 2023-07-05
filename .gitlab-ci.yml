@@ -10,6 +10,7 @@ variables:
   WORKFLOW_POLICE_VERSION: "1.14"
   ROBOCAT_VERSION: "2.0"
   K8S_DEPLOY_NAMESPACE: "workflow-police"
+  GELF_SERVER: "graylog.us.nxteam.dev:12201"
   WORKFLOW_POLICE_LOG_LEVEL:
     description: Workflow police log level
     value:  "INFO"
