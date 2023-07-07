@@ -4,6 +4,8 @@ ALLOWED_VERSIONS_SETS = {
         set(['5.0_patch', '5.1', '5.1_patch', 'master']),
         set(['5.1', '5.1_patch', 'master']),
         set(['5.1_patch', 'master']),
+        set(['5.1_patch', '6.0', 'master']),
+        set(['6.0', 'master']),
         set(['master']),
         set(['Future']),
     ],
