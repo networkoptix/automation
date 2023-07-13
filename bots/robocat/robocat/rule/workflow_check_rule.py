@@ -2,7 +2,7 @@ import logging
 import re
 
 from enum import Enum
-from typing import List, Optional, Set
+from typing import List, Optional
 
 from automation_tools.checkers.checkers import (WrongVersionChecker, IssueIgnoreLabelChecker)
 from robocat.merge_request_manager import MergeRequestManager
