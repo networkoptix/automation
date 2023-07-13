@@ -1,6 +1,7 @@
 from pathlib import Path
 import pytest
 
+import automation_tools.checkers.config
 from automation_tools.tests.mocks.git_mocks import BOT_USERNAME
 from robocat.merge_request import MergeRequest
 import robocat.gitlab
@@ -102,7 +103,26 @@ def commit_message_rule():
 
 
 @pytest.fixture
-def workflow_rule(project, jira):
+def workflow_rule(project, jira, monkeypatch):
+    monkeypatch.setattr(
+        automation_tools.checkers.config,
+        "ALLOWED_VERSIONS_SETS",
+        {
+            "VMS": [
+                set(['5.0', '5.0_patch', '5.1', '5.1_patch', 'master']),
+                set(['5.0_patch', '5.1', '5.1_patch', 'master']),
+                set(['5.1', '5.1_patch', 'master']),
+                set(['5.1_patch', 'master']),
+                set(['master']),
+                set(['Future']),
+            ],
+            "MOBILE": [
+                set(['23.1', '22.5', 'master']),
+                set(['23.1', 'master']),
+                set(['master']),
+                set(['Future']),
+            ],
+        })
     return WorkflowCheckRule(jira=jira)
 
 
