@@ -54,9 +54,9 @@ class Repo:
         except git.GitCommandError as exc:
             logger.debug(f"{self}: Remote repository {remote} already exists ({exc}).")
 
-    def grep_recent_commits(self, substring: str, branch: str) -> List:
-        return list(self.repo.iter_commits(
-            f"origin/{branch}", grep=substring, since=RECENT_COMMENTS_DEPTH))
+    def grep_recent_commits(self, substring: str, branch: str, exact_rev: bool = False) -> List:
+        rev = branch if exact_rev else f"origin/{branch}"
+        return list(self.repo.iter_commits(rev, grep=substring, since=RECENT_COMMENTS_DEPTH))
 
     def check_branch_exists(self, branch: str, remote: str = "origin") -> bool:
         try:
