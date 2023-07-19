@@ -240,6 +240,11 @@ def check_file_if_needed(
         name = stem
         stem, ext = os.path.splitext(name)
 
+    cpp_like = {
+        '.h', '.cpp', '.c', '.mm', '.ts', '.js', '.mjs', '.txt', '.inc', '.go', '.qml',
+        '.java', '.gradle'
+    }
+
     # Files of some types can have a shebang. If the file has it, start searching for the license
     # string from the third line instead of the first one; the second line must be empty.
     if lines[0].startswith('#!'):
@@ -260,7 +265,7 @@ def check_file_if_needed(
         _check_has_empty_line(line_idx=1)
         _check_has_mpl(line_idx=2, prefix='// ')
         _check_no_bad_words(expected_mpl_line_idx=2, license_words=(name != 'readme.md'))
-    elif ext in {'.h', '.cpp', '.c', '.mm', '.ts', '.js', '.mjs', '.txt', '.inc', '.go', '.qml'}:
+    elif ext in cpp_like:
         _check_has_mpl(line_idx=0, prefix='// ')
         _check_has_empty_line(line_idx=1)
         _check_no_bad_words(start_line_idx=2)
