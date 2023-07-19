@@ -229,6 +229,11 @@ def check_file_if_needed(
     with open(path, encoding="latin1") as f:
         lines = f.read().splitlines()
 
+    # There are certain files that contain no lines, such as .keep files which is a convention to
+    # keep empty directories in git.
+    if not lines:
+        return None
+
     name = path.name
     stem, ext = os.path.splitext(name)
     if ext == '.in':  # .in files are preprocessed with CMake, where it evaluates its variables.
