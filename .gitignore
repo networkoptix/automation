@@ -15,9 +15,9 @@ __pycache__
 # Helm chart tgz files
 bots/workflow_police/**/*.tgz
 sign_over_http/dist/**
-sign_over_http/*.egg-info/**
 sign_over_http/build/**
 
 .editorconfig
 
 .pytest_cache
+*.egg-info/
