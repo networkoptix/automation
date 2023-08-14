@@ -30,7 +30,8 @@ _trademark_exceptions_re = re.compile(
     r'application/x-noptix-[\w-]+|google-services\.json|GoogleService-Info\.plist|InitGoogleMock|'
     r'sub_pic_cpb_params_in_pic_timing_sei_flag|SEI_MSG|sei_payload|github.com/google/googletest|'
     r'googletest|groups.google.com|hanwha_edge1|dw_edge2|Network Optix <support@networkoptix.com>|'
-    r'networkoptix-metavms|nx_copyright_owner \"Network Optix\"|networkoptix.atlassian.net')
+    r'networkoptix-metavms|nx_copyright_owner \"Network Optix\"|networkoptix.atlassian.net|'
+    r'@networkoptix/')
 _license_words_exceptions_re = re.compile(
     r'\"copyright\"|\bcopyright_identification_|\b1 - Copyrighted\.(?:\s|$)|'
     r'nx_copyright \"Copyright \(c\)|nx_copyright_owner \"Network Optix\"')
