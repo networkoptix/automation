@@ -1,16 +1,13 @@
 ALLOWED_VERSIONS_SETS = {
     "VMS": [
-        # Important and urgent fix for all releases.
-        set(['5.0_patch', '5.1', '5.1_patch', '6.0', 'master']),
-
-        # Dangerous fix, goes for patches only.
-        set(['5.0_patch', '5.1_patch', '6.0', 'master']),
-
         # Important fix for all releases.
         set(['5.1', '5.1_patch', '6.0', 'master']),
 
         # Support / patch issue.
         set(['5.1_patch', '6.0', 'master']),
+
+        # Critical support / patch issue.
+        set(['5.1.1', '5.1_patch', '6.0', 'master']),
 
         # Ongoing release development.
         set(['6.0', 'master']),
