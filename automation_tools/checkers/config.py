@@ -3,6 +3,9 @@ ALLOWED_VERSIONS_SETS = {
         # Important fix for all releases.
         set(['5.1', '5.1_patch', '6.0', 'master']),
 
+        # Important fix for all releases (e.g. build fix).
+        set(['5.1', '5.1.1', '5.1_patch', '6.0', 'master']),
+
         # Support / patch issue.
         set(['5.1_patch', '6.0', 'master']),
 
