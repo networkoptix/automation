@@ -17,6 +17,7 @@ variables:
   ROBOCAT_LOG_LEVEL:
     description: Robocat log level
     value:  "INFO"
+  PIP_LOCAL_INDEX: ${ARTIFACTORY_URL}/api/pypi/pypi-local
 
 stages:
   - validate
@@ -28,7 +29,7 @@ default:
   tags:
   - us-service
 
-pep8:
+pep8:validate:
   image: ${DOCKER_REGISTRY}/nx/deploy-pod
   stage: validate
   script:
@@ -220,3 +221,49 @@ k8s:robocat:manual:deploy:
   extends: k8s:robocat:deploy
   rules:
   - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_NAME == "master"
+
+# Validate nx_lint package
+pip:validate:nx_lint:version:
+  stage: validate
+  image: python:3.9-slim-buster
+  variables:
+    PRODUCT: nx_lint
+    PRODUCT_VERSION_FILE: nx_lint/VERSION
+  before_script:
+  - PRODUCT_VERSION="$(cat ${PRODUCT_VERSION_FILE})"
+  script:
+  - set +e
+  - |
+    if pip search --index "${PIP_LOCAL_INDEX}" "${PRODUCT}" | grep "${PRODUCT_VERSION}"; then
+      echo -e "\033[0;31m${PRODUCT}==${PRODUCT_VERSION} exists, please, up ${PRODUCT} version!\u001b[0m"
+      exit 1
+    fi
+  - set -e
+  rules:
+  - if: !reference [.enable_for_mr_and_protected_ref, if]
+    changes:
+    - nx_lint/**
+    - .gitlab-ci.yml
+
+# Deploy nx_lint package
+pip:nx_lint:deploy:
+  image: python:3.9-slim-buster
+  stage: deploy
+  variables:
+    PRODUCT: nx_lint
+  secrets:
+    ARTIFACTORY_PASSWORD:
+      vault: infra/artifactory/jenkins@accounts
+      file: false
+  script:
+  - sed -e "s|<ARTIFACTORY_URL>|${ARTIFACTORY_URL}|"
+      -e "s|<PASSWORD>|${ARTIFACTORY_PASSWORD}|"
+      .pypirc > ${HOME}/.pypirc
+  - pip install --upgrade build twine
+  - python -m build "${PRODUCT}"/
+  - python -m twine upload -r local --non-interactive --config-file ${HOME}/.pypirc "${PRODUCT}"/dist/*
+  rules:
+  - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "master"
+    changes:
+    - nx_lint/**
+    - .gitlab-ci.yml
