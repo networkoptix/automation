@@ -131,7 +131,8 @@ docker:build:workflow_police:
     BUILD_OPTIONS: "--build-arg=GIT_COMMIT=$CI_COMMIT_SHORT_SHA"
     USE_GITLAB_REGISTRY: "true"
 
-# build open-source checker
+# Build the open-source checker.
+# TODO: Remove when the general code-checker image is ready.
 docker:build:open-source-checker:
   extends: .docker.template
   stage: "docker image, chart"
@@ -222,7 +223,7 @@ k8s:robocat:manual:deploy:
   rules:
   - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_NAME == "master"
 
-# Validate nx_lint package
+# Validate nx_lint package.
 pip:validate:nx_lint:version:
   stage: validate
   image: python:3.9-slim-buster
@@ -267,3 +268,20 @@ pip:nx_lint:deploy:
     changes:
     - nx_lint/**
     - .gitlab-ci.yml
+
+# Build and deploy the code checker image.
+docker:build:repo-checker:
+  extends: .docker.template
+  stage: "docker image, chart"
+  variables:
+    DOCKER_DIR: "repo_checker_image"
+    DOCKER_CONTEXT: ""
+    TARGET_IMAGE: "${DOCKER_REGISTRY}/nx/repo-checker"
+    TARGET_IMAGE_TAG: "1.0"
+  rules:
+    - if: !reference [.enable_for_mr_and_protected_ref, if]
+      changes:
+      - $DOCKER_DIR/**/*
+      - nx_source_file_compliance/**/*
+      - nx_lint/**
+      - .gitlab-ci.yml
