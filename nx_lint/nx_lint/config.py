@@ -28,7 +28,7 @@ class Config:
                 config = json.load(fp)
                 include = config.get("include", ["**"])
                 exclude = config.get("exclude", [])
-                enabled_rules = config.get("enabled_rules", args.enabled_rules)
+                enabled_rules = args.enabled_rules or config.get("enabled_rules", [])
                 return cls(include, exclude, enabled_rules)
         except FileNotFoundError:
             return cls(["**"], [], [])
