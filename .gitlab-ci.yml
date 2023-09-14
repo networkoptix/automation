@@ -244,7 +244,6 @@ pip:validate:nx_lint:version:
   - if: !reference [.enable_for_mr_and_protected_ref, if]
     changes:
     - nx_lint/**
-    - .gitlab-ci.yml
 
 # Deploy nx_lint package
 pip:nx_lint:deploy:
