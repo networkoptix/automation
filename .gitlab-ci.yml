@@ -132,7 +132,7 @@ docker:build:workflow_police:
     USE_GITLAB_REGISTRY: "true"
 
 # Build the open-source checker.
-# TODO: Remove when the general code-checker image is ready.
+# TODO: Remove when the general repo-checker image is ready.
 docker:build:open-source-checker:
   extends: .docker.template
   stage: "docker image, chart"
@@ -269,7 +269,7 @@ pip:nx_lint:deploy:
     - nx_lint/**
     - .gitlab-ci.yml
 
-# Build and deploy the code checker image.
+# Build and deploy the repo-checker image.
 docker:build:repo-checker:
   extends: .docker.template
   stage: "docker image, chart"
