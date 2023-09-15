@@ -10,19 +10,18 @@ def _is_empty(line: bytes) -> bool:
     return not line or all(c in (TAB, SPACE, CR, LF) for c in line)
 
 
-def _leading_empty_lines(file_path: Path, cache: FileCache) -> int:
+def _leading_empty_lines(file_path: Path, lines: list[bytes]) -> int:
     count = 0
-    for _, line in cache.lines_of(file_path):
+    for line in lines:
         if not _is_empty(line):
             break
         count += 1
     return count
 
 
-def _trailing_empty_lines(file_path: Path, cache: FileCache) -> int:
+def _trailing_empty_lines(file_path: Path, lines: list[bytes]) -> int:
     count = 0
-    all_lines = list(cache.lines_of(file_path))
-    for _, line in reversed(all_lines):
+    for line in reversed(lines):
         if not _is_empty(line):
             break
         count += 1
@@ -36,7 +35,8 @@ class EmptyLinesRule:
     def check_file(self, file_path: Path, cache: FileCache) -> Iterable[Violation]:
         results = []
 
-        count = _leading_empty_lines(file_path, cache)
+        lines = [line for _, line in cache.lines_of(file_path)]
+        count = _leading_empty_lines(file_path, lines)
         if count > 0:
             results.append(
                 Violation(
@@ -47,7 +47,7 @@ class EmptyLinesRule:
                     message=f"Leading empty line(s) in file.",
                     lint_id=self.identifier))
 
-        count = _trailing_empty_lines(file_path, cache)
+        count = _trailing_empty_lines(file_path, lines)
         if count > 0:
             results.append(
                 Violation(
@@ -69,7 +69,7 @@ class EmptyLinesRule:
     def fix_file(self, file_path: Path, cache: FileCache) -> None:
         from nx_lint.utils import split_lines
         lines = list(split_lines(file_path.open("rb").read()))
-        leading = _leading_empty_lines(file_path, cache)
-        trailing = _trailing_empty_lines(file_path, cache)
+        leading = _leading_empty_lines(file_path, lines)
+        trailing = _trailing_empty_lines(file_path, lines)
         with file_path.open("wb") as file:
             file.writelines(lines[leading:len(lines) - trailing])
