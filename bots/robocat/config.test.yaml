@@ -10,6 +10,7 @@ jira:
         - CB
         - SQ
         - NXLIB
+        - AMS
 
     custom_project_configs:
         NXLIB:

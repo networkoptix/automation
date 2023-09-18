@@ -50,6 +50,7 @@ robocatConfig: |
       - CB
       - SQ
       - NXLIB
+      - AMS
 
   repo:
     path: /var/workflow_robocat/nx
