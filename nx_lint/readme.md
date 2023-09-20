@@ -99,11 +99,11 @@ include in your tasks.json:
   "problemMatcher": {
     "owner": "Python",
     "pattern": {
-      "regexp": "^(.*):(\\d+):(\\d+):\\s+(.*)$",
-      "file": 1,
-      "line": 2,
-      "column": 3,
-      "message": 4
+      "regexp": "^Error: \[([^\]]+)\] (\S+):(\d+):(\d+): (.*)$",
+      "file": 2,
+      "line": 3,
+      "column": 4,
+      "message": 5
     }
   }
 }
