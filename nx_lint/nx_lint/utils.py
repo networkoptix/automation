@@ -122,15 +122,33 @@ def as_bytes(*char_codes: int) -> bytes:
     return b"".join(bytes((c,)) for c in char_codes)
 
 
-def escape_char(char: str) -> str:
+def escape_ascii_char(char: Union[bytes, int]) -> str:
+    if type(char) not in (bytes, int):
+        raise TypeError("Value must be a bytes object or an int")
+    if type(char) is int:
+        char = bytes((char,))
     if len(char) != 1:
-        raise ValueError("value must be a single character")
+        raise ValueError("Value must be a single ASCII character")
+
     code = ord(char)
     if code in _known_escape_sequences:
         return _known_escape_sequences[code]
     elif is_ascii_printable(code):
-        return char
-    elif (code < 0x20) or (0x7F <= code <= 0xFF):
-        return f"\\x{code:02X}"
+        return char.decode("ascii")
     else:
+        return f"\\x{code:02X}"
+
+
+def escape_unicode_char(char: str) -> str:
+    if type(char) is not str:
+        raise TypeError("Value must be a str object")
+    if len(char) != 1:
+        raise ValueError("Value must be a single character")
+
+    code = ord(char)
+    if code < 0x80:
+        return escape_ascii_char(code)
+    elif code <= 0xFFFF:
         return f"\\u{code:04X}"
+    else:
+        return f"\\U{code:08X}"

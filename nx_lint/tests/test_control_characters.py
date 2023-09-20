@@ -10,11 +10,11 @@ def rule():
 
 @pytest.mark.parametrize(
     "lines",
-    [[f"line{chr(x)}"] for x in range(0x00, 0x1F) if x not in (0x0A, 0x09)]
-    + [["line\x7F"]],
+    [b"line" + bytes((x,)) for x in range(0x00, 0x1F) if x not in (0x0A, 0x09)]
+    + [b"line\x7F"],
 )
-def test_control_characters_identified(rule, lines_cache, lines):
-    cache = lines_cache(lines)
+def test_control_characters_identified(rule, binary_cache, lines):
+    cache = binary_cache(lines)
     results = rule.check_file("fake_file", cache)
     assert len(results) == 1
 

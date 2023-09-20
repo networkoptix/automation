@@ -6,8 +6,13 @@ class MockFileCache:
         self.bytes_cache = bytes_data
 
     def lines_of(self, file_path):
-        for num, line in enumerate(self.lines):
-            yield num + 1, line
+        if self.lines:
+            for num, line in enumerate(self.lines):
+                yield num + 1, line
+        else:
+            from nx_lint.utils import split_lines
+            for num, line in enumerate(split_lines(self.bytes_cache)):
+                yield num + 1, line
 
     def bytes_of(self, file_path):
         for byte in self.bytes_cache:

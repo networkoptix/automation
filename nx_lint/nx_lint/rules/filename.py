@@ -3,7 +3,7 @@ from typing import Iterable
 
 from nx_lint.violation import Violation
 from nx_lint.file_cache import FileCache
-from nx_lint.utils import escape_char
+from nx_lint.utils import escape_unicode_char
 
 WINDOWS_INCOMPATIBLE_CHARS = r'<>:"/\|?*'
 WINDOWS_INCOMPATIBLE_NAMES = (
@@ -29,7 +29,8 @@ class FileNameRule:
         results = []
         if any(c not in ACCEPTABLE_CHARACTERS for c in file_path.stem):
             bad_chars = ", ".join(
-                f"{escape_char(c)}" for c in sorted(set(file_path.stem) - ACCEPTABLE_CHARACTERS))
+                f"{escape_unicode_char(c)}"
+                for c in sorted(set(file_path.stem) - ACCEPTABLE_CHARACTERS))
             results.append(
                 Violation(
                     # TODO: #tszelei We are printing a potentially non-ASCII filename here.

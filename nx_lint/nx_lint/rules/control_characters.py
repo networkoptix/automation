@@ -4,7 +4,7 @@ from typing import Iterable
 from nx_lint.violation import Violation
 from nx_lint.file_cache import FileCache
 from nx_lint.constants import SPACE, TAB, LF, DEL, CR
-from nx_lint.utils import escape_char, is_crlf_file
+from nx_lint.utils import escape_ascii_char, is_crlf_file
 
 
 class ControlCharactersRule:
@@ -27,7 +27,7 @@ class ControlCharactersRule:
                     if is_crlf_file(file_path):
                         if c == CR and column + 1 < len(line) and line[column + 1] == LF:
                             continue
-                    escaped = escape_char(chr(c))
+                    escaped = escape_ascii_char(c)
                     results.append(
                         Violation(
                             file_path=file_path,
