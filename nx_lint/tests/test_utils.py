@@ -52,10 +52,10 @@ def test_as_bytes(char_codes, result):
         ("\x15", "\\x15"),
         ("\x5C", "\\\\"),
         ("\x20", " "),
-        ("\x7F", "\\x7f"),
+        ("\x7F", "\\x7F"),
         ("\x41", "A"),
-        ("\xFF", "\\xff"),
-        ("\u016D", "\\u016d"),  # LATIN SMALL LETTER U WITH BREVE
+        ("\xFF", "\\xFF"),
+        ("\u016D", "\\u016D"),  # LATIN SMALL LETTER U WITH BREVE
         ("\u0416", "\\u0416"),  # CYRILLIC CAPITAL LETTER ZHE
     ],
 )

@@ -130,7 +130,7 @@ def escape_char(char: str) -> str:
         return _known_escape_sequences[code]
     elif is_ascii_printable(code):
         return char
-    elif (code < 0x20) or (0x7f <= code <= 0xff):
-        return f"\\x{code:02x}"
+    elif (code < 0x20) or (0x7F <= code <= 0xFF):
+        return f"\\x{code:02X}"
     else:
-        return f"\\u{code:04x}"
+        return f"\\u{code:04X}"
