@@ -29,7 +29,7 @@ class FileNameRule:
         results = []
         if any(c not in ACCEPTABLE_CHARACTERS for c in file_path.stem):
             bad_chars = ", ".join(
-                f"{escape_unicode_char(c)}"
+                f"'{escape_unicode_char(c)}'"
                 for c in sorted(set(file_path.stem) - ACCEPTABLE_CHARACTERS))
             results.append(
                 Violation(
