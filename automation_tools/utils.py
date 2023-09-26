@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import datetime
 from pathlib import Path
 import json
-from typing import List
+from typing import List, Iterable, Tuple, Any
 
 import yaml
 
@@ -21,6 +21,10 @@ def parse_config_file(filepath: Path):
 
     with open(filepath, 'r') as f:
         return parse_file(f)
+
+
+def config_from_filename(filename: str) -> dict:
+    return parse_config_file(Path(filename))
 
 
 def flatten_list(list_of_lists: List):
@@ -58,3 +62,20 @@ class User:
     username: str
     name: str = ""
     email: str = ""
+
+
+def merge_dicts(left: dict, right: dict) -> Iterable[Tuple[Any, Any]]:
+    """ Recursively merges two dictionaries. Merging happens from left to right. Identical keys,
+        when both values are dictionaries, are merged; otherwise the value from the right dict
+        is used.
+    """
+    for key in set(left.keys()) | set(right.keys()):
+        if key in left and key in right:
+            if isinstance(left[key], dict) and isinstance(right[key], dict):
+                yield (key, dict(merge_dicts(left[key], right[key])))
+            else:
+                yield (key, right[key])
+        elif key in left:
+            yield (key, left[key])
+        else:
+            yield (key, right[key])

@@ -146,7 +146,16 @@ def thread_exception_hook(args):
 
 def main():
     parser = argparse.ArgumentParser(sys.argv[0])
-    parser.add_argument('-c', '--config', help="Config file with all options", default={})
+    parser.add_argument(
+        '-c', '--config',
+        help="Config file with all global options",
+        type=automation_tools.utils.config_from_filename,
+        default={})
+    parser.add_argument(
+        "-lc", "--local-config",
+        help="Local config file, usually located in the repo that is processed by robocat",
+        type=automation_tools.utils.config_from_filename,
+        default={})
     parser.add_argument(
         '-p', '--project-id',
         help="Id of a project in gitlab (2 for dev/nx)",
@@ -179,10 +188,8 @@ def main():
         handlers=[log_handler],
         format='%(asctime)s %(levelname)s %(name)s\t%(message)s')
 
-    if arguments.config:
-        config = automation_tools.utils.parse_config_file(Path(arguments.config))
-    else:
-        config = {}
+    # Update (overwrite) the global configuration with the local one.
+    config = dict(automation_tools.utils.merge_dicts(arguments.config, arguments.local_config))
 
     if arguments.mode == "webhook":
         threading.excepthook = thread_exception_hook
