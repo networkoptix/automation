@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 from nx_lint.config import Config
 from nx_lint.violation import Violation
@@ -28,7 +29,7 @@ class Linter:
             rule.check_file(file_path, self.cache) for rule in self.rules.values())
         return list(results)
 
-    def print_stats(self, results: list[list[Violation]]) -> None:
+    def print_stats(self, results: list[list[Violation]], untracked: Optional[list[str]]) -> None:
         from collections import Counter
         from itertools import chain
 
@@ -40,6 +41,14 @@ class Linter:
                 print(f"  {lint_id}: {count}")
         else:
             print("No violations found.")
+
+        if untracked:
+            print("\nThe following files were not checked because they are not tracked or staged "
+                  "in git:")
+            for file_path in untracked:
+                print(f"  {file_path}")
+            print("\nTo check these files, either stage or commit them, or pass "
+                  "-u/--include-untracked.")
 
         if self.fixed_files:
             print("\nFixed files:")
@@ -97,6 +106,7 @@ def lint_files(args) -> int:
         logging.error(f"Repo directory {str(repo_directory)} does not exist.")
         return -1
 
+    untracked = None
     if args.file:
         files = [args.file]
     elif args.check_dir:
@@ -104,6 +114,12 @@ def lint_files(args) -> int:
     elif args.check_file_list:
         with open(args.check_file_list) as file_list:
             files = (repo_directory / Path(f.rstrip()) for f in file_list.readlines())
+    elif not args.include_untracked:
+        from nx_lint.utils import git_tracked_files, git_staged_files, git_untracked_files
+        tracked_files = git_tracked_files()
+        staged_files = git_staged_files()
+        untracked = git_untracked_files()
+        files = tracked_files.union(staged_files)
     else:
         files = repo_directory.rglob("*")
 
@@ -140,7 +156,7 @@ def lint_files(args) -> int:
     with ThreadPoolExecutor() as executor:
         results.extend(executor.map(check_one_file, files))
 
-    linter.print_stats(results)
+    linter.print_stats(results, untracked)
 
     if args.csv_file:
         printer.write_csv(args.csv_file, results)

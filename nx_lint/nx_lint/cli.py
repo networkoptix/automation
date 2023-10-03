@@ -1,7 +1,10 @@
 import sys
 import logging
-from nx_lint.argument_parser import NxLintArgumentParser
+
 from pathlib import Path
+
+from nx_lint.argument_parser import NxLintArgumentParser
+from nx_lint.utils import git_repo_root
 
 
 def main():
@@ -84,6 +87,15 @@ def main():
         default=True,
         help="Never create a backup file when fixing a violation. By default, a backup file is "
              "created if a fix is applied to a file that contains changes not tracked by git.")
+    is_in_git = git_repo_root() is not None
+    parser.add_argument(
+        "-u",
+        "--include-untracked",
+        default=not is_in_git,
+        action="store_true",
+        dest="include_untracked",
+        help="Do not exclude files that are neither tracked nor staged by git. If this option is "
+             "not specified, such files are excluded, and their filenames are printed.")
 
     args = parser.parse_args()
 

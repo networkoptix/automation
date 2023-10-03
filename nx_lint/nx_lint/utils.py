@@ -152,3 +152,30 @@ def escape_unicode_char(char: str) -> str:
         return f"\\u{code:04X}"
     else:
         return f"\\U{code:08X}"
+
+
+@lru_cache(maxsize=None)
+def git_tracked_files() -> set[Path]:
+    """ Returns a set of all tracked files in the git repo. """
+    from subprocess import run, PIPE
+
+    git = run(["git", "ls-files"], stdout=PIPE, stderr=PIPE)
+    return set(Path(line) for line in git.stdout.decode().splitlines())
+
+
+@lru_cache(maxsize=None)
+def git_untracked_files() -> set[Path]:
+    """ Returns a set of all untracked files in the git repo. """
+    from subprocess import run, PIPE
+
+    git = run(["git", "ls-files", "--others", "--exclude-standard"], stdout=PIPE, stderr=PIPE)
+    return set(Path(line) for line in git.stdout.decode().splitlines())
+
+
+@lru_cache(maxsize=None)
+def git_staged_files() -> set[Path]:
+    """ Returns a set of all staged files in the git repo. """
+    from subprocess import run, PIPE
+
+    git = run(["git", "diff", "--name-only", "--cached"], stdout=PIPE, stderr=PIPE)
+    return set(Path(line) for line in git.stdout.decode().splitlines())
