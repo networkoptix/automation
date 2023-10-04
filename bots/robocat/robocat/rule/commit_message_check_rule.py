@@ -4,9 +4,11 @@ from typing import Set
 from dataclasses import asdict
 from enum import Enum
 from pathlib import Path
+from automation_tools.jira import JiraAccessor
 
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
+from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 import robocat.rule.helpers.approve_rule_helpers as approve_rule_helpers
 from robocat.rule.helpers.stateful_checker_helpers import (
@@ -44,6 +46,8 @@ class CommitMessageStoredCheckResults(StoredCheckResults):
 
 
 class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
+    identifier = "commit_message"
+
     ExecutionResult = CommitMessageCheckRuleExecutionResultClass.create(
         "CommitMessageCheckRuleExecutionResult", {
             "merge_authorized": "MR is approved by the authorized approver",
@@ -52,9 +56,10 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
             "commit_message_is_ok": "Commit message check didn't find any problems",
         })
 
-    def __init__(
-            self,
-            approve_ruleset: approve_rule_helpers.ApproveRuleDict):
+    def __init__(self, config: dict, project_manager: ProjectManager, jira: JiraAccessor):
+        super().__init__(config, project_manager, jira)
+        job_status_check_configuration = config["job_status_check_rule"]["open_source"]
+        approve_ruleset = job_status_check_configuration["approve_ruleset"]
         checker = getattr(approve_rule_helpers, approve_ruleset["relevance_checker"])
         self._approve_rules = [
             approve_rule_helpers.ApproveRule(
@@ -64,7 +69,6 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
             for rule in approve_ruleset["rules"]]
         logger.info(
             f"Commit message check rule created. Approvers list is {self._approve_rules!r}")
-        super().__init__()
 
     def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing check commit message rule on {mr_manager}...")

@@ -3,6 +3,7 @@ import re
 from typing import List, Set, Tuple
 from dataclasses import asdict
 from enum import Enum
+from automation_tools.jira import JiraAccessor
 
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.project_manager import ProjectManager
@@ -42,16 +43,17 @@ class NxSubmoduleStoredCheckResults(StoredCheckResults):
 
 
 class NxSubmoduleCheckRule(CheckChangesMixin, BaseRule):
+    identifier = "nx_submodule"
+
     ExecutionResult = NxSubmoduleRuleExecutionResultClass.create(
         "NxSubmoduleRuleExecutionResult", {
             "nx_submodule_check_rule_ok": "Nx Submodule check hasn't find any problems",
             "invalid_changes": "Invalid changes found",
         })
 
-    def __init__(self, project_manager: ProjectManager, nx_submodule_dirs: List[str]):
-        self._submodule_dirs = nx_submodule_dirs
-        self._project_manager = project_manager
-        super().__init__()
+    def __init__(self, config: dict, project_manager: ProjectManager, jira: JiraAccessor):
+        super().__init__(config, project_manager, jira)
+        self._submodule_dirs = config["nx_submodule_check_rule"]["nx_submodule_dirs"]
 
     def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing Nx Submodule(s) check on {mr_manager}...")
@@ -74,7 +76,7 @@ class NxSubmoduleCheckRule(CheckChangesMixin, BaseRule):
     def _find_errors(self, mr_manager: MergeRequestManager) -> Set[CheckError]:
         errors = set()
         mr_sha = mr_manager.data.sha
-        with NxSubmoduleChecker(self._submodule_dirs, self._project_manager, mr_sha) as checker:
+        with NxSubmoduleChecker(self._submodule_dirs, self.project_manager, mr_sha) as checker:
             for file_changes in mr_manager.get_changes().changes:
                 error = checker.find_error(
                     file_name=file_changes["new_path"],

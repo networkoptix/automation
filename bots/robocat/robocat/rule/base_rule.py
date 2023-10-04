@@ -2,8 +2,10 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 import logging
 from typing import Dict
+from automation_tools.jira import JiraAccessor
 
 from robocat.merge_request_manager import MergeRequestManager, MergeRequestData
+from robocat.project_manager import ProjectManager
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +37,10 @@ class RuleExecutionResultClass(Enum):
 class BaseRule(metaclass=ABCMeta):
     ExecutionResult = RuleExecutionResultClass.create("RuleExecutionResult", {})
 
-    def __init__(self):
-        pass
+    def __init__(self, config: dict, project_manager: ProjectManager, jira: JiraAccessor):
+        self.config = config
+        self.project_manager = project_manager
+        self.jira = jira
 
     @abstractmethod
     def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:

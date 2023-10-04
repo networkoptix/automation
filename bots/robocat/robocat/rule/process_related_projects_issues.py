@@ -4,6 +4,7 @@ import re
 from typing import List, Literal, TypedDict
 
 from robocat.merge_request_manager import MergeRequestManager
+from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from automation_tools.jira import JiraAccessor
 from automation_tools.utils import AutomationError
@@ -62,6 +63,8 @@ class ProcessRelatedProjectIssuesRuleExecutionResultClass(RuleExecutionResultCla
 
 
 class ProcessRelatedProjectIssuesRule(BaseRule):
+    identifier = "process_related"
+
     ExecutionResult = ProcessRelatedProjectIssuesRuleExecutionResultClass.create(
         "ProcessRelatedProjectIssuesRuleExecutionResult", {
             "rule_execution_successful": "All operations completed successfully",
@@ -70,17 +73,17 @@ class ProcessRelatedProjectIssuesRule(BaseRule):
             "rule_execution_failed": "Some of the operations failed",
         })
 
-    def __init__(self, jira: JiraAccessor, rules: List[PostprocessingRuleConfig]):
-        self._jira = jira
+    def __init__(self, config: dict, project_manager: ProjectManager, jira: JiraAccessor):
+        super().__init__(config, project_manager, jira)
+        rules = config["process_related_merge_requests_rule"]["rules"]
         self._postprocessing_rules = [PostprocessingRule(pr) for pr in rules]
-        super().__init__()
 
     def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(
             "Executing the rule of processing issues for the related projects with "
             f"{mr_manager}...")
 
-        self._jira.get_issue.cache_clear()
+        self.jira.get_issue.cache_clear()
 
         mr_data = mr_manager.data
         if not mr_data.is_merged:
@@ -94,7 +97,7 @@ class ProcessRelatedProjectIssuesRule(BaseRule):
         for rule in self._postprocessing_rules:
             if rule.is_applicable(mr_manager):
                 has_applicable_rules = True
-                rule_executions_result &= rule.execute(jira=self._jira, mr_manager=mr_manager)
+                rule_executions_result &= rule.execute(jira=self.jira, mr_manager=mr_manager)
 
         if not has_applicable_rules:
             return self.ExecutionResult.no_applicable_rules

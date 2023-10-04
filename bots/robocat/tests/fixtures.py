@@ -1,4 +1,5 @@
 from pathlib import Path
+from collections import defaultdict
 import pytest
 
 import automation_tools.checkers.config
@@ -10,9 +11,7 @@ from automation_tools.tests.mocks.merge_request import MergeRequestMock
 from automation_tools.tests.mocks.pipeline import PipelineMock
 from automation_tools.tests.gitlab_constants import (
     DEFAULT_APPROVE_RULESET,
-    DEFAULT_APIDOC_APPROVE_RULESET,
-    DEFAULT_SUBMODULE_DIRS)
-from automation_tools.tests.jira_constants import DEFAULT_PROJECT_KEYS_TO_CHECK
+    DEFAULT_APIDOC_APPROVE_RULESET)
 from robocat.app import Bot
 from robocat.rule.commit_message_check_rule import CommitMessageCheckRule
 from robocat.rule.essential_rule import EssentialRule
@@ -77,33 +76,41 @@ def mr_manager(project):
 
 
 @pytest.fixture
-def essential_rule():
-    return EssentialRule(DEFAULT_PROJECT_KEYS_TO_CHECK)
+def project_manager(project, repo_accessor):
+    return ProjectManager(project, BOT_USERNAME, repo=repo_accessor)
 
 
 @pytest.fixture
-def nx_submodule_check_rule(project, repo_accessor):
-    project_manager = ProjectManager(project, BOT_USERNAME, repo=repo_accessor)
-    return NxSubmoduleCheckRule(project_manager, nx_submodule_dirs=DEFAULT_SUBMODULE_DIRS)
+def essential_rule(bot_config, project_manager):
+    return EssentialRule(bot_config, project_manager, None)
 
 
 @pytest.fixture
-def job_status_rule(project, repo_accessor, open_source_approve_ruleset, apidoc_approve_ruleset):
-    project_manager = ProjectManager(project, BOT_USERNAME, repo=repo_accessor)
-    return JobStatusCheckRule(
-        project_manager,
-        open_source_approve_ruleset=open_source_approve_ruleset,
-        apidoc_changes_approve_ruleset=apidoc_approve_ruleset)
+def nx_submodule_check_rule(bot_config, project_manager):
+    return NxSubmoduleCheckRule(bot_config, project_manager, None)
 
 
 @pytest.fixture
-def commit_message_rule():
-    return CommitMessageCheckRule(
-        approve_ruleset=DEFAULT_APPROVE_RULESET)
+def job_status_rule(
+    bot_config,
+    project_manager,
+    open_source_approve_ruleset,
+    apidoc_approve_ruleset
+):
+    rule = bot_config["job_status_check_rule"]
+    rule["open_source"]["approve_ruleset"] = open_source_approve_ruleset
+    rule["apidoc"]["approve_ruleset"] = apidoc_approve_ruleset
+    return JobStatusCheckRule(bot_config, project_manager, None)
 
 
 @pytest.fixture
-def workflow_rule(project, jira, monkeypatch):
+def commit_message_rule(bot_config, project_manager):
+    bot_config["job_status_check_rule"]["open_source"]["approve_ruleset"] = DEFAULT_APPROVE_RULESET
+    return CommitMessageCheckRule(bot_config, project_manager, None)
+
+
+@pytest.fixture
+def workflow_rule(bot_config, project, jira, monkeypatch):
     monkeypatch.setattr(
         automation_tools.checkers.config,
         "ALLOWED_VERSIONS_SETS",
@@ -123,13 +130,12 @@ def workflow_rule(project, jira, monkeypatch):
                 set(['Future']),
             ],
         })
-    return WorkflowCheckRule(jira=jira)
+    return WorkflowCheckRule(bot_config, project, jira)
 
 
 @pytest.fixture
-def follow_up_rule(project, jira, monkeypatch, repo_accessor):
-    project_manager = ProjectManager(project, BOT_USERNAME, repo=repo_accessor)
-    rule = FollowUpRule(project_manager=project_manager, jira=jira)
+def follow_up_rule(bot_config, project, project_manager, jira, monkeypatch):
+    rule = FollowUpRule(bot_config, project_manager, jira)
 
     def return_gitlab_object(*_, private_token):
         gitlab = project.manager.gitlab
@@ -143,10 +149,9 @@ def follow_up_rule(project, jira, monkeypatch, repo_accessor):
 
 
 @pytest.fixture
-def process_related_projects_issues_rule(jira, bot_config, monkeypatch):
+def process_related_projects_issues_rule(bot_config, project_manager, jira, monkeypatch):
     monkeypatch.setenv("BOT_NAME", "Robocat")
-    return ProcessRelatedProjectIssuesRule(
-        jira=jira, **bot_config["process_related_merge_requests_rule"])
+    return ProcessRelatedProjectIssuesRule(bot_config, project_manager, jira)
 
 
 @pytest.fixture
@@ -163,13 +168,15 @@ def bot(
         jira,
         monkeypatch):
     def bot_init(bot):
-        bot._rule_commit_message = commit_message_rule
-        bot._rule_essential = essential_rule
-        bot._rule_nx_submodules_check = nx_submodule_check_rule
-        bot._rule_job_status_check = job_status_rule
-        bot._rule_follow_up = follow_up_rule
-        bot._rule_workflow_check = workflow_rule
-        bot._rule_process_related_projects_issues = process_related_projects_issues_rule
+        bot._rules = {
+            "commit_message": commit_message_rule,
+            "essential": essential_rule,
+            "nx_submodule": nx_submodule_check_rule,
+            "job_status": job_status_rule,
+            "follow_up": follow_up_rule,
+            "workflow": workflow_rule,
+            "process_related": process_related_projects_issues_rule,
+        }
         bot._username = BOT_USERNAME
         bot._repo = repo_accessor
         bot._project_manager = ProjectManager(project, bot._username, repo=bot._repo)

@@ -3,7 +3,9 @@ from enum import Enum
 from typing import Set
 
 from automation_tools.checkers.checkers import WorkflowPolicyChecker
+from automation_tools.jira import JiraAccessor
 from robocat.merge_request_manager import MergeRequestManager, ApprovalRequirements
+from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.action_reasons import WaitReason, CheckFailureReason
 from robocat.pipeline import PipelineStatus
@@ -17,6 +19,8 @@ class EssentialRuleExecutionResultClass(RuleExecutionResultClass, Enum):
 
 
 class EssentialRule(BaseRule):
+    identifier = "essential"
+
     ExecutionResult = EssentialRuleExecutionResultClass.create(
         "EssentialRuleExecutionResult", {
             "bad_project_list": "Merge Request does not belong to any supported Jira Project",
@@ -30,9 +34,9 @@ class EssentialRule(BaseRule):
             "unresolved_threads": "Unresolved threads found",
         })
 
-    def __init__(self, project_keys: Set[str]):
-        self._project_keys = project_keys
-        super().__init__()
+    def __init__(self, config: dict, project_manager: ProjectManager, jira: JiraAccessor):
+        super().__init__(config, project_manager, jira)
+        self._project_keys = config["jira"].get("project_keys")
 
     def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing essential rule with {mr_manager}...")

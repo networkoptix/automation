@@ -21,6 +21,8 @@ class FollowUpRuleExecutionResultClass(RuleExecutionResultClass, Enum):
 
 
 class FollowUpRule(BaseRule):
+    identifier = "follow_up"
+
     ExecutionResult = FollowUpRuleExecutionResultClass.create(
         "FollowUpRuleExecutionResult", {
             "rule_execution_successful": "All operations completed successfully",
@@ -28,15 +30,13 @@ class FollowUpRule(BaseRule):
             "rule_execution_failed": "Some of operations failed",
         })
 
-    def __init__(self, project_manager: ProjectManager, jira: JiraAccessor):
-        self._project_manager = project_manager
-        self._jira = jira
-        super().__init__()
+    def __init__(self, config: dict, project_manager: ProjectManager, jira: JiraAccessor):
+        super().__init__(config, project_manager, jira)
 
     def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing follow-up rule with {mr_manager}...")
 
-        self._jira.get_issue.cache_clear()
+        self.jira.get_issue.cache_clear()
 
         mr_data = mr_manager.data
         if not mr_data.is_merged:
@@ -82,8 +82,8 @@ class FollowUpRule(BaseRule):
                 n for n in mr_manager.notes()
                 if n.message_id == MessageId.CommandSetDraftFollowUpMode])
             robocat.merge_request_actions.follow_up_actions.create_follow_up_merge_requests(
-                jira=self._jira,
-                project_manager=self._project_manager,
+                jira=self.jira,
+                project_manager=self.project_manager,
                 mr_manager=mr_manager,
                 set_draft_flag=create_follow_ups_in_draft_state)
             self._try_close_single_branch_jira_issues(
@@ -95,17 +95,17 @@ class FollowUpRule(BaseRule):
         except Exception as error:
             logger.error(
                 f"{mr_manager}: Follow-up processing was crashed for {mr_manager}: {error}")
-            for issue in self._jira.get_issues(jira_issue_keys):
+            for issue in self.jira.get_issues(jira_issue_keys):
                 issue.add_follow_up_error_comment(error=error, mr_url=mr_data.url)
             return self.ExecutionResult.rule_execution_failed
 
     def _try_close_jira_issues(self, mr_manager, target_branch: str, issue_keys: List[str]):
-        for issue in self._jira.get_issues(issue_keys):
+        for issue in self.jira.get_issues(issue_keys):
             logger.debug(f"{mr_manager} Trying to move to QA/close issue {issue}.")
             issue_branches = issue.branches(exclude_already_merged=True)
             mr_ids = issue.get_related_merge_request_ids()
             merged_branches = {target_branch}.union(
-                self._project_manager.get_merged_branches_by_mr_ids(mr_ids))
+                self.project_manager.get_merged_branches_by_mr_ids(mr_ids))
 
             if not issue_branches.issubset(merged_branches):
                 logger.info(
@@ -119,6 +119,6 @@ class FollowUpRule(BaseRule):
 
     def _try_close_single_branch_jira_issues(
             self, target_branch: str, issue_keys: List[str], mr_manager: MergeRequestManager):
-        for issue in self._jira.get_issues(issue_keys):
+        for issue in self.jira.get_issues(issue_keys):
             if issue.branches(exclude_already_merged=True) == {target_branch}:
                 issue.try_finalize() or mr_manager.add_issue_not_finalized_notification(str(issue))

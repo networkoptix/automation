@@ -19,13 +19,7 @@ from robocat.project_manager import ProjectManager
 from robocat.merge_request_actions.notify_user_actions import add_failed_pipeline_comment_if_needed
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.pipeline import PlayPipelineError, Pipeline, PipelineStatus
-from robocat.rule.commit_message_check_rule import CommitMessageCheckRule
-from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
-from robocat.rule.essential_rule import EssentialRule
-from robocat.rule.job_status_check_rule import JobStatusCheckRule
-from robocat.rule.follow_up_rule import FollowUpRule
-from robocat.rule.workflow_check_rule import WorkflowCheckRule
-from robocat.rule.process_related_projects_issues import ProcessRelatedProjectIssuesRule
+from robocat.rule import ALL_RULES
 
 logger = logging.getLogger(__name__)
 
@@ -97,56 +91,35 @@ class Bot(threading.Thread):
             gitlab_project=raw_gitlab.projects.get(project_id),
             current_user=self._username,
             repo=self._repo)
-
         self._jira = JiraAccessor(**config["jira"])
 
-        self._rule_nx_submodules_check = NxSubmoduleCheckRule(
-            self._project_manager,
-            **config["nx_submodule_check_rule"])
-        # For now, use the same approval rules for JobStatusCheckRule and CommitMessageCheckRule.
-        job_status_check_configuration = config["job_status_check_rule"]["open_source"]
-        self._rule_commit_message = CommitMessageCheckRule(
-            approve_ruleset=job_status_check_configuration["approve_ruleset"])
-        self._rule_essential = EssentialRule(project_keys=config["jira"].get("project_keys"))
-
-        apidoc_check_configuration = config["job_status_check_rule"]["apidoc"]
-        self._rule_job_status_check = JobStatusCheckRule(
-            project_manager=self._project_manager,
-            open_source_approve_ruleset=job_status_check_configuration["approve_ruleset"],
-            apidoc_changes_approve_ruleset=apidoc_check_configuration["approve_ruleset"])
-
-        self._rule_workflow_check = WorkflowCheckRule(jira=self._jira)
-        self._rule_follow_up = FollowUpRule(project_manager=self._project_manager, jira=self._jira)
-        self._rule_process_related_projects_issues = ProcessRelatedProjectIssuesRule(
-            jira=self._jira, **config["process_related_merge_requests_rule"])
-
+        # If no rules are listed as enabled, fall back to enabling all rules. This is to preserve
+        # the original behavior on branches without this config option.
+        all_rule_identiers = [rule.identifier for rule in ALL_RULES]
+        self._rules = {rule.identifier: rule(config, self._project_manager, self._jira)
+                       for rule in ALL_RULES
+                       if rule.identifier in config.get("enabled_rules", all_rule_identiers)}
         self._mr_queue = mr_queue
         self._polling = False  # By default assume that we are in the "webhook" mode.
 
     def handle(self, mr_manager: MergeRequestManager):
-        essential_rule_check_result = self._rule_essential.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {essential_rule_check_result}")
+        def _execute(rule):
+            result = rule.execute(mr_manager)
+            logger.debug(f"[{rule.identifier}] {mr_manager}: {result}")
+            return result
 
-        nx_submodule_check_result = self._rule_nx_submodules_check.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {nx_submodule_check_result}")
+        default_rules = ["essential", "nx_submodules", "commit_message", "job_status"]
 
-        commit_message_check_result = self._rule_commit_message.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {commit_message_check_result}")
-
-        job_status_check_result = self._rule_job_status_check.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {job_status_check_result}")
-
-        if (not nx_submodule_check_result or
-                not essential_rule_check_result or
-                not commit_message_check_result or
-                not job_status_check_result):
+        results = [_execute(self._rules[rule]) for rule in default_rules if rule in self._rules]
+        if not all(results):
             return
 
-        workflow_check_result = self._rule_workflow_check.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {workflow_check_result}")
+        if "workflow" in self._rules:
+            workflow_check_result = self._rules["workflow"].execute(mr_manager)
+            logger.debug(f"[workflow] {mr_manager}: {workflow_check_result}")
 
-        if not workflow_check_result:
-            return
+            if not workflow_check_result:
+                return
 
         self.merge_and_do_postprocessing(mr_manager)
 
@@ -157,11 +130,12 @@ class Bot(threading.Thread):
 
         mr_manager.merge_or_rebase()
 
-        process_related_result = self._rule_process_related_projects_issues.execute(mr_manager)
-        logger.debug(f"{mr_manager}: {process_related_result}")
+        if "process_related" in self._rules:
+            process_related_result = self._rules["process_related"].execute(mr_manager)
+            logger.debug(f"{mr_manager}: {process_related_result}")
 
-        if self._polling:
-            follow_up_result = self._rule_follow_up.execute(mr_manager)
+        if self._polling and "follow_up" in self._rules:
+            follow_up_result = self._rules["follow_up"].execute(mr_manager)
             logger.debug(f"{mr_manager}: {follow_up_result}")
 
         mr_manager.update_unfinished_processing_flag(False)
@@ -221,7 +195,7 @@ class Bot(threading.Thread):
 
         if current_mr_state == "merged" and previous_mr_state in ["opened", "locked"]:
             logger.info(f"{mr_manager}: Merge Request is just merged; executing follow-up rule.")
-            follow_up_result = self._rule_follow_up.execute(mr_manager)
+            follow_up_result = self._rule["follow_up"].execute(mr_manager)
             logger.debug(f"{mr_manager}: {follow_up_result}")
             return
 

@@ -7,6 +7,7 @@ from typing import List, Optional
 from automation_tools.checkers.checkers import (WrongVersionChecker, IssueIgnoreLabelChecker)
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId, Comment
+from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.rule.helpers.stateful_checker_helpers import StoredCheckResults
 from automation_tools.jira import JiraAccessor
@@ -34,6 +35,8 @@ class WorkflowCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
 
 
 class WorkflowCheckRule(BaseRule):
+    identifier = "workflow"
+
     ExecutionResult = WorkflowCheckRuleExecutionResultClass.create(
         "WorkflowCheckRuleExecutionResult", {
             "rule_execution_successful": "Workflow requirements are ok",
@@ -41,9 +44,8 @@ class WorkflowCheckRule(BaseRule):
             "inconsistent_descriptions": "MR description is inconsistent with the commit messages",
         })
 
-    def __init__(self, jira: JiraAccessor):
-        self._jira = jira
-        super().__init__()
+    def __init__(self, config: dict, project_manager: ProjectManager, jira: JiraAccessor):
+        super().__init__(config, project_manager, jira)
 
     def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing Jira Issue check rule with {mr_manager}...")
@@ -53,7 +55,7 @@ class WorkflowCheckRule(BaseRule):
         if preliminary_check_result != self.ExecutionResult.preliminary_check_passed:
             return preliminary_check_result
 
-        self._jira.get_issue.cache_clear()
+        self.jira.get_issue.cache_clear()
 
         jira_issue_errors = self._get_jira_issue_errors(mr_manager)
         if jira_issue_errors:
@@ -95,8 +97,8 @@ class WorkflowCheckRule(BaseRule):
         first_found_issue_data = None
         actual_issue_keys = self._exclude_ignored_issues(mr_manager.data.issue_keys)
         for issue_key in actual_issue_keys:
-            issue = self._jira.get_issue(issue_key)
-            checker = WrongVersionChecker(project_keys=self._jira.project_keys)
+            issue = self.jira.get_issue(issue_key)
+            checker = WrongVersionChecker(project_keys=self.jira.project_keys)
             if version_error_string := checker.run(issue):
                 comment_text = (
                     f"Bad `fixVersions` field in the related Jira Issue {issue_key}: "
@@ -164,8 +166,8 @@ class WorkflowCheckRule(BaseRule):
     def _exclude_ignored_issues(self, issue_keys: List[str]) -> List[str]:
         result = []
         for key in issue_keys:
-            issue = self._jira.get_issue(key)
-            checker = IssueIgnoreLabelChecker(project_keys=self._jira.project_keys)
+            issue = self.jira.get_issue(key)
+            checker = IssueIgnoreLabelChecker(project_keys=self.jira.project_keys)
             if checker.run(issue):
                 continue
             result.append(key)

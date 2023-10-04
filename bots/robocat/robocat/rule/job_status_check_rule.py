@@ -2,10 +2,12 @@ from enum import Enum
 import logging
 from pathlib import Path
 from typing import Set
+from automation_tools.jira import JiraAccessor
 
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
 from robocat.pipeline import JobStatus
+from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 import robocat.rule.helpers.approve_rule_helpers as approve_rule_helpers
 from robocat.rule.helpers.stateful_checker_helpers import (
@@ -36,6 +38,8 @@ class JobStatusStoredCheckResults(StoredCheckResults):
 
 
 class JobStatusCheckRule(CheckChangesMixin, BaseRule):
+    identifier = "job_status"
+
     ExecutionResult = JobStatusCheckRuleExecutionResultClass.create(
         "JobStatusCheckRuleExecutionResult", {
             "merge_authorized": "MR is approved by the authorized approvers",
@@ -56,11 +60,13 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
     }
     ISSUES_REQUIRING_MANUAL_CHECK = {HAS_NEW_OPEN_SOURCE_FILES_ISSUE, HAS_APIDOC_CHANGES_ISSUE}
 
-    def __init__(
-            self,
-            project_manager,
-            open_source_approve_ruleset: approve_rule_helpers.ApproveRuleset,
-            apidoc_changes_approve_ruleset: approve_rule_helpers.ApproveRuleset):
+    def __init__(self, config: dict, project_manager: ProjectManager, jira: JiraAccessor):
+        super().__init__(config, project_manager, jira)
+        job_status_check_configuration = config["job_status_check_rule"]["open_source"]
+        open_source_approve_ruleset = job_status_check_configuration["approve_ruleset"]
+        apidoc_check_configuration = config["job_status_check_rule"]["apidoc"]
+        apidoc_changes_approve_ruleset = apidoc_check_configuration["approve_ruleset"]
+
         open_source_relevance_checker = getattr(
             approve_rule_helpers, open_source_approve_ruleset["relevance_checker"])
         apidoc_changes_relevance_checker = getattr(
@@ -85,8 +91,6 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
         }
 
         logger.info("Job status check rule created.")
-        self._project_manager = project_manager
-        super().__init__()
 
     def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing job status check rule on {mr_manager}...")
