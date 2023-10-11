@@ -123,17 +123,24 @@ async def job_event(event):
 
 class ServiceNameFilter(logging.Filter):
     @staticmethod
-    def filter(record):
+    def filter(record: logging.LogRecord):
         record.service_name = "Workflow Robocat"
         return True
 
 
-class DiscardHealhCheckMessage(logging.Filter):
+class DiscardHealthCheckMessage(logging.Filter):
     """k8s pod health check performed every 2 seconds,
     discard health check requests messages from container log"""
     @staticmethod
-    def filter(record):
+    def filter(record: logging.LogRecord):
         return 'GET /health' not in record.getMessage()
+
+
+class DiscardAiohttpAccessMessage(logging.Filter):
+    """aiohttp send a lot of irrelevant messages - skip them"""
+    @staticmethod
+    def filter(record: logging.LogRecord):
+        return not (record.name == 'aiohttp.access' and record.levelno < logging.WARNING)
 
 
 def thread_exception_hook(args):
@@ -179,7 +186,8 @@ def main():
         host, port = arguments.graylog.split(":")
         log_handler = graypy.GELFTCPHandler(host, port, level_names=True)
         log_handler.addFilter(ServiceNameFilter())
-        log_handler.addFilter(DiscardHealhCheckMessage())
+        log_handler.addFilter(DiscardHealthCheckMessage())
+        log_handler.addFilter(DiscardAiohttpAccessMessage())
     else:
         log_handler = logging.StreamHandler()
 
