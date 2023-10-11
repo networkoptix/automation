@@ -170,6 +170,7 @@ class MergeRequestManager:
 
     def satisfies_approval_requirements(self, requirements: ApprovalRequirements) -> bool:
         result = True
+        logger.info(f"{self}: Checking approvals: {self._cached_approvals_left()} left")
         if requirements.approvals_left is not None:
             result &= self._cached_approvals_left() == requirements.approvals_left
         if requirements.authorized_approvers:
@@ -179,10 +180,12 @@ class MergeRequestManager:
             if self._mr.author_name not in requirements.authorized_approvers:
                 result &= bool(requirements.authorized_approvers.intersection(approved_by))
 
+        logger.info(f"{self}: Approval requirements check {'passed' if result else 'failed'}")
         return result
 
     @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
     def _cached_approvals_left(self):
+        logging.info(f"Approvals left (according to the server): {self._mr.approvals_left}")
         return self._mr.approvals_left
 
     def ensure_watching(self) -> bool:
@@ -258,11 +261,15 @@ class MergeRequestManager:
         return True
 
     def ensure_first_pipeline_run(self) -> bool:
+        logger.info(f"{self}: Ensuring the pipeline is run at least once")
         pipeline = self._get_last_pipeline()
         if pipeline:
+            logger.info(f"{self}: Non-skipped pipelines found; do not start the pipeline")
             return False
         if self.ensure_rebase():
+            logger.info(f"{self}: Rebasing; do not start the pipeline")
             return False
+        logger.info(f"{self}: Starting the pipeline")
         self._run_pipeline(RunPipelineReason.no_pipelines_before)
         return True
 
@@ -283,17 +290,23 @@ class MergeRequestManager:
         return self._gitlab.get_pipeline(project_id=self._mr.project_id, pipeline_id=pipeline_id)
 
     def ensure_pipeline_rerun(self) -> bool:
+        logger.info(f"{self}: Re-running pipeline")
         pipeline = self._get_last_pipeline()
         if not pipeline:
+            logger.info(f"{self}: No non-skipped pipeline is found")
             return False
 
         changes = self._difference_to_previous_state(pipeline.sha)
         if changes.not_changed:
+            logger.info(f"{self}: Current state is not different from the previous")
             return False
 
         if changes.mr_diff_changed:
+            logger.info(f"{self}: MR has relevant changes")
             if self.ensure_rebase():
+                logger.info(f"{self}: Rebasing; do not start the pipeline")
                 return False
+            logger.info(f"{self}: Starting the pipeline")
             self._run_pipeline(RunPipelineReason.mr_updated, changes)
             return True
 
@@ -303,11 +316,15 @@ class MergeRequestManager:
         # itself can't break the build) and all threads are resolved (since if they are not,
         # probably some changes will be added and we will have to re-run pipeline after that)
         if pipeline.status == PipelineStatus.failed and self._mr.blocking_discussions_resolved:
+            logger.info(f"{self}: Running new pipeline because previous one has failed")
             if self.ensure_rebase():
+                logger.info(f"{self}: Rebasing; do not start the pipeline")
                 return False
             self._run_pipeline(RunPipelineReason.mr_rebased, changes)
+            logger.info(f"{self}: Starting the pipeline")
             return True
 
+        logger.info(f"{self}: No need to start the pipeline")
         return False
 
     def _difference_to_previous_state(self, sha: str) -> MergeRequestChanges:
