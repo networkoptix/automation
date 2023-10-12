@@ -195,7 +195,7 @@ class Bot(threading.Thread):
 
         if current_mr_state == "merged" and previous_mr_state in ["opened", "locked"]:
             logger.info(f"{mr_manager}: Merge Request is just merged; executing follow-up rule.")
-            follow_up_result = self._rule["follow_up"].execute(mr_manager)
+            follow_up_result = self._rules["follow_up"].execute(mr_manager)
             logger.debug(f"{mr_manager}: {follow_up_result}")
             return
 
