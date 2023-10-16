@@ -676,11 +676,11 @@ class MergeRequestManager:
         return None
 
     def _get_last_pipeline_job_by_name(self, job_name: str) -> Optional[Job]:
-        pipeline = self._get_last_pipeline(include_skipped=True) or []
-        for j in pipeline.jobs():
-            if j.name != job_name:
-                continue
-            return j
+        if pipeline := self._get_last_pipeline(include_skipped=True):
+            for j in pipeline.jobs():
+                if j.name != job_name:
+                    continue
+                return j
         return None
 
     def last_pipeline_enforce_job_run(self, job_name: str) -> bool:
