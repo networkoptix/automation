@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Set
 import re
 import gitlab
 
+from automation_tools.mr_data_structures import ApprovalsInfo
 from robocat.award_emoji_manager import AwardEmojiManager
 
 logger = logging.getLogger(__name__)
@@ -86,10 +87,11 @@ class MergeRequest:
     def award_emoji(self):
         return self._award_emoji
 
-    @property
-    def approvals_left(self) -> int:
+    def get_approvals_info(self) -> ApprovalsInfo:
         approvals = self._gitlab_mr.approvals.get()
-        return approvals.approvals_left
+        return ApprovalsInfo(
+            approvals_left=approvals.approvals_left,
+            approvals_required=approvals.approvals_required)
 
     @property
     def has_conflicts(self) -> bool:

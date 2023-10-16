@@ -44,6 +44,7 @@ class GitlabMrRelatedEventData(TypedDict):
 
 class GitlabMrEventData(GitlabMrRelatedEventData):
     mr_previous_data: MrPreviousData
+    is_revision_updated: bool
 
 
 class GitlabPipelineEventData(GitlabMrRelatedEventData):
@@ -240,6 +241,12 @@ class Bot(threading.Thread):
 
     def _process_mr_event(
             self, payload: GitlabMrRelatedEventData, mr_manager: MergeRequestManager):
+        # Workaround for GitLab problem: webhook can be triggered before the internal MR state
+        # becomes consistent (e.g.: sometimes webhook is triggered after pushing new commit to the
+        # approved MR before the approvals are cleared).
+        if payload.get("is_revision_updated"):
+            mr_manager.is_revision_just_updated = True
+
         self._handle_mr_if_needed(
             current_mr_state=payload["mr_state"],
             previous_mr_state=payload.get("mr_previous_data", {}).get("state", ""),

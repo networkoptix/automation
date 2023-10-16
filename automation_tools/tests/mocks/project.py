@@ -13,6 +13,19 @@ from automation_tools.tests.gitlab_constants import DEFAULT_PROJECT_ID
 
 
 @dataclass
+class ProjectApprovalsMock:
+    reset_approvals_on_push: bool = True
+
+
+@dataclass
+class ProjectApprovalsManagerMock:
+    approvals: ProjectApprovalsMock = field(default_factory=ProjectApprovalsMock)
+
+    def get(self):
+        return self.approvals
+
+
+@dataclass
 class MergeRequestManagerMock:
     merge_requests: dict = field(default_factory=dict)
     project: Any = None
@@ -112,6 +125,7 @@ class ProjectMock:
     files: FileManagerMock = field(default_factory=FileManagerMock, init=False)
     branches: BranchManagerMock = field(default_factory=BranchManagerMock, init=False)
     path_with_namespace: str = "dev/nx"
+    approvals: ProjectApprovalsManagerMock = field(default_factory=ProjectApprovalsManagerMock)
 
     manager: GitlabManagerMock = field(default_factory=GitlabManagerMock)
 

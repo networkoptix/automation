@@ -4,7 +4,8 @@ from typing import Set
 
 from automation_tools.checkers.checkers import WorkflowPolicyChecker
 from automation_tools.jira import JiraAccessor
-from robocat.merge_request_manager import MergeRequestManager, ApprovalRequirements
+from automation_tools.mr_data_structures import ApprovalRequirements
+from robocat.merge_request_manager import MergeRequestManager
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.action_reasons import WaitReason, CheckFailureReason

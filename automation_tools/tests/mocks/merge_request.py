@@ -17,6 +17,7 @@ from automation_tools.tests.gitlab_constants import (
     USERS,
     DEFAULT_REQUIRED_APPROVALS_COUNT,
     DEFAULT_JIRA_ISSUE_KEY)
+from automation_tools.mr_data_structures import ApprovalsInfo
 
 DEFAULT_APPROVERS_NUMBER = 2
 
@@ -48,15 +49,15 @@ class AwardEmojiManagerMock:
 
 
 @dataclass
-class ApprovalsMock:
+class MergRequestApprovalsMock:
     approvals_left: int = 999
     approvals_required: int = DEFAULT_REQUIRED_APPROVALS_COUNT
     approved_by: list = field(default_factory=list)
 
 
 @dataclass
-class ApprovalsManagerMock:
-    approvals: ApprovalsMock = field(default_factory=ApprovalsMock)
+class MergeRequestApprovalsManagerMock:
+    approvals: MergRequestApprovalsMock = field(default_factory=MergRequestApprovalsMock)
 
     def get(self):
         return self.approvals
@@ -205,7 +206,7 @@ class MergeRequestMock:
     mock_ignored_sha: list = field(default_factory=list)
 
     emojis_list: list = field(default_factory=list)
-    approvers_list: list = field(default_factory=list)
+    approvers_list: set = field(default_factory=set)
     needed_approvers_number: int = DEFAULT_APPROVERS_NUMBER
     pipelines_list: list = field(default_factory=lambda: [(DEFAULT_COMMIT["sha"], "manual")])
     commits_list: list = field(default_factory=lambda: [DEFAULT_COMMIT])
@@ -214,7 +215,8 @@ class MergeRequestMock:
 
     # Managers, must not be directly initialized.
     awardemojis: AwardEmojiManagerMock = field(default_factory=AwardEmojiManagerMock, init=False)
-    approvals: ApprovalsManagerMock = field(default_factory=ApprovalsManagerMock, init=False)
+    approvals: MergeRequestApprovalsManagerMock = field(
+        default_factory=MergeRequestApprovalsManagerMock, init=False)
     notes: NotesManagerMock = field(default=None, init=False)
     discussions: DiscussionsManagerMock = field(default=None, init=False)
     manager: GitlabManagerMock = field(default_factory=GitlabManagerMock, init=False)
@@ -243,8 +245,8 @@ class MergeRequestMock:
 
         approvals = self.approvals.get()
         approvals.approvals_left = max(
-            self.needed_approvers_number - len(set(self.approvers_list)), 0)
-        for approver in set(self.approvers_list):
+            self.needed_approvers_number - len(self.approvers_list), 0)
+        for approver in self.approvers_list:
             approvals.approved_by.append({"user": {"username": approver}})
 
         for p_id, p_data in enumerate(self.pipelines_list):
@@ -305,9 +307,10 @@ class MergeRequestMock:
             return None
         return self.commits_list[-1]["sha"]
 
-    @property
-    def approvals_left(self):
-        return self.approvals.get().approvals_left
+    def get_approvals_info(self) -> ApprovalsInfo:
+        return ApprovalsInfo(
+            approvals_left=self.approvals.get().approvals_left,
+            approvals_required=self.approvals.get().approvals_required)
 
     @property
     def project_id(self):
@@ -363,7 +366,7 @@ class MergeRequestMock:
             self.reviewers.append({"username": reviewer.username})
 
     def mock_comments(self):
-        # Reverse notes list for the more convinient order (from the earliest note to the lateset).
+        # Reverse notes list for the more convenient order (from the earliest note to the latest).
         return [n["body"] for n in reversed(self.notes.list())]
 
     def commits(self):

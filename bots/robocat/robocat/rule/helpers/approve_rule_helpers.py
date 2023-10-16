@@ -6,7 +6,8 @@ import re
 from typing import Dict, Generator, List, Set, TypedDict
 
 import source_file_compliance
-from robocat.merge_request_manager import MergeRequestManager, ApprovalRequirements
+from automation_tools.mr_data_structures import ApprovalRequirements
+from robocat.merge_request_manager import MergeRequestManager
 
 logger = logging.getLogger(__name__)
 

@@ -117,3 +117,6 @@ class Project:
             "target_project_id": target_project_id,
             "assignee_ids": list(set(assignee_ids))})
         return raw_mr.iid
+
+    def get_reset_approvals_on_push_flag(self) -> bool:
+        return self._gitlab_project.approvals.get().reset_approvals_on_push

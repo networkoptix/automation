@@ -68,7 +68,8 @@ def add_event_hook(
 async def merge_request_event(event, mr_object):
     mr_id = mr_object['iid']
     mr_state = mr_object['state']
-    logger.debug(f'Got Merge Request event. MR id: {mr_id} ({mr_state})')
+    mr_action = mr_object['action']
+    logger.debug(f'Got Merge Request event. MR id: {mr_id} (state {mr_state}, action {mr_action})')
     mr_changes = event.data["changes"]
 
     # Convert state ids to state names.
@@ -79,7 +80,11 @@ async def merge_request_event(event, mr_object):
 
     mr_previous_data = {
         k: mr_changes.get(k, {}).get("previous") for k in MrPreviousData.__required_keys__}
-    payload = GitlabMrEventData(mr_id=mr_id, mr_state=mr_state, mr_previous_data=mr_previous_data)
+    payload = GitlabMrEventData(
+        mr_id=mr_id,
+        mr_state=mr_state,
+        mr_previous_data=mr_previous_data,
+        is_revision_updated=(mr_action == 'update'))
     mr_queue.put(GitlabEventData(event_type=GitlabEventType.merge_request, payload=payload))
 
 

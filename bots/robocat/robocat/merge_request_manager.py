@@ -17,6 +17,7 @@ from robocat.pipeline import (
     Job,
     JobStatus)
 from robocat.action_reasons import WaitReason, CheckFailureReason
+from automation_tools.mr_data_structures import ApprovalRequirements
 from robocat.merge_request import MergeRequest
 from robocat.note import Comment, MessageId, Note
 from robocat.project import MergeRequestDiffData
@@ -52,12 +53,6 @@ class FollowUpCreationResult:
         if self.successful:
             return AwardEmojiManager.FOLLOWUP_CREATED_EMOJI
         return AwardEmojiManager.FOLOWUP_CREATION_FAILED_EMOJI
-
-
-@dataclasses.dataclass
-class ApprovalRequirements:
-    approvals_left: int = None
-    authorized_approvers: Set[str] = dataclasses.field(default_factory=set)
 
 
 @dataclasses.dataclass
@@ -129,6 +124,7 @@ class MergeRequestManager:
         self._mr = mr
         self._current_user = current_user
         self._gitlab = Gitlab(self._mr.raw_gitlab_object)
+        self.is_revision_just_updated = False
 
     def __str__(self):
         return f"MR Manager!{self._mr.id}"
@@ -185,8 +181,17 @@ class MergeRequestManager:
 
     @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
     def _cached_approvals_left(self):
-        logging.info(f"Approvals left (according to the server): {self._mr.approvals_left}")
-        return self._mr.approvals_left
+        mr_approvals_info = self._mr.get_approvals_info()
+        project = self._get_project()
+
+        # If the project settings is to reset approvals on push and the merge request is just
+        # updated, assume that approvals count must be zero (so
+        # approvals_left == approvals_required) no matter what GitLab returned in the approval_left
+        # field.
+        return (
+            mr_approvals_info.approvals_left
+            if not (self.is_revision_just_updated and project.get_reset_approvals_on_push_flag())
+            else mr_approvals_info.approvals_required)
 
     def ensure_watching(self) -> bool:
         if self._mr.award_emoji.find(AwardEmojiManager.WATCH_EMOJI, own=True):
