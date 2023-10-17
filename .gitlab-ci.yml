@@ -13,10 +13,17 @@ variables:
   GELF_SERVER: "graylog.us.nxteam.dev:12201"
   WORKFLOW_POLICE_LOG_LEVEL:
     description: Workflow police log level
-    value:  "INFO"
+    value: "INFO"
   ROBOCAT_LOG_LEVEL:
     description: Robocat log level
-    value:  "INFO"
+    value: "INFO"
+  ROBOCAT_GIT_REPO:
+    description: 'Git repository path for Robocat deployment configuration (e.g.: "dev/nx")'
+    value:
+  ROBOCAT_GITLAB_PROJECT_ID:
+    description: 'GitLab Project Id for Robocat deployment configuration (e.g.: "2")'
+    value:
+
   PIP_LOCAL_INDEX: ${ARTIFACTORY_URL}/api/pypi/pypi-local
 
 stages:
@@ -192,8 +199,8 @@ k8s:workflow_police:manual:deploy:
   rules:
   - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_NAME == "master"
 
-# deploy robocat
-k8s:robocat:deploy:
+# Robocat deployment template
+.k8s:robocat:deploy:
   image: ${DOCKER_REGISTRY}/nx/deploy-pod
   variables:
     DOCKER_DIR: "bots/robocat"
@@ -217,9 +224,16 @@ k8s:robocat:deploy:
     - deployment/**/*
     - .gitlab-ci.yml
 
-# Deploy form web ui using branch pipeline
+# Deploy robocat for dev/nx
+k8s:robocat-nx:deploy:
+  extends: .k8s:robocat:deploy
+  variables:
+    ROBOCAT_GIT_REPO: dev/nx
+    ROBOCAT_GITLAB_PROJECT_ID: 2
+
+# Deploy Robocat for selected GitLab Project Id/Git repo from web ui using branch pipeline
 k8s:robocat:manual:deploy:
-  extends: k8s:robocat:deploy
+  extends: .k8s:robocat:deploy
   rules:
   - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_NAME == "master"
 

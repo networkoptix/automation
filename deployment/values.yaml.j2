@@ -23,6 +23,10 @@ logLevel: {{ lookup("env", "LOG_LEVEL") }}
 
 webHookSecret: {{ lookup("env", "ROBOCAT_WEBHOOK_SECRET") }}
 
-repositoryUrl: git@{{ lookup("env", "CI_SERVER_HOST") }}:dev/nx.git
+robocatGitRepo: {{ lookup("env", "ROBOCAT_GIT_REPO") }}
+
+repositoryUrl: git@{{ lookup("env", "CI_SERVER_HOST") }}:{{ lookup("env", "ROBOCAT_GIT_REPO") }}.git
 
 repositoryServer: {{ lookup("env", "CI_SERVER_HOST") }}
+
+gitlabProjectId: {{ lookup("env", "ROBOCAT_GITLAB_PROJECT_ID") | default("2") }}

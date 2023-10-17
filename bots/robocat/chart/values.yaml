@@ -53,7 +53,7 @@ robocatConfig: |
       - AMS
 
   repo:
-    path: /var/workflow_robocat/nx
+    path: /var/workflow_robocat/{{ .Values.robocatGitRepo }}
     url: {{ .Values.repositoryUrl }}
 
   # Configuration for checking open-source part of the project.
@@ -128,7 +128,7 @@ persistence:
 gitlabToken:
 
 # gitlab project id
-gitlabProjectId: 2
+gitlabProjectId:
 
 # robocat gitlab config file
 gitlabConfig: |
