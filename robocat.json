@@ -1,0 +1,37 @@
+{
+  "jira": {
+    "project_keys": [
+      "INFRA",
+      "VMS"
+    ]
+  },
+  "repo": {
+    "path": "/tmp/workflow_robocat/automation",
+    "url": "git@gitlab.nxvms.dev:dev/automation.git"
+  },
+  "enabled_rules": [
+    "commit_message",
+    "essential",
+    "job_status",
+    "workflow"
+  ],
+  "job_status_check_rule": {
+    "open_source": {
+      "approve_ruleset": {
+        "relevance_checker": "is_file_open_sourced",
+        "rules": [
+          {
+            "patterns": [
+              "open/.+",
+              "open_candidate/.+"
+            ],
+            "approvers": [
+              "ptolstov",
+              "mshevchenko"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
