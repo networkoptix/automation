@@ -42,8 +42,8 @@ class ProjectManager:
         return ProjectData(
             **{f.name: getattr(self._project, f.name) for f in dataclasses.fields(ProjectData)})
 
-    def file_get_content(self, sha: str, file: str) -> str:
-        return self._project.get_file_content(sha=sha, file=file)
+    def file_get_content(self, ref: str, file: str) -> str:
+        return self._project.get_file_content(ref=ref, file=file)
 
     def create_follow_up_merge_request(
             self,

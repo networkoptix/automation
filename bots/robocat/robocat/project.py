@@ -27,9 +27,9 @@ class Project:
         return int(self._gitlab_project.id)
 
     @lru_cache(maxsize=64)
-    def get_file_content(self, sha: str, file: str) -> str:
-        logger.debug(f"Getting file content: {sha}, {file}")
-        file_handler = self._gitlab_project.files.get(file_path=file, ref=sha)
+    def get_file_content(self, ref: str, file: str) -> str:
+        logger.debug(f"Getting file content: {ref}, {file}")
+        file_handler = self._gitlab_project.files.get(file_path=file, ref=ref)
         # TODO: Need some check what file we are trying to read. If it is a binary file, don't try
         # to decode it. If it is a text file and it doesn't contain valid utf8 data, log this fact
         # and do some workaround.

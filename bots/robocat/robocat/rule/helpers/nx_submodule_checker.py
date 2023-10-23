@@ -88,7 +88,7 @@ class NxSubmoduleChecker:
             return None
 
         config_file_name = f"{nx_submodule_dir}/{self.CONFIG_FILE_NAME}"
-        file_content = self._project_manager.file_get_content(sha=self._sha, file=config_file_name)
+        file_content = self._project_manager.file_get_content(ref=self._sha, file=config_file_name)
 
         config_data = {}
         for line in file_content.split("\n"):
@@ -184,7 +184,7 @@ class NxSubmoduleChecker:
                 f"File {relative_file_name!r} has wrong executable flag '{is_executable}'")
 
         changed_file_content = self._project_manager.file_get_content(
-            sha=self._sha, file=file_name)
+            ref=self._sha, file=file_name)
         with open(subrepo_file, 'r') as f:
             subrepo_file_content = f.read()
 
