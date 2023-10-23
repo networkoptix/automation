@@ -1,3 +1,4 @@
+import os
 import enum
 import logging
 from pathlib import Path
@@ -16,6 +17,7 @@ from automation_tools.jira import JiraAccessor, JiraError
 import automation_tools.git
 import robocat.commands.parser
 from robocat.project_manager import ProjectManager
+from robocat.project import Project
 from robocat.merge_request_actions.notify_user_actions import add_failed_pipeline_comment_if_needed
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.pipeline import PlayPipelineError, Pipeline, PipelineStatus
@@ -77,7 +79,11 @@ class Bot(threading.Thread):
             GitlabEventType.merge_request: self._process_mr_event,
         }
 
-    def __init__(self, config, project_id: int, mr_queue: queue.SimpleQueue):
+    def __init__(
+            self,
+            config,
+            project_id: int,
+            mr_queue: queue.SimpleQueue):
         super().__init__()
 
         raw_gitlab = gitlab.Gitlab.from_config("nx_gitlab")
@@ -87,9 +93,21 @@ class Bot(threading.Thread):
         committer = automation_tools.utils.User(
             email=gitlab_user_info.email, name=gitlab_user_info.name,
             username=gitlab_user_info.username)
+
+        gitlab_project = raw_gitlab.projects.get(project_id)
+        project = Project(gitlab_project)
+
+        try:
+            from automation_tools.utils import merge_dicts, parse_config_string
+            local_config = parse_config_string(
+                project.get_file_content(ref="master", file="robocat.json"), "json")
+            config = merge_dicts(config, local_config)
+        except gitlab.GitlabGetError:
+            pass
+
         self._repo = automation_tools.git.Repo(**config["repo"], committer=committer)
         self._project_manager = ProjectManager(
-            gitlab_project=raw_gitlab.projects.get(project_id),
+            gitlab_project=gitlab_project,
             current_user=self._username,
             repo=self._repo)
         self._jira = JiraAccessor(**config["jira"])

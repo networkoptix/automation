@@ -205,7 +205,7 @@ def main():
         format='%(asctime)s %(levelname)s %(name)s\t%(message)s')
 
     # Update (overwrite) the global configuration with the local one.
-    config = dict(automation_tools.utils.merge_dicts(arguments.config, arguments.local_config))
+    config = dict(automation_tools.utils.merge_dicts(arguments.config))
 
     if arguments.mode == "webhook":
         threading.excepthook = thread_exception_hook
