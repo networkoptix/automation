@@ -1,3 +1,4 @@
+import os
 import argparse
 import logging
 from pathlib import Path
@@ -130,6 +131,8 @@ class ServiceNameFilter(logging.Filter):
     @staticmethod
     def filter(record: logging.LogRecord):
         record.service_name = "Workflow Robocat"
+        if repo_name := os.getenv("ROBOCAT_REPO_NAME"):
+            record.service_name += f" ({repo_name})"
         return True
 
 
