@@ -18,7 +18,7 @@ variables:
     description: Robocat log level
     value: "INFO"
   ROBOCAT_GIT_REPO:
-    description: 'Git repository path for Robocat deployment configuration (e.g.: "dev/nx")'
+    description: 'Git repository path for Robocat deployment configuration. Must start with a slash ("/") (e.g.: "/dev/nx")'
     value:
   ROBOCAT_GITLAB_PROJECT_ID:
     description: 'GitLab Project Id for Robocat deployment configuration (e.g.: "2")'
@@ -224,11 +224,11 @@ k8s:workflow_police:manual:deploy:
     - deployment/**/*
     - .gitlab-ci.yml
 
-# Deploy robocat for dev/nx
+# Deploy robocat for /dev/nx
 k8s:robocat-nx:deploy:
   extends: .k8s:robocat:deploy
   variables:
-    ROBOCAT_GIT_REPO: dev/nx
+    ROBOCAT_GIT_REPO: /dev/nx
     ROBOCAT_GITLAB_PROJECT_ID: 2
 
 # Deploy Robocat for selected GitLab Project Id/Git repo from web ui using branch pipeline
