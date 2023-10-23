@@ -27,6 +27,15 @@ def config_from_filename(filename: str) -> dict:
     return parse_config_file(Path(filename))
 
 
+def parse_config_string(config_string: str, type: str):
+    if type == "json":
+        return json.loads(config_string)
+    if type == "yaml":
+        return yaml.safe_load(config_string)
+    else:
+        raise NotImplementedError(f"Unsupported config type: {type}")
+
+
 def flatten_list(list_of_lists: List):
     return [i for e in list_of_lists for i in (e if isinstance(e, list) else [e])]
 
