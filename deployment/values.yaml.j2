@@ -23,9 +23,9 @@ logLevel: {{ lookup("env", "LOG_LEVEL") }}
 
 webHookSecret: {{ lookup("env", "ROBOCAT_WEBHOOK_SECRET") }}
 
-robocatGitRepo: {{ lookup("env", "ROBOCAT_GIT_REPO") }}
+robocatGitRepo: {{ lookup("env", "BOT_GIT_REPO") }}
 
-repositoryUrl: git@{{ lookup("env", "CI_SERVER_HOST") }}:{{ lookup("env", "ROBOCAT_GIT_REPO") }}.git
+repositoryUrl: git@{{ lookup("env", "CI_SERVER_HOST") }}:{{ lookup("env", "BOT_GIT_REPO") }}.git
 
 repositoryServer: {{ lookup("env", "CI_SERVER_HOST") }}
 
