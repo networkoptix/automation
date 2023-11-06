@@ -167,11 +167,6 @@ def main():
         type=automation_tools.utils.config_from_filename,
         default={})
     parser.add_argument(
-        "-lc", "--local-config",
-        help="Local config file, usually located in the repo that is processed by robocat",
-        type=automation_tools.utils.config_from_filename,
-        default={})
-    parser.add_argument(
         '-p', '--project-id',
         help="Id of a project in gitlab (2 for dev/nx)",
         type=int,
@@ -204,17 +199,14 @@ def main():
         handlers=[log_handler],
         format='%(asctime)s %(levelname)s %(name)s\t%(message)s')
 
-    # Update (overwrite) the global configuration with the local one.
-    config = dict(automation_tools.utils.merge_dicts(arguments.config))
-
     if arguments.mode == "webhook":
         threading.excepthook = thread_exception_hook
-        executor_thread = Bot(config, arguments.project_id, mr_queue)
+        executor_thread = Bot(arguments.config, arguments.project_id, mr_queue)
         executor_thread.start()
 
         robocat.run()
     else:  # arguments.mode == "poll"
-        executor = Bot(config, arguments.project_id, mr_queue)
+        executor = Bot(arguments.config, arguments.project_id, mr_queue)
         executor.run_poller()
 
 
