@@ -101,7 +101,7 @@ class Bot(threading.Thread):
             from automation_tools.utils import merge_dicts, parse_config_string
             local_config = parse_config_string(
                 project.get_file_content(ref="master", file="robocat.json"), "json")
-            config = merge_dicts(config, local_config)
+            config = dict(merge_dicts(config, local_config))
         except gitlab.GitlabGetError:
             pass
 
