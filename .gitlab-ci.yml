@@ -263,7 +263,7 @@ pip:validate:nx_lint:version:
     fi
   - set -e
   rules:
-  - if: !reference [.enable_for_mr_and_protected_ref, if]
+  - if: !reference [.enable_for_mr, if]
     changes:
     - nx_lint/**
 
