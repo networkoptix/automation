@@ -101,16 +101,17 @@ class Bot(threading.Thread):
             from automation_tools.utils import merge_dicts, parse_config_string
             local_config = parse_config_string(
                 project.get_file_content(ref="master", file="robocat.json"), "json")
-            config = dict(merge_dicts(config, local_config))
+            self.config = dict(merge_dicts(config, local_config))
+            self._setup_environment()
         except gitlab.GitlabGetError:
             pass
 
-        self._repo = automation_tools.git.Repo(**config["repo"], committer=committer)
+        self._repo = automation_tools.git.Repo(**self.config["repo"], committer=committer)
         self._project_manager = ProjectManager(
             gitlab_project=gitlab_project,
             current_user=self._username,
             repo=self._repo)
-        self._jira = JiraAccessor(**config["jira"])
+        self._jira = JiraAccessor(**self.config["jira"])
 
         # If no rules are listed as enabled, fall back to enabling all rules. This is to preserve
         # the original behavior on branches without this config option.
@@ -120,6 +121,17 @@ class Bot(threading.Thread):
                        if rule.identifier in config.get("enabled_rules", all_rule_identiers)}
         self._mr_queue = mr_queue
         self._polling = False  # By default assume that we are in the "webhook" mode.
+
+    def _setup_environment(self):
+        # The ServiceNameFilter is created before we have this information. So we need to set it
+        # in the environment, which allows the filter to annotate the service name with the repo,
+        # which in turn makes it possible to filter per-repo instances of Robocat in Graylog.
+        url = self.config["repo"]["url"]
+        try:
+            repo = url.split(":")[-1].replace(".git", "")
+            os.environ["BOT_GIT_REPO"] = repo
+        except KeyError:
+            logger.warning("Can't set BOT_GIT_REPO environment variable.")
 
     def handle(self, mr_manager: MergeRequestManager):
         def _execute(rule):
