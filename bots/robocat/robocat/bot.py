@@ -102,10 +102,10 @@ class Bot(threading.Thread):
             local_config = parse_config_string(
                 project.get_file_content(ref="master", file="robocat.json"), "json")
             self.config = dict(merge_dicts(config, local_config))
-            self._setup_environment()
         except gitlab.GitlabGetError:
-            pass
+            self.config = config
 
+        self._setup_environment()
         self._repo = automation_tools.git.Repo(**self.config["repo"], committer=committer)
         self._project_manager = ProjectManager(
             gitlab_project=gitlab_project,
