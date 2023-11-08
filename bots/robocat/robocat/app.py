@@ -131,7 +131,7 @@ class ServiceNameFilter(logging.Filter):
     @staticmethod
     def filter(record: logging.LogRecord):
         record.service_name = "Workflow Robocat"
-        if repo_name := os.getenv("ROBOCAT_REPO_NAME"):
+        if repo_name := os.getenv("BOT_GIT_REPO"):
             record.service_name += f" ({repo_name})"
         return True
 
