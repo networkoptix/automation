@@ -116,9 +116,9 @@ class Bot(threading.Thread):
         # If no rules are listed as enabled, fall back to enabling all rules. This is to preserve
         # the original behavior on branches without this config option.
         all_rule_identiers = [rule.identifier for rule in ALL_RULES]
-        self._rules = {rule.identifier: rule(config, self._project_manager, self._jira)
+        self._rules = {rule.identifier: rule(self.config, self._project_manager, self._jira)
                        for rule in ALL_RULES
-                       if rule.identifier in config.get("enabled_rules", all_rule_identiers)}
+                       if rule.identifier in self.config.get("enabled_rules", all_rule_identiers)}
         self._mr_queue = mr_queue
         self._polling = False  # By default assume that we are in the "webhook" mode.
 
