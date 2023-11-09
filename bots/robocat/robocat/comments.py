@@ -5,7 +5,7 @@ _mark_as_ready_url = (
     "#removing-the-draft-flag-from-a-merge-request")
 
 merged_message = "Merge request was successfully merged into `{branch}` branch."
-run_pipeline_message = "Running pipeline {pipeline_id}: {reason}."
+run_pipeline_message = "Running pipeline [#{pipeline_id}]({pipeline_url}): {reason}."
 refuse_run_pipeline_message = """
 Refusing to run user-requested pipeline becasue the previous pipeline
 ([{pipeline_id}]({pipeline_url})) ran for the same commit (sha: {sha}).

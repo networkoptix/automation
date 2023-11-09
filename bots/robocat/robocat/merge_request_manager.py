@@ -426,7 +426,8 @@ class MergeRequestManager:
 
         reason_msg = reason.value + ("" if not details else f" ({details})")
         message = robocat.comments.run_pipeline_message.format(
-            pipeline_id=pipeline_to_start.id, reason=reason_msg)
+            pipeline_id=pipeline_to_start.id, pipeline_url=pipeline_to_start.web_url,
+            reason=reason_msg)
         self._add_comment("Pipeline started", message, AwardEmojiManager.PIPELINE_EMOJI)
         self.ensure_wait_state(None)
 
