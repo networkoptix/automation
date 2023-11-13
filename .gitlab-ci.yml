@@ -23,6 +23,12 @@ variables:
   ROBOCAT_GITLAB_PROJECT_ID:
     description: 'GitLab Project Id for Robocat deployment configuration (e.g.: "2")'
     value:
+  DO_DEPLOY_POLICE:
+    description: 'Deploy Workflow Police (for manual deployment only, deploy only if the field contains "yes")'
+    value: "no"
+  DO_DEPLOY_ROBOCAT:
+    description: 'Deploy Workflow Robocat (for manual deployment only, deploy only if the field contains "yes")'
+    value: "no"
 
   PIP_LOCAL_INDEX: ${ARTIFACTORY_URL}/api/pypi/pypi-local
 
@@ -198,7 +204,7 @@ k8s:workflow_police:deploy:
 k8s:workflow_police:manual:deploy:
   extends: k8s:workflow_police:deploy
   rules:
-  - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_NAME == "master"
+  - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_NAME == "master" && $DO_DEPLOY_POLICE == "yes"
 
 # Robocat deployment template
 .k8s:robocat:deploy:
@@ -250,7 +256,7 @@ k8s:robocat-tools:deploy:
 k8s:robocat:manual:deploy:
   extends: .k8s:robocat:deploy
   rules:
-  - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_NAME == "master"
+  - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_NAME == "master" && $DO_DEPLOY_ROBOCAT == "yes"
 
 # Validate nx_lint package.
 pip:validate:nx_lint:version:
