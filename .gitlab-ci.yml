@@ -4,6 +4,8 @@
 include:
 - project: 'dev/ci'
   file: 'pipelines/infra-templates.yml'
+- project: 'dev/ci'
+  file: 'pipelines/helpers.yml'
 
 variables:
   DOCKER_REGISTRY_MIRROR: "docker.us.nxteam.dev"
@@ -37,6 +39,7 @@ stages:
   - test
   - docker image, chart
   - deploy
+  - check
 
 default:
   tags:
@@ -319,3 +322,32 @@ docker:build:repo-checker:
       - nx_source_file_compliance/**/*
       - nx_lint/**
       - .gitlab-ci.yml
+
+open-source-checks:check:
+  extends: .open-source:check
+  stage: check
+  variables:
+    FILES_REGEXP: '^(M|A)\s+(open|open_candidate|open_source_check_config.json)/'
+  rules:
+  - if: $CI_MERGE_REQUEST_ID
+    changes:
+    - open/**/*
+    - open_candidate/**/*
+    - open_source_check_config.json
+    - .gitlab-ci.yml
+    when: always
+
+new-open-source-files:check:
+  extends: .new-open-source-files:check
+  stage: check
+  variables:
+    FILES_REGEXP: '^A\s+(open|open_candidate)/'
+  rules:
+  - if: $CI_MERGE_REQUEST_ID
+    changes:
+    - open/**/*
+    - open_candidate/**/*
+    - open_source_check_config.json
+    - .gitlab-ci.yml
+    when: always
+
