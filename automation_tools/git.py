@@ -19,21 +19,22 @@ class FetchFlags(enum.Flag):
 
 class Repo:
     def __init__(
-            self, path: Path, url: str,
+            self,
+            path: Path,
+            url: str,
             committer: Optional[automation_tools.utils.User] = None):
         try:
             self.repo = git.Repo(path)
-            if committer is not None:
-                self._committer = git.Actor(name=committer.name, email=committer.email)
-                self.repo.config_writer().set_value(
-                    "user", "email", "workflow-robocat@networkoptix.com").release()
-                self.repo.config_writer().set_value(
-                    "user", "name", "workflow-robocat@networkoptix.com").release()
-            else:
-                self._committer = None
-            self.repo.config_writer().set_value("merge", "renamelimit", 100000).release()
         except git.exc.NoSuchPathError:
             self.repo = git.Repo.clone_from(url, path)
+
+        if committer is not None:
+            self._committer = git.Actor(name=committer.name, email=committer.email)
+            self.repo.config_writer().set_value("user", "email", committer.email).release()
+            self.repo.config_writer().set_value("user", "name", committer.name).release()
+        else:
+            self._committer = None
+        self.repo.config_writer().set_value("merge", "renamelimit", 100000).release()
 
     def update_repository(self, remote: str = "origin", flags: FetchFlags = FetchFlags.EMPTY):
         logger.debug(f"Fetching {remote}...")
