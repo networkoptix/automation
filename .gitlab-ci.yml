@@ -255,6 +255,13 @@ k8s:robocat-tools:deploy:
     BOT_GIT_REPO: /dev/tools
     ROBOCAT_GITLAB_PROJECT_ID: 5
 
+# Deploy Robocat for /dev/cloud_portal.
+k8s:robocat-cloud_portal:deploy:
+  extends: .k8s:robocat:deploy
+  variables:
+    BOT_GIT_REPO: /dev/cloud_portal
+    ROBOCAT_GITLAB_PROJECT_ID: 441
+
 # Deploy Robocat for selected GitLab Project Id/Git repo from web ui using branch pipeline
 k8s:robocat:manual:deploy:
   extends: .k8s:robocat:deploy
