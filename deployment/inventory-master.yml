@@ -17,8 +17,8 @@ all:
                           from_yaml).get('name') }}"
     helmChartVersion: "{{ (lookup('file', '../' + lookup('env', 'HELM_CHART_DIR') + '/Chart.yaml') |
                           from_yaml).get('version') }}"
-    helmRelease: "aws-{{ helmChart }}{{ lookup('env', 'BOT_GIT_REPO') | split('/') |
-                          join('-') }}"
+    helmRelease: "aws-{{ helmChart }}{{ lookup('env', 'BOT_GIT_REPO') | replace('_', '-')
+                          | split('/') | join('-') }}"
 
   children:
     ansible_node_host:
