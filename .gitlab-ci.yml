@@ -147,22 +147,6 @@ docker:build:workflow_police:
     BUILD_OPTIONS: "--build-arg=GIT_COMMIT=$CI_COMMIT_SHORT_SHA"
     USE_GITLAB_REGISTRY: "true"
 
-# Build the open-source checker.
-# TODO: Remove when the general repo-checker image is ready.
-docker:build:open-source-checker:
-  extends: .docker.template
-  stage: "docker image, chart"
-  variables:
-    DOCKER_DIR: "scripts/open_source_check"
-    DOCKER_CONTEXT: ""
-    TARGET_IMAGE: "${DOCKER_REGISTRY}/nx/workflow_police/open-source-checker"
-  rules:
-    - if: !reference [.enable_for_mr_and_protected_ref, if]
-      changes:
-      - $DOCKER_DIR/**/*
-      - nx_source_file_compliance/**/*
-      - .gitlab-ci.yml
-
 # build robocat helm chart
 helm:build:robcat:
   extends: .helm.chart.template

@@ -2,7 +2,7 @@ FROM python:3.9-slim-buster
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get -y install git && apt-get clean && rm -rf /var/cache/apk/*
+RUN apt-get update && apt-get -y install git curl jq && apt-get clean && rm -rf /var/cache/apk/*
 
 COPY ./nx_source_file_compliance ./nx_source_file_compliance
 COPY ./nx_lint ./nx_lint
