@@ -1,6 +1,6 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, HelpFormatter
 from textwrap import TextWrapper
 
 from nx_lint.rules import RULES
@@ -11,8 +11,9 @@ class NxLintArgumentParser(ArgumentParser):
         and their descriptions (acquired from the __doc__ of each rule class) in the help message.
     """
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, formatter_class=_NxLintHelpFormatter, **kwargs)
         self._rule_classes = RULES
+        self._optionals.title = "Options"
 
     def print_help(self, file=None):
         """ Print the help message to stdout. """
@@ -27,3 +28,10 @@ class NxLintArgumentParser(ArgumentParser):
                 for line in wrapper.wrap(doc):
                     print(line)
                 print(file=file)
+
+
+class _NxLintHelpFormatter(HelpFormatter):
+    def add_usage(self, usage, actions, groups, prefix=None):
+        if prefix is None:
+            prefix = "Usage: "
+        return super().add_usage(usage, actions, groups, prefix)
