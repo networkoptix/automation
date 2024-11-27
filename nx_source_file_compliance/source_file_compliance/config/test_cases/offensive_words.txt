@@ -1,0 +1,23 @@
+positive: Megafuck
+positive: megafuck
+positive: Shithead
+positive: shithead
+negative: SpalshItem
+negative: BreakthroughUI
+negative: BreakthroughUi
+positive: hui_znet_zachem_eta_peremennaya
+negative: AblyArrangedArray
+positive: // Blya - arrange this array at last!
+positive: // #elric, WTF is this?!
+negative: WorldTankFest
+negative: wowTFTP
+positive: That's hell of a code!
+negative: RhelLib
+positive: // What a mess
+negative: MesSysOpt
+negative: EXPECTED_ERROR_MESSAGE
+negative: // errors with messages concatenated via a space.
+negative: errorMessageParts
+negative: EXPECT_EQ(values(), 'a = hello, b = world');
+negative: EXPECT_EQ(countHello(), api::metrics::Value(1));
+negative: UnixShellConsole

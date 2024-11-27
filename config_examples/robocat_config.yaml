@@ -1,0 +1,77 @@
+jira:
+  url: https://example.atlassian.net/
+  login: service@example.com
+  password: "12345678abcdef"
+  timeout: 10
+  retries: 1
+  project_keys:
+    - PROJECT1
+    - PROJECT2
+    - PROJECT3
+
+repo:
+  path: "/var/workflow_robocat/your_repo_1"
+  url: "https://gitlab.example.com/your_repo_1"
+  need_code_owner_approval: False
+
+pipeline:
+  # Jobs defined in this stage are run automatically by GitLab. Robocat process the Merge Request
+  # after all these jobs are finished (status either "success" or "failed").
+  autorun_stage: check
+
+# Configuration for checking open-source part of the project.
+job_status_check_rule:
+  open_source:
+    approve_ruleset:
+      relevance_checker: is_file_open_sourced
+      rules:
+      # The order of patterns is important: to find the set of the most appropriate
+      # approvers, these patterns are checked in the order listed here, so the most specific
+      # patterns must go first, followed by the least specific ones.
+      -
+        patterns:
+        - open_candidate/client/.+
+        - open/vms/client/.+
+        approvers:
+        - client_approver_1
+        - client_approver_2
+      -
+        patterns:
+        - open/.+
+        - open_candidate/.+
+        approvers:
+        - repo_approver_1
+        - repo_approver_2
+  apidoc:
+    approve_ruleset:
+      relevance_checker: does_file_diff_contain_apidoc_changes
+      rules:
+      -
+        patterns:
+        - open/server/.+
+        - open_canidate/server/.+
+        - server/.+
+        approvers:
+        - apidoc_approver_1
+        - apidoc_approver_2
+  code_owner_approval:
+    approve_ruleset:
+      relevance_checker: match_name_pattern
+      rules: []
+
+# Configuration for processing Issues from related Projects.
+process_related_merge_requests_rule:
+  rules:
+    -
+      trigger_title_pattern: 'PROJECT1-123: Updates webadmin to [a-z0-9]+'
+      issue_keys_pattern: 'Changelog: (?P<issue_keys>(?: *,? *[A-Z][A-Z0-9_]+-\d+)+)'
+      related_projects:
+        - PROJECT2
+      action: finalize
+
+# Configuration for checking changes in Nx Submodules.
+nx_submodule_check_rule:
+  nx_submodule_dirs:
+  - build_utils/tool1
+  - conan_profiles
+  - open/artifacts/artifact1
