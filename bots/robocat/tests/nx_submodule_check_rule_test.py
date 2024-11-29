@@ -209,13 +209,13 @@ class TestNxSubmoduleCheckRule:
                     "message": "msgc",
                     "diffs": [],
                     "files": {
-                        "conan_profiles/2.txt": {"raw_data": "file 2\n", "mode": "100644"},
+                        "conan_profiles/2.sh": {"raw_data": "file 2\n", "mode": "100644"},
                         "conan_profiles/_nx_submodule": {"raw_data": NX_SUBMODULE_GOOD_RAW_DATA},
                     },
                 }],
             },
             MessageId.InconsistentNxSubmoduleChange.value,
-            "explanation: File '2.txt' has wrong executable flag"
+            "explanation: File '2.sh' has wrong executable flag"
         ),
         # MR with the different file content.
         (
@@ -264,23 +264,23 @@ class TestNxSubmoduleCheckRule:
                 "result_message_id": MessageId.InconsistentNxSubmoduleChange.value,
                 "explanation": "File '1.txt' differs from its counterpart",
             }, {
-                "files": {"conan_profiles/2.txt": {"raw_data": "file 2\n"}},
+                "files": {"conan_profiles/2.sh": {"raw_data": "file 2\n"}},
                 "check_result": False,
                 "result_message_id": MessageId.InconsistentNxSubmoduleChange.value,
-                "explanation": "File '2.txt' has wrong executable flag",
+                "explanation": "File '2.sh' has wrong executable flag",
             }, {
                 "files": {
                     "conan_profiles/1.txt": {"raw_data": "file 1\n"},
-                    "conan_profiles/2.txt": {"raw_data": "file 2\n", "mode": "100755"},
+                    "conan_profiles/2.sh": {"raw_data": "file 2\n", "mode": "100755"},
                 },
                 "check_result": True,
                 "result_message_id": MessageId.NxSubmoduleCheckPassed.value,
             }, {
                 # Re-introduce problem.
-                "files": {"conan_profiles/2.txt": {"raw_data": "file 2\n"}},
+                "files": {"conan_profiles/2.sh": {"raw_data": "file 2\n"}},
                 "check_result": False,
                 "result_message_id": MessageId.InconsistentNxSubmoduleChange.value,
-                "explanation": "File '2.txt' has wrong executable flag",
+                "explanation": "File '2.sh' has wrong executable flag",
             },
         ]
 
