@@ -1,6 +1,7 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 import logging
+import re
 from enum import Enum
 
 from automation_tools.jira import JiraAccessor
@@ -32,6 +33,7 @@ class FollowUpRule(BaseRule):
             "rule_execution_successful": "All operations completed successfully",
             "not_eligible": "Merge request is not eligible for cherry-pick",
             "rule_execution_failed": "Some of operations failed",
+            "filtered_out": "Rule execution was filtered out due to configuration",
         })
 
     def __init__(self, config: Config, project_manager: ProjectManager, jira: JiraAccessor):
@@ -46,6 +48,18 @@ class FollowUpRule(BaseRule):
         if not mr_data.is_merged:
             logger.info(f"{mr_manager}: Merge request isn't merged. Cannot cherry-pick.")
             return self.ExecutionResult.not_eligible
+
+        if self.config.follow_up_rule is not None:
+            rule_config = self.config.follow_up_rule
+            if rule_config.excluded_issue_title_patterns:
+                logger.debug(
+                    f"Checking the Issue title filters against the title {mr_data.title!r}")
+                for regexp in rule_config.excluded_issue_title_patterns:
+                    if re.match(pattern=regexp, string=mr_data.title):
+                        logger.info(
+                            f"{mr_manager}: Skipping follow-up because the Issue title matched "
+                            f"the pattern {regexp!r}.")
+                        return self.ExecutionResult.filtered_out
 
         if not (jira_issues := self.jira.get_issues(mr_manager.data.issue_keys)):
             # TODO: Add comment to MR informing the user that we can't find any attached issue and

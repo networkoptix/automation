@@ -3,8 +3,6 @@
 import re
 import pytest
 
-from automation_tools.tests.fixtures import jira, repo_accessor
-from automation_tools.tests.mocks.git_mocks import RemoteMock
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.bot import GitlabEventData, GitlabCommentEventData, GitlabEventType
 from robocat.note import MessageId
@@ -19,10 +17,6 @@ from automation_tools.tests.gitlab_constants import (
     MERGED_TO_MASTER_MERGE_REQUESTS,
     MERGED_TO_5_1_MERGE_REQUESTS,
     MERGED_TO_4_2_MERGE_REQUESTS,
-    MERGED_TO_MASTER_MERGE_REQUESTS_MOBILE,
-    MERGED_TO_21_1_MERGE_REQUESTS_MOBILE,
-    MERGED_TO_MASTER_MERGE_REQUESTS_CB,
-    MERGED_TO_20_1_MERGE_REQUESTS_CB,
     BOT_USERNAME)
 from tests.fixtures import *
 
@@ -679,3 +673,13 @@ class TestFollowUpRule:
 
         new_mr = sorted(mrs, key=lambda mr: mr.iid)[-1]
         assert new_mr.work_in_progress, "New MR is not in Draft state."
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        ([], {
+            # Assuming no JIRA issues are required for this test
+            "title": "Raise webadmin version to e8caf7b085a3ef60e71651e65a6b4e8975746f88",
+            "state": "merged",
+        }),
+    ])
+    def test_skip_followup_for_webadmin_mr(self, jira_issues, follow_up_rule, mr_manager, jira):
+        assert follow_up_rule.execute(mr_manager) == follow_up_rule.ExecutionResult.filtered_out

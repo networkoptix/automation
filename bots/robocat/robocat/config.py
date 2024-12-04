@@ -84,6 +84,13 @@ class PipelineConfig(BaseModel):
         default=None)
 
 
+class FollowUpRuleConfig(BaseModel):
+    excluded_issue_title_patterns: Optional[list[str]] = Field(
+        description="List of regular expressions that are checked against the MR title. When "
+        "at least one expression is matching, the rule is skipped.",
+        default=None)
+
+
 class Config(BaseModel):
     jira: JiraConfig
     repo: RepoConfig
@@ -92,3 +99,4 @@ class Config(BaseModel):
     job_status_check_rule: Optional[JobStatusCheckRuleConfig] = None
     process_related_merge_requests_rule: Optional[ProcessRelatedMergeRequestRuleConfig] = None
     nx_submodule_check_rule: Optional[NxSubmoduleCheckRuleConfig] = None
+    follow_up_rule: Optional[FollowUpRuleConfig] = None
