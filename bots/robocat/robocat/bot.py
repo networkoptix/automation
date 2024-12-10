@@ -383,7 +383,7 @@ class Bot(threading.Thread):
         if (self.config.repo.need_code_owner_approval
                 and mr_manager.is_follow_up()
                 and payload["code_changed"]):
-            self.remove_code_owner_approval(mr_manager)
+            mr_manager.remove_robocat_approval()
 
         self._handle_mr_if_needed(
             current_mr_state=payload["mr_state"],
