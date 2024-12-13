@@ -24,7 +24,7 @@ For a complete list of options and further information on how to use nx_lint, ru
 For local usage, the recommended way to install nx_lint is via pip:
 
 ```sh
-pip install ./automation/nx_lint #< The exact path depends on your environment.
+pip install ./automation/open/nx_lint #< The exact path depends on your environment.
 ```
 
 ## Configuration
