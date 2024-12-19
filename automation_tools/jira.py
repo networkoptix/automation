@@ -251,8 +251,17 @@ class JiraIssue:
         logger.info(f"Trying to close issue {self}")
 
         if self.status in [JIRA_STATUS_CLOSED, JIRA_STATUS_QA]:
-            # Check if the Issue was closed by the bot. No warning if it was.
-            if self.has_bot_comment(message_id=JiraMessageId.IssueClosed):
+            # Check if the Issue was moved to this state by the bot. No warning if it was.
+            # TODO: Consider removing adding the comment because even if the Issue was closed by
+            # the bot, the situation still can be a workflow violation; on the other hand, it is
+            # not a big deal, so the value of this warning is questionable.
+            is_closed_by_bot = (
+                self.status == JIRA_STATUS_CLOSED
+                and self.has_bot_comment(message_id=JiraMessageId.IssueClosed))
+            is_moved_to_qa_by_bot = (
+                self.status == JIRA_STATUS_QA
+                and self.has_bot_comment(message_id=JiraMessageId.IssueMovedToQa))
+            if is_closed_by_bot or is_moved_to_qa_by_bot:
                 return True
             self.add_comment(JiraComment(
                 JiraMessageId.IssueAlreadyFinalized, {"status": self.status}))
