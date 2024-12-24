@@ -29,6 +29,7 @@ class JobStatusCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
             self.merge_authorized,
             self.merged,
             self.checks_passed,
+            self.filtered_out,
         ]
 
 

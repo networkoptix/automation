@@ -33,7 +33,12 @@ class CommitMessageError(CheckError):
 class CommitMessageCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
     def __bool__(self):
         return self in [
-            self.not_applicable, self.merge_authorized, self.merged, self.commit_message_is_ok]
+            self.not_applicable,
+            self.merge_authorized,
+            self.merged,
+            self.commit_message_is_ok,
+            self.filtered_out,
+        ]
 
 
 class CommitMessageStoredCheckResults(StoredCheckResults):

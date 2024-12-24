@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class NxSubmoduleRuleExecutionResultClass(RuleExecutionResultClass, Enum):
     def __bool__(self):
-        return self == self.nx_submodule_check_rule_ok
+        return self in [self.nx_submodule_check_rule_ok, self.filtered_out]
 
 
 class NxSubmoduleStoredCheckResults(StoredCheckResults):
@@ -46,7 +46,7 @@ class NxSubmoduleStoredCheckResults(StoredCheckResults):
 
 
 class NxSubmoduleCheckRule(CheckChangesMixin, BaseRule):
-    identifier = "nx_submodule"
+    identifier = "nx_submodule_check"
 
     ExecutionResult = NxSubmoduleRuleExecutionResultClass.create(
         "NxSubmoduleRuleExecutionResult", {

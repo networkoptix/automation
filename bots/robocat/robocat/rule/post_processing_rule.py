@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class PostProcessingRuleExecutionResultClass(RuleExecutionResultClass, Enum):
     def __bool__(self):
-        return self == self.rule_execution_successful
+        return self in [self.rule_execution_successful, self.filtered_out]
 
     def __str__(self):
         return str(self.value)

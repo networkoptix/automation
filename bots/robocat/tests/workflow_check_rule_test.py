@@ -65,9 +65,9 @@ class TestWorkflowCheckRule:
         }),
         # Merge Request is attached to Jira Issue with empty `fixVersions`.
         ([{
-            "key": "FOOBAR-1", "branches": [], "state": "In progress",
+            "key": "INFRA-1", "branches": [], "state": "In progress",
         }], {
-            "title": f"FOOBAR-1: Merge request attached to Jira Issue"
+            "title": f"INFRA-1: Merge request attached to Jira Issue"
         }),
         # Merge Request in "Draft" state is attached to one good Jira Issue.
         ([{
@@ -573,3 +573,23 @@ class TestWorkflowCheckRule:
             comments_count=4,
             expected_comment_title=expected_comment_title,
             new_mr_title=f"{DEFAULT_JIRA_ISSUE_KEY}1: some bad name")
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state", "expected_result", "expected_comment"), [
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"], "state": "In progress",
+        }], {
+            "title": "UNKNOWN-666: Test mr",
+        }, WorkflowCheckRule.ExecutionResult.bad_project_list, "Link this MR"),
+    ])
+    def test_bad_project_list(
+            self, workflow_rule, mr, mr_manager, expected_result, expected_comment):
+        assert workflow_rule.execute(mr_manager) == expected_result
+
+        assert not mr.work_in_progress
+
+        comments = mr.mock_comments()
+        assert comments[-1].startswith(
+            f"### :{AwardEmojiManager.CHECK_FAIL_EXPLANATION_EMOJI}:"), f"Got comments: {comments}"
+        assert expected_comment in comments[-1], f"Got comment: {comments[-1]}"
+
+        assert workflow_rule.execute(mr_manager) == expected_result

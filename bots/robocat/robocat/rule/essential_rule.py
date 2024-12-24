@@ -3,7 +3,6 @@
 import logging
 from enum import Enum
 
-from automation_tools.checkers.checkers import WorkflowPolicyChecker
 from automation_tools.jira import JiraAccessor
 from automation_tools.mr_data_structures import ApprovalRequirements
 from robocat.merge_request_manager import MergeRequestManager
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class EssentialRuleExecutionResultClass(RuleExecutionResultClass, Enum):
     def __bool__(self):
-        return self in [self.essential_rule_ok, self.merged]
+        return self in [self.essential_rule_ok, self.merged, self.filtered_out]
 
 
 class EssentialRule(BaseRule):
@@ -26,7 +25,6 @@ class EssentialRule(BaseRule):
 
     ExecutionResult = EssentialRuleExecutionResultClass.create(
         "EssentialRuleExecutionResult", {
-            "bad_project_list": "Merge Request does not belong to any supported Jira Project",
             "essential_rule_ok": "Essential rule check hasn't found any problems",
             "has_conflicts": "Has conflicts",
             "not_approved": "Not approved",
@@ -37,13 +35,6 @@ class EssentialRule(BaseRule):
             "rebase_in_progress": "Rebase in progress",
             "unresolved_threads": "Unresolved threads found",
         })
-
-    def __init__(self, config: Config, project_manager: ProjectManager, jira: JiraAccessor):
-        super().__init__(config, project_manager, jira)
-        self._project_keys = (
-            list(self.config.jira.project_mapping.keys())
-            if self.config.jira.project_mapping
-            else self.config.jira.project_keys)
 
     def _execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing essential rule with {mr_manager}...")
@@ -61,14 +52,6 @@ class EssentialRule(BaseRule):
         if preliminary_check_result == self.ExecutionResult.work_in_progress:
             mr_manager.unset_wait_state()
             return preliminary_check_result
-
-        belongs_to_supported_projects = any([
-            True for k in mr_manager.data.issue_keys
-            if WorkflowPolicyChecker(project_keys=self._project_keys).is_applicable(k)])
-        if not belongs_to_supported_projects:
-            mr_manager.explain_check_failure(
-                CheckFailureReason.bad_project_list, self._project_keys)
-            return self.ExecutionResult.bad_project_list
 
         mr_manager.ensure_watching()
 

@@ -49,7 +49,14 @@ class ApproveRulesetEntryConfig(BaseModel):
     approve_ruleset: ApproveRulesetConfig = Field(description="The approval ruleset.")
 
 
-class JobStatusCheckRuleConfig(BaseModel):
+class CommonRuleConfig(BaseModel):
+    excluded_issue_title_patterns: Optional[list[str]] = Field(
+        description="List of regular expressions that are checked against the MR title. When "
+        "at least one expression is matching, the rule is skipped.",
+        default=None)
+
+
+class JobStatusCheckRuleConfig(CommonRuleConfig):
     open_source: ApproveRulesetEntryConfig = Field(
         description="The approval ruleset for open source.")
     apidoc: Optional[ApproveRulesetEntryConfig] = Field(
@@ -58,7 +65,7 @@ class JobStatusCheckRuleConfig(BaseModel):
         description="The approval ruleset for checking changes by code owners.", default=None)
 
 
-class RelatedMergeRequestRuleConfig(BaseModel):
+class RelatedMergeRequestRuleConfig(CommonRuleConfig):
     trigger_title_pattern: str = Field(
         description="Regex for detecting issues in the base project to trigger this rule.")
     issue_keys_pattern: str = Field(
@@ -73,7 +80,7 @@ class ProcessRelatedMergeRequestRuleConfig(BaseModel):
         description="List of rules for processing related Merge Requests.")
 
 
-class NxSubmoduleCheckRuleConfig(BaseModel):
+class NxSubmoduleCheckRuleConfig(CommonRuleConfig):
     nx_submodule_dirs: list[str] = Field(
         description="List of directories that are considered Nx Submodules.")
 
@@ -84,11 +91,20 @@ class PipelineConfig(BaseModel):
         default=None)
 
 
-class FollowUpRuleConfig(BaseModel):
-    excluded_issue_title_patterns: Optional[list[str]] = Field(
-        description="List of regular expressions that are checked against the MR title. When "
-        "at least one expression is matching, the rule is skipped.",
-        default=None)
+class FollowUpRuleConfig(CommonRuleConfig):
+    pass
+
+
+class EssentialRuleConfig(CommonRuleConfig):
+    pass
+
+
+class WorkflowCheckRuleConfig(CommonRuleConfig):
+    pass
+
+
+class CommitMessageRuleConfig(CommonRuleConfig):
+    pass
 
 
 class Config(BaseModel):
@@ -100,3 +116,6 @@ class Config(BaseModel):
     process_related_merge_requests_rule: Optional[ProcessRelatedMergeRequestRuleConfig] = None
     nx_submodule_check_rule: Optional[NxSubmoduleCheckRuleConfig] = None
     follow_up_rule: Optional[FollowUpRuleConfig] = None
+    essential_check_rule: Optional[EssentialRuleConfig] = None
+    workflow_check_rule: Optional[WorkflowCheckRuleConfig] = None
+    commit_message_check_rule: Optional[CommitMessageRuleConfig] = None

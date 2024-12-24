@@ -363,11 +363,7 @@ class TestEssentialRule:
         ({
             "needed_approvers_number": 0,
             "pipelines_list": [(DEFAULT_COMMIT["sha"], "failed")]
-        }, EssentialRule.ExecutionResult.pipeline_failed, "You may rebase or run a new pipeline"),
-        # Bad Jira Project.
-        ({
-            "title": "UNKNOWN-666: Test mr",
-        }, EssentialRule.ExecutionResult.bad_project_list, "Link this MR"),
+        }, EssentialRule.ExecutionResult.pipeline_failed, "You may rebase or run a new pipeline")
     ])
     def test_comment_check_failure(
             self, essential_rule, mr, mr_manager, expected_result, expected_comment):

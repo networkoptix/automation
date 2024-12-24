@@ -5,9 +5,11 @@ from typing import Optional
 import logging
 import re
 
-from automation_tools.checkers.checkers import (WrongVersionChecker, IssueIgnoreLabelChecker)
+from automation_tools.checkers.checkers import (
+    IssueIgnoreLabelChecker, WorkflowPolicyChecker, WrongVersionChecker)
 from automation_tools.jira import JiraAccessor, JiraIssue, GitlabBranchDescriptor
 from automation_tools.jira_helpers import JIRA_STATUS_PROGRESS, JIRA_STATUS_REVIEW
+from robocat.action_reasons import CheckFailureReason
 from robocat.comments import Message
 from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
@@ -45,6 +47,7 @@ class WorkflowCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
             self.heuristic_warnings,
             self.merged,
             self.not_applicable,
+            self.filtered_out,
         ]
 
 
@@ -53,6 +56,7 @@ class WorkflowCheckRule(BaseRule):
 
     ExecutionResult = WorkflowCheckRuleExecutionResultClass.create(
         "WorkflowCheckRuleExecutionResult", {
+            "bad_project_list": "Merge Request does not belong to any supported Jira Project",
             "rule_execution_successful": "Workflow requirements are ok",
             "jira_issue_problems": "Problems with the attached Jira Issues",
             "heuristic_warnings": "Possible workflow problems",
@@ -63,6 +67,10 @@ class WorkflowCheckRule(BaseRule):
     def __init__(self, config: Config, project_manager: ProjectManager, jira: JiraAccessor):
         super().__init__(config, project_manager, jira)
         self._jira_issue_cache: dict[str, JiraIssue] = {}
+        self._project_keys = (
+            list(self.config.jira.project_mapping.keys())
+            if self.config.jira.project_mapping
+            else self.config.jira.project_keys)
 
     def _execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing Jira Issue check rule with {mr_manager}...")
@@ -73,6 +81,14 @@ class WorkflowCheckRule(BaseRule):
         preliminary_check_result = self.preliminary_check_result(mr_data)
         if preliminary_check_result != self.ExecutionResult.preliminary_check_passed:
             return preliminary_check_result
+
+        belongs_to_supported_projects = any([
+            True for k in mr_manager.data.issue_keys
+            if WorkflowPolicyChecker(project_keys=self._project_keys).is_applicable(k)])
+        if not belongs_to_supported_projects:
+            mr_manager.explain_check_failure(
+                CheckFailureReason.bad_project_list, self._project_keys)
+            return self.ExecutionResult.bad_project_list
 
         if mr_manager.data.issue_keys and self._foreign_issues_only(mr_manager):
             return self.ExecutionResult.not_applicable

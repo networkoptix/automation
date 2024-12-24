@@ -51,7 +51,11 @@ class PostprocessingRule:
 
 class ProcessRelatedProjectIssuesRuleExecutionResultClass(RuleExecutionResultClass, Enum):
     def __bool__(self):
-        return self == self.rule_execution_successful or self == self.no_applicable_rules
+        return self in [
+            self.rule_execution_successful,
+            self.no_applicable_rules,
+            self.filtered_out,
+        ]
 
     def __str__(self):
         return str(self.value)

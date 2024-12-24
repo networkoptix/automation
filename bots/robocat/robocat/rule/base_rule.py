@@ -2,6 +2,7 @@
 
 import datetime
 import logging
+import re
 import time
 from abc import ABCMeta, abstractmethod
 from enum import Enum
@@ -23,7 +24,8 @@ class RuleExecutionResultClass(Enum):
             "merged": "MR is already merged",
             "no_commits": "No commits",
             "work_in_progress": "Work in progress",
-            "preliminary_check_passed": "Preliminary check passed"
+            "preliminary_check_passed": "Preliminary check passed",
+            "filtered_out": "Rule execution was filtered out due to configuration",
         }
 
     def __bool__(self):
@@ -49,6 +51,23 @@ class BaseRule(metaclass=ABCMeta):
 
     def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         time_before_s = time.time()
+
+        # TODO: Get rid of ambiguity in the names of the config parameters. All should look like
+        # "{self.identifier}_rule". This will require changing the config files, identifier names
+        # and all related code.
+        if ((rule_config := getattr(self.config, f"{self.identifier}_rule", None)) is not None
+                or (rule_config := getattr(
+                    self.config, f"{self.identifier}_check_rule", None)) is not None):
+            if rule_config.excluded_issue_title_patterns:
+                mr_data = mr_manager.data
+                logger.debug(
+                    f"Checking the Issue title filters against the title {mr_data.title!r}")
+                for regexp in rule_config.excluded_issue_title_patterns:
+                    if re.match(pattern=regexp, string=mr_data.title):
+                        logger.info(
+                            f"{mr_manager}: Skipping {self.identifier!r} rule because the Issue "
+                            f"title matched the pattern {regexp!r}.")
+                        return self.ExecutionResult.filtered_out
 
         result = self._execute(mr_manager)
 
