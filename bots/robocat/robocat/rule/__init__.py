@@ -6,7 +6,6 @@ from .follow_up_rule import FollowUpRule
 from .job_status_check_rule import JobStatusCheckRule
 from .nx_submodule_check_rule import NxSubmoduleCheckRule
 from .post_processing_rule import PostProcessingRule
-from .process_related_projects_issues import ProcessRelatedProjectIssuesRule
 from .workflow_check_rule import WorkflowCheckRule
 
 ALL_RULES = [
@@ -16,6 +15,5 @@ ALL_RULES = [
     JobStatusCheckRule,
     NxSubmoduleCheckRule,
     PostProcessingRule,
-    ProcessRelatedProjectIssuesRule,
     WorkflowCheckRule,
 ]

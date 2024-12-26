@@ -25,7 +25,6 @@ from robocat.rule.follow_up_rule import FollowUpRule
 from robocat.rule.job_status_check_rule import JobStatusCheckRule
 from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
 from robocat.rule.post_processing_rule import PostProcessingRule
-from robocat.rule.process_related_projects_issues import ProcessRelatedProjectIssuesRule
 from robocat.rule.workflow_check_rule import WorkflowCheckRule
 import automation_tools.checkers.config
 import automation_tools.checkers.config
@@ -165,12 +164,6 @@ def follow_up_rule(bot_config, project, project_manager, jira, monkeypatch):
 
 
 @pytest.fixture
-def process_related_projects_issues_rule(bot_config, project_manager, jira, monkeypatch):
-    monkeypatch.setenv("BOT_NAME", "Robocat")
-    return ProcessRelatedProjectIssuesRule(bot_config, project_manager, jira)
-
-
-@pytest.fixture
 def post_processing_rule(bot_config, project_manager, jira, monkeypatch):
     monkeypatch.setenv("BOT_NAME", "Robocat")
     return PostProcessingRule(bot_config, project_manager, jira)
@@ -184,7 +177,6 @@ def bot(
         job_status_rule,
         follow_up_rule,
         workflow_rule,
-        process_related_projects_issues_rule,
         post_processing_rule,
         repo_accessor,
         project,
@@ -199,7 +191,6 @@ def bot(
             "job_status": job_status_rule,
             "follow_up": follow_up_rule,
             "workflow": workflow_rule,
-            "process_related": process_related_projects_issues_rule,
             "post_processing": post_processing_rule,
         }
         bot._username = BOT_USERNAME

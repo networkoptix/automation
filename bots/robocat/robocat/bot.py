@@ -230,10 +230,6 @@ class Bot(threading.Thread):
     def _execute_post_merge_rules(self, mr_manager: MergeRequestManager):
         logger.debug(f"{mr_manager}: Executing post-merge rules")
 
-        if "process_related" in self._rules:
-            process_related_result = self._rules["process_related"].execute(mr_manager)
-            logger.debug(f"{mr_manager}: {process_related_result}")
-
         if self._polling and "follow_up" in self._rules:
             follow_up_result = self._rules["follow_up"].execute(mr_manager)
             logger.debug(f"{mr_manager}: {follow_up_result}")

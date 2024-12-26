@@ -113,7 +113,6 @@ class Config(BaseModel):
     pipeline: Optional[PipelineConfig] = None
     enabled_rules: Optional[list[str]] = None
     job_status_check_rule: Optional[JobStatusCheckRuleConfig] = None
-    process_related_merge_requests_rule: Optional[ProcessRelatedMergeRequestRuleConfig] = None
     nx_submodule_check_rule: Optional[NxSubmoduleCheckRuleConfig] = None
     follow_up_rule: Optional[FollowUpRuleConfig] = None
     essential_check_rule: Optional[EssentialRuleConfig] = None
