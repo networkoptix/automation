@@ -2,11 +2,11 @@
 
 ALLOWED_VERSIONS_SETS = {
     "VMS": [
-        # Urgent support / patch issue.
-        set(['5.1_patch', '6.0.1', '6.0_patch', 'master']),
+        # Technical issue which should go into all branches (e.g. CI adaptation).
+        set(['5.1_patch', '6.0.1', '6.0.2', '6.0_patch', 'master']),
 
         # Ongoing minor release development.
-        set(['6.0_patch', '6.0.1', 'master']),
+        set(['6.0_patch', '6.0.2', 'master']),
 
         # Support / patch issue.
         set(['6.0_patch', 'master']),
