@@ -3,7 +3,7 @@
 ALLOWED_VERSIONS_SETS = {
     "VMS": [
         # Technical issue which should go into all branches (e.g. CI adaptation).
-        set(['5.1_patch', '6.0.1', '6.0.2', '6.0_patch', 'master']),
+        set(['5.1_patch', '6.0.1', '6.0.2', '6.0_patch', 'master', 'mobile_25.1']),
 
         # Ongoing minor release development.
         set(['6.0_patch', '6.0.2', 'master']),
@@ -14,7 +14,7 @@ ALLOWED_VERSIONS_SETS = {
         # Support / patch issue, important for the mobile branch.
         set(['6.0_patch', 'master', 'mobile_25.1']),
 
-        # Next release development.
+        # Next release development, actual for the desktop VMS part only.
         set(['master']),
 
         # Next release development, important for the mobile branch.
