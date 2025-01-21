@@ -110,7 +110,7 @@ class TestRobocatCommands:
         bot.process_event(event_data)
         assert mr.state == "merged"
 
-    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+    @pytest.mark.parametrize(("jira_issues", "mr_state", "command"), [
         (
             [{
                 "key": DEFAULT_JIRA_ISSUE_KEY,
@@ -129,14 +129,37 @@ class TestRobocatCommands:
                 "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
                 "source_project_id": FORK_PROJECT_ID,
                 "state": "merged",
-            })
+            },
+            "process",
+        ), (
+            [{
+                "key": DEFAULT_JIRA_ISSUE_KEY,
+                "branches": ["master", "vms_5.1"],
+                "merge_requests": [
+                    MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"],
+                ],
+                "state": "In Review",
+            }],
+            {
+                "title": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[0],
+                "description": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[1],
+                "blocking_discussions_resolved": True,
+                "needed_approvers_number": 0,
+                "commits_list": [GOOD_README_COMMIT_NEW_FILE],
+                "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
+                "source_project_id": FORK_PROJECT_ID,
+                "state": "merged",
+            },
+            "follow-up",
+        )
     ])
     def test_execute_commands_on_merged(
             self,
             project: ProjectMock,
             repo_accessor: Repo,
             bot: Bot,
-            mr: MergeRequestMock):
+            mr: MergeRequestMock,
+            command: str):
         # Init git repo state. TODO: Move git repo state to parameters.
         source_project = ProjectMock(id=mr.source_project_id, manager=project.manager)
         for c in mr.commits_list:
@@ -150,26 +173,15 @@ class TestRobocatCommands:
         repo_accessor.repo.mock_add_gitlab_project(source_project)
 
         payload = GitlabCommentEventData(
-            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} process")
+            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} {command}")
         event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
 
         bot.process_event(event_data)
 
         comments = mr.mock_comments()
-        assert len(comments) == 1, f"Got comments: {comments}"
-        assert f":{AwardEmojiManager.NOTIFICATION_EMOJI}:" in comments[-1], (
-            f"Last comment: {comments[-1]}.")
-
-        payload = GitlabCommentEventData(
-            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} follow-up")
-        event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
-
-        bot.process_event(event_data)
-
-        comments = mr.mock_comments()
-        assert len(comments) == 3, f"Got comments: {comments}"
-        assert f":{AwardEmojiManager.FOLLOWUP_CREATED_EMOJI}:" in comments[-1], (
-            f"Last comment: {comments[-1]}.")
+        assert len(comments) == 2, f"Got comments: {comments}"
+        assert f":{AwardEmojiManager.NOTIFICATION_EMOJI}:" in comments[0], (
+            f"First comment: {comments[0]}.")
 
     @pytest.mark.parametrize(("mr_state", "jira_issues"), [({}, [])])
     def test_set_draft_follow_up_mode(

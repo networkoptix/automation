@@ -43,6 +43,9 @@ class Bot(threading.Thread):
     LONG_EVENT_PROCESSING_THRESHOLD_S = 20
     LONG_WAIT_THRESHOLD_S = 30
 
+    PRE_MERGE_RULES = ["essential", "nx_submodule", "commit_message", "job_status", "workflow"]
+    POST_MERGE_RULES = ["follow_up", "post_processing"]
+
     @property
     def event_handler(self):
         return {
@@ -130,7 +133,7 @@ class Bot(threading.Thread):
             if not self._do_pre_processing_actions(mr_manager):
                 return
 
-            if not self._execute_rules(mr_manager):
+            if not self._execute_rules(mr_manager, self.PRE_MERGE_RULES):
                 return
 
             if not self._try_merge(mr_manager):
@@ -149,32 +152,26 @@ class Bot(threading.Thread):
                 mr_manager.run_user_requested_pipeline()
 
         # Ensure comment that MR is merged to its target branch to the corresponding Jira Issues.
-        if (mr_manager.data.is_merged):
+        if mr_manager.data.is_merged:
             self._add_merged_comment_to_jira_issues_if_needed(mr_manager)
 
         # TODO: Add here
         # - adding to MR initial Robocat message (move from essential rule).
         return True
 
-    def _execute_rules(self, mr_manager: MergeRequestManager) -> bool:
+    def _execute_rules(self, mr_manager: MergeRequestManager, rules: list[str]) -> bool:
         def _execute(rule):
             result = rule.execute(mr_manager)
             logger.debug(f"[{rule.identifier}] {mr_manager}: {result}")
             return result
 
-        logger.debug(f"{mr_manager}: Executing necessary rules")
+        if not (rules_to_execute := [rule for rule in rules if rule in self._rules]):
+            logger.debug(f"{mr_manager}: No rule to execute.")
+            return True
 
-        default_rules = ["essential", "nx_submodule", "commit_message", "job_status"]
-
-        results = [_execute(self._rules[rule]) for rule in default_rules if rule in self._rules]
-
-        if not all(results):
-            return False
-
-        if "workflow" in self._rules:
-            return _execute(self._rules["workflow"])
-
-        return True
+        logger.debug(f"{mr_manager}: Executing rules: {', '.join(rules_to_execute)}.")
+        results = [_execute(self._rules[rule]) for rule in rules_to_execute]
+        return all(results)
 
     def _try_merge(self, mr_manager: MergeRequestManager) -> bool:
         logger.debug(f"{mr_manager}: Prepare merge")
@@ -230,13 +227,10 @@ class Bot(threading.Thread):
     def _execute_post_merge_rules(self, mr_manager: MergeRequestManager):
         logger.debug(f"{mr_manager}: Executing post-merge rules")
 
-        if self._polling and "follow_up" in self._rules:
-            follow_up_result = self._rules["follow_up"].execute(mr_manager)
-            logger.debug(f"{mr_manager}: {follow_up_result}")
-
-        if "post_processing" in self._rules:
-            post_processing_result = self._rules["post_processing"].execute(mr_manager)
-            logger.debug(f"{mr_manager}: {post_processing_result}")
+        if self._polling:
+            # If we work in the "webhook" mode these rules will be called after the merge, as the
+            # result of processing Merge request event webhook.
+            self._execute_rules(mr_manager, self.POST_MERGE_RULES)
 
         mr_manager.update_unfinished_post_merging_flag(False)
 
@@ -313,17 +307,9 @@ class Bot(threading.Thread):
     def _handle_mr_if_needed(
             self, current_mr_state: str, previous_mr_state: str, mr_manager: MergeRequestManager):
 
-        if current_mr_state == "merged" and previous_mr_state in ["opened", "locked"]:
+        if current_mr_state == "merged" and previous_mr_state != current_mr_state:
             logger.info(f"{mr_manager}: Merge Request was just merged; executing necessary rules.")
-
-            if "follow_up" in self._rules:
-                follow_up_result = self._rules["follow_up"].execute(mr_manager)
-                logger.debug(f"{mr_manager}: {follow_up_result}")
-
-            if "post_processing" in self._rules:
-                post_processing_result = self._rules["post_processing"].execute(mr_manager)
-                logger.debug(f"{mr_manager}: {post_processing_result}")
-
+            self._execute_rules(mr_manager, self.POST_MERGE_RULES)
             return
 
         if current_mr_state == "opened":
@@ -344,7 +330,9 @@ class Bot(threading.Thread):
                 project_manager=self._project_manager,
                 jira=self._jira)
             if command.should_handle_mr_after_run:
-                self.handle(mr_manager)
+                current_mr_state = "merged" if mr_manager.data.is_merged else "opened"
+                self._handle_mr_if_needed(
+                    current_mr_state=current_mr_state, previous_mr_state="", mr_manager=mr_manager)
 
     def _process_pipeline_event(
             self, payload: GitlabPipelineEventData, mr_manager: MergeRequestManager):
@@ -359,6 +347,9 @@ class Bot(threading.Thread):
             mr_manager=mr_manager)
 
     def _process_job_event(self, payload: GitlabJobEventData, mr_manager: MergeRequestManager):
+        if mr_manager.data.is_merged:
+            return
+
         job = Job(payload)
         logger.debug(f"New {job.name} job status for MR {mr_manager.data.id} is {job.status}.")
         if job.status not in [JobStatus.failed, JobStatus.succeeded]:
@@ -372,7 +363,8 @@ class Bot(threading.Thread):
             job_pipeline = self._project_manager.get_pipeline(job.pipeline_location)
             if job_pipeline.is_stage_completed(autorun_stage):
                 logger.info(f"MR {mr_manager!r} processing triggered by Job event {payload}.")
-                self.handle(mr_manager)
+                self._handle_mr_if_needed(
+                    current_mr_state="opened", previous_mr_state="", mr_manager=mr_manager)
 
     def _process_mr_event(self, payload: GitlabMrEventData, mr_manager: MergeRequestManager):
         logger.info(f"Start processing Merge Request event {payload}.")

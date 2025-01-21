@@ -139,6 +139,7 @@ class TestBot:
             self, bot, mr, mr_manager, repo_accessor, jira, jira_issues, expected_status):
         repo_accessor.repo.mock_reset_commands_log()
 
+        bot._polling = True  # To execute post-merge rules immediately after merge.
         bot.handle(mr_manager)
         assert mr.state == "merged"
         assert not mr.mock_rebased
