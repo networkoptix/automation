@@ -46,7 +46,7 @@ class NxSubmoduleStoredCheckResults(StoredCheckResults):
 
 
 class NxSubmoduleCheckRule(CheckChangesMixin, BaseRule):
-    identifier = "nx_submodule_check"
+    identifier = "nx_submodule"
 
     ExecutionResult = NxSubmoduleRuleExecutionResultClass.create(
         "NxSubmoduleRuleExecutionResult", {
