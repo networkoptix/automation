@@ -2,7 +2,7 @@
 
 ALLOWED_VERSIONS_SETS = {
     "VMS": [
-        # Technical issue which should go into all branches (e.g. CI adaptation).
+        # Technical issue which should go into all branches (e.g. CI-related changes).
         set(['5.1_patch', '6.0.3', '6.0_patch', 'master', 'mobile_25.1']),
 
         # Ongoing minor release development.
