@@ -1,32 +1,62 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+from dataclasses import dataclass
+from typing import Set
+
+
+@dataclass
+class AllowedVersionSet:
+    versions: set[str]
+    description: str
+
+    def __str__(self):
+        return f"{self.description}: {self.versions}"
+
+
 ALLOWED_VERSIONS_SETS = {
     "VMS": [
-        # Technical issue which should go into all branches (e.g. CI-related changes).
-        set(['5.1_patch', '6.0.3', '6.0_patch', 'master', 'mobile_25.1']),
-
-        # Ongoing minor release development.
-        set(['6.0_patch', '6.0.3', 'master']),
-
-        # Support / patch issue.
-        set(['6.0_patch', 'master']),
-
-        # Support / patch issue, important for the mobile branch.
-        set(['6.0_patch', 'master', 'mobile_25.1']),
-
-        # Next release development, actual for the desktop VMS part only.
-        set(['master']),
-
-        # Next release development, important for the mobile branch.
-        set(['master', 'mobile_25.1']),
-
-        # Future task
-        set(['Future']),
+        AllowedVersionSet(
+            ['5.1_patch', '6.0.3', '6.0_patch', 'master', 'mobile_25.1'],
+            "Technical issue which should go into all branches (e.g. CI-related changes)"
+        ),
+        AllowedVersionSet(
+            ['6.0_patch', '6.0.3', 'master'],
+            "Ongoing minor release development"
+        ),
+        AllowedVersionSet(
+            ['6.0_patch', 'master'],
+            "Support / patch issue"
+        ),
+        AllowedVersionSet(
+            ['6.0_patch', 'master', 'mobile_25.1'],
+            "Support / patch issue, important for the mobile branch"
+        ),
+        AllowedVersionSet(
+            ['master'],
+            "Next release development, actual for the desktop VMS part only"
+        ),
+        AllowedVersionSet(
+            ['master', 'mobile_25.1'],
+            "Next release development, important for the mobile branch"
+        ),
+        AllowedVersionSet(
+            ['Future'],
+            "Postponed for the future releases"
+        )
     ],
     "MOBILE": [
-        set(['25.1', 'master']),
-        set(['master']),
-        set(['Future']),
+        AllowedVersionSet(
+            ['master'],
+            "Next release development"
+        ),
+        AllowedVersionSet(
+            ['master', '25.1'],
+            "Support / patch issue"
+        ),
+        AllowedVersionSet(
+            ['Future'],
+            "Postponed for the future releases"
+        )
     ],
 }
 

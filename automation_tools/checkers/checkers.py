@@ -52,14 +52,20 @@ class WrongVersionChecker(WorkflowPolicyChecker):
                 f"{config.ALLOWED_VERSIONS_SETS}, ignore it.")
             return None
 
+        allowed_version_sets = [set(x.versions)
+                                for x in config.ALLOWED_VERSIONS_SETS[issue.project]]
         version_set = set(issue.versions_to_branches_map.keys())
-        if version_set in config.ALLOWED_VERSIONS_SETS[issue.project]:
+        if version_set in allowed_version_sets:
             logger.debug(
                 f"Issue version set {sorted(version_set)!r} is in the allowed version sets "
-                f"{config.ALLOWED_VERSIONS_SETS[issue.project]}, ignore it.")
+                f"{allowed_version_sets}, ignore it.")
             return None
 
-        return f"Version set {sorted(version_set)!r} is not allowed."
+        return (
+            f"Version set {sorted(version_set)!r} is not allowed for the project {issue.project}. "
+            + "Allowed versions sets are:"
+            + '\n'
+            + '\n'.join(["- " + str(x) for x in config.ALLOWED_VERSIONS_SETS[issue.project]]))
 
 
 class BranchMissingChecker(WorkflowPolicyChecker):

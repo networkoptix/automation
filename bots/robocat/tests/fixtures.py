@@ -3,6 +3,8 @@
 from pathlib import Path
 import pytest
 import queue
+from dataclasses import dataclass
+from typing import Set
 
 from automation_tools.tests.fixtures import jira, repo_accessor
 from automation_tools.tests.gitlab_constants import (
@@ -27,7 +29,7 @@ from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
 from robocat.rule.post_processing_rule import PostProcessingRule
 from robocat.rule.workflow_check_rule import WorkflowCheckRule
 import automation_tools.checkers.config
-import automation_tools.checkers.config
+from automation_tools.checkers.config import AllowedVersionSet
 import robocat.gitlab
 
 
@@ -131,18 +133,48 @@ def workflow_rule(bot_config, project, project_manager, jira, monkeypatch):
         "ALLOWED_VERSIONS_SETS",
         {
             "VMS": [
-                set(['5.0', '5.0_patch', '5.1', '5.1_patch', 'master']),
-                set(['5.0_patch', '5.1', '5.1_patch', 'master']),
-                set(['5.1', '5.1_patch', 'master']),
-                set(['5.1_patch', 'master']),
-                set(['master']),
-                set(['Future']),
+                AllowedVersionSet(
+                    ['5.0', '5.0_patch', '5.1', '5.1_patch', 'master'],
+                    "Technical issue"
+                ),
+                AllowedVersionSet(
+                    ['5.0_patch', '5.1', '5.1_patch', 'master'],
+                    "Old patch support"
+                ),
+                AllowedVersionSet(
+                    ['5.1', '5.1_patch', 'master'],
+                    "Current release support"
+                ),
+                AllowedVersionSet(
+                    ['5.1_patch', 'master'],
+                    "Current patch support"
+                ),
+                AllowedVersionSet(
+                    ['master'],
+                    "Next release development"
+                ),
+                AllowedVersionSet(
+                    ['Future'],
+                    "Postponed for the future releases"
+                )
             ],
             "MOBILE": [
-                set(['23.1', '22.5', 'master']),
-                set(['23.1', 'master']),
-                set(['master']),
-                set(['Future']),
+                AllowedVersionSet(
+                    ['23.1', '22.5', 'master'],
+                    "Technical issue"
+                ),
+                AllowedVersionSet(
+                    ['23.1', 'master'],
+                    "Current release support"
+                ),
+                AllowedVersionSet(
+                    ['master'],
+                    "Next release development"
+                ),
+                AllowedVersionSet(
+                    ['Future'],
+                    "Postponed for the future releases"
+                )
             ],
         })
     return WorkflowCheckRule(bot_config, project_manager, jira)
