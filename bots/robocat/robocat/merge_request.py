@@ -1,9 +1,11 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 from typing import Any, Optional
-import gitlab
 import logging
 import re
+
+from gitlab.v4.objects import ProjectMergeRequestDiff
+import gitlab
 
 from automation_tools.mr_data_structures import ApprovalsInfo
 from robocat.award_emoji_manager import AwardEmojiManager
@@ -257,7 +259,7 @@ class MergeRequest:
         self._gitlab_mr.assignee_ids = list(assignee_ids)
         self._gitlab_mr.save()
 
-    def latest_diff(self) -> gitlab.v4.objects.ProjectMergeRequestDiff:
+    def latest_diff(self) -> ProjectMergeRequestDiff:
         lateset_diffs_list = self._gitlab_mr.diffs.list(per_page=1)
         assert len(lateset_diffs_list) > 0, (
             f"No diffs in {self}. "
