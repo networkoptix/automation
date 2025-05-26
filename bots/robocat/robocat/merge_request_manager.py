@@ -666,15 +666,9 @@ class MergeRequestManager:
     def _restore_approvals(self, approvers: set[str], first_try_delay_s: int = 5) -> bool:
         """This function restores approvals for the Merge Requests. The presupposition is that no
         user from the list passed via the `approvers` parameter has approved this Merge Request
-        yet. This presupposition may be false due to the race condition. To address this issue, if
-        the function fails to restore approval, it tries to do this again after timeout. Also the
-        function has an overall timeout to prevent the situation of endless retries. If the
-        function fails to restore some of the approvals, it checks if the Merge Request already
-        has all the approvals by the users listed in `approvers` parameter and returns the result
-        of the check. Otherwise (if all API calls return "OK" status) it returns true.
+        yet. This presupposition may be false due to the race condition.
         """
 
-        start_time_s = time.time()
         if first_try_delay_s:
             time.sleep(first_try_delay_s)
 
@@ -684,38 +678,18 @@ class MergeRequestManager:
             user_gitlab = self._gitlab.get_gitlab_object_for_user(user_name)
             user_project = user_gitlab.get_project(self._mr.project_id)
             mr = MergeRequest(user_project.get_raw_mr_by_id(self._mr.id), user_name)
-            is_ok &= self._try_set_approve(mr, start_time_s)
+            is_ok &= mr.ensure_approve()
 
-        return is_ok or approvers <= self._mr.approved_by()
-
-    @staticmethod
-    def _try_set_approve(mr: MergeRequest, start_time_s: float) -> bool:
-        max_approve_restore_timeout_s = 30
-        retry_timeout_s = 5
-
-        while True:
-            try:
-                mr.approve()
-                break
-            except gitlab.exceptions.GitlabAuthenticationError:
-                # Gitlab bug: if the Merge Request is already approved by some user, the API
-                # returns error 401 in response for the "approve" call from the same user.
-                pass
-
-            if time.time() - start_time_s > max_approve_restore_timeout_s:
-                return False
-            time.sleep(retry_timeout_s)
-
-        return True
+        return is_ok
 
     def add_robocat_approval(self):
-        if not self._try_set_approve(self._mr, time.time()):
+        if not self._mr.ensure_approve():
             self.add_comment_with_message_id(
                 MessageId.CannotApproveAsUser,
                 message_params={"username": self._current_user})
 
     def remove_robocat_approval(self):
-        self._mr.unapprove()
+        self._mr.ensure_unapprove()
 
     def notes(self, bot_only: bool = True) -> list[Note]:
         all_notes = [Note(note_data) for note_data in self._mr.notes_data()]

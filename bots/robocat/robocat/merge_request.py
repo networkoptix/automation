@@ -29,6 +29,7 @@ class MergeRequest:
         self._discussions = []
         self.rebase_in_progress = False
         self._has_unloaded_notes = True
+        self._current_user = current_user
         self.load_discussions()
 
     def __str__(self):
@@ -239,11 +240,33 @@ class MergeRequest:
         approvals = self._gitlab_mr.approvals.get()
         return {approver["user"]["username"] for approver in approvals.approved_by}
 
-    def approve(self):
-        self._gitlab_mr.approve()
+    def ensure_approve(self) -> bool:
+        try:
+            self._gitlab_mr.approve()
+        except gitlab.exceptions.GitlabAuthenticationError:
+            # If the Merge Request is already approved by the user, the GitLab API returns error
+            # 401 in response for the "approve" call from the same user. Return False if it is not
+            # the case.
+            if self._current_user not in self.approved_by():
+                logger.warning(f"{self}: User is not authorized to approve the MR.")
+                return False
+            logger.debug(f"{self}: Already approved by {self.approved_by()}.")
 
-    def unapprove(self):
-        self._gitlab_mr.unapprove()
+        return True
+
+    def ensure_unapprove(self) -> bool:
+        try:
+            self._gitlab_mr.unapprove()
+        except gitlab.exceptions.GitlabAuthenticationError:
+            # If the Merge Request is not approved by the user, the GitLab API returns error 404 in
+            # response for the "approve" call from the same user. Return False if it is not the
+            # case.
+            if self._current_user in self.approved_by():
+                logger.warning(f"{self}: Resource is not found when trying to unapprove the MR.")
+                return False
+            logger.debug(f"{self}: Not approved by {self.approved_by()}.")
+
+        return True
 
     @property
     def assignees(self) -> set[str]:
