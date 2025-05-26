@@ -16,11 +16,11 @@ class AllowedVersionSet:
 ALLOWED_VERSIONS_SETS = {
     "VMS": [
         AllowedVersionSet(
-            ['5.1_patch', '6.0.3', '6.0_patch', 'master', 'mobile_25.1'],
+            ['5.1_patch', '6.0.4', '6.0_patch', 'master', 'mobile_25.1'],
             "Technical issue which should go into all branches (e.g. CI-related changes)"
         ),
         AllowedVersionSet(
-            ['6.0_patch', '6.0.3', 'master'],
+            ['6.0_patch', '6.0.4', 'master'],
             "Ongoing minor release development"
         ),
         AllowedVersionSet(
