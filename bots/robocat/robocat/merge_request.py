@@ -257,10 +257,10 @@ class MergeRequest:
     def ensure_unapprove(self) -> bool:
         try:
             self._gitlab_mr.unapprove()
-        except gitlab.exceptions.GitlabAuthenticationError:
-            # If the Merge Request is not approved by the user, the GitLab API returns error 404 in
-            # response for the "approve" call from the same user. Return False if it is not the
-            # case.
+        except gitlab.exceptions.GitlabMRApprovalError:
+            # If the Merge Request is not approved by the user, the gitlab module throws an
+            # exception in response for the "unapprove" call from the same user. Return False if it
+            # is not the case and there is another reason for the exception.
             if self._current_user in self.approved_by():
                 logger.warning(f"{self}: Resource is not found when trying to unapprove the MR.")
                 return False
