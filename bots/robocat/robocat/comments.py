@@ -1,6 +1,7 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 from dataclasses import dataclass
+from typing import Optional
 
 from robocat.note import MessageId
 
@@ -8,7 +9,7 @@ from robocat.note import MessageId
 @dataclass(frozen=True)
 class Message:
     id: MessageId
-    params: dict[str, str] = None
+    params: Optional[dict[str, str]] = None
 
     @property
     def text(self) -> str:

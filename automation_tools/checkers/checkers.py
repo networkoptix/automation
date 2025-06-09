@@ -1,14 +1,15 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-import logging
+from collections.abc import Iterable
 from typing import Optional
+import logging
 
-import gitlab.v4.objects
 from gitlab import GitlabGetError
+import gitlab.v4.objects
 
-import automation_tools.checkers.config as config
-from automation_tools.jira import JiraIssue
 from automation_tools.git import Repo
+from automation_tools.jira import JiraIssue
+import automation_tools.checkers.config as config
 
 
 logger = logging.getLogger(__name__)
@@ -19,7 +20,7 @@ class WorkflowPolicyChecker:
     and the string containing information about the reason why the check failed otherwise. Check
     considered as successful if this check is not applicable to the Issue."""
 
-    def __init__(self, project_keys: set[str], repo: Repo = None, **_):
+    def __init__(self, project_keys: Iterable[str], repo: Optional[Repo] = None, **_):
         self._repo = repo
         self._project_keys = project_keys
 

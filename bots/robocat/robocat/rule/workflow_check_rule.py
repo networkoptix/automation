@@ -61,16 +61,16 @@ class WorkflowCheckRule(BaseRule):
             "jira_issue_problems": "Problems with the attached Jira Issues",
             "heuristic_warnings": "Possible workflow problems",
             "inconsistent_descriptions": "MR description is inconsistent with the commit messages",
-            "not_applicable": "Only Issues concering other Projects are mentioned in the MR",
+            "not_applicable": "Only Issues concerning other Projects are mentioned in the MR",
         })
 
     def __init__(self, config: Config, project_manager: ProjectManager, jira: JiraAccessor):
         super().__init__(config, project_manager, jira)
         self._jira_issue_cache: dict[str, JiraIssue] = {}
-        self._project_keys = (
+        self._project_keys: list[str] = (
             list(self.config.jira.project_mapping.keys())
             if self.config.jira.project_mapping
-            else self.config.jira.project_keys)
+            else (self.config.jira.project_keys or []))
 
     def _execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing Jira Issue check rule with {mr_manager}...")
@@ -237,7 +237,7 @@ class WorkflowCheckRule(BaseRule):
 
         return result
 
-    def _get_jira_issue_using_cache(self, key: str) -> list[JiraIssue]:
+    def _get_jira_issue_using_cache(self, key: str) -> JiraIssue:
         if key not in self._jira_issue_cache:
             self._jira_issue_cache[key] = self.jira.get_issue(key)
         return self._jira_issue_cache[key]

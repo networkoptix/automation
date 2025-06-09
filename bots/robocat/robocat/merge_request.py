@@ -4,6 +4,7 @@ from typing import Any, Optional
 import logging
 import re
 
+from gitlab.exceptions import GitlabError
 from gitlab.v4.objects import ProjectMergeRequestDiff
 import gitlab
 
@@ -209,7 +210,7 @@ class MergeRequest:
                 discussion.resolved = True
                 discussion.save()
 
-        except gitlab.exceptions.GitlabError as e:
+        except GitlabError as e:
             # This is workaround for the case when gitlab refuses to create discussion at the
             # position explicitly stated with "new_line" and "new_path" parameters. TODO: Fix this
             # workaround - find a way to reliably create a discussion, bonded to the file and line

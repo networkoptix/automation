@@ -555,10 +555,10 @@ class MergeRequestManager:
             title: str,
             message: str,
             emoji: str,
-            message_id: MessageId = None,
-            message_data: dict[str, Any] = None,
-            file: str = None,
-            line: int = None,
+            message_id: Optional[MessageId] = None,
+            message_data: Optional[dict[str, Any]] = None,
+            file: Optional[str] = None,
+            line: Optional[int] = None,
             autoresolve: bool = False) -> bool:
         if file is not None and line is not None:
             latest_diff = self._mr.latest_diff()

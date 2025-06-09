@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
 
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import MessageId
+from robocat.note import MessageId, Note
 
 
 @dataclass(frozen=True)
@@ -41,7 +41,7 @@ class StoredCheckResults:
 
     def __init__(self, mr_manager: MergeRequestManager):
         self._current_revision_sha = mr_manager.data.sha
-        self._issue_notes = []
+        self._issue_notes: list[Note] = []
         self._last_checked_revision_sha = None
         for n in mr_manager.notes():
             if n.message_id not in self.MESSAGE_IDS:
