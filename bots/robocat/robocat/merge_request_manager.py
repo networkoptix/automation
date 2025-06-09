@@ -485,9 +485,6 @@ class MergeRequestManager:
             message_id = MessageId.FailedCheckForConflictsWithTargetBranch
         elif reason == CheckFailureReason.unresolved_threads:
             message_id = MessageId.FailedCheckForUnresolvedThreads
-        elif reason == CheckFailureReason.bad_project_list:
-            message_id = MessageId.FailedCheckForNoSupportedProject
-            message_params = {"jira_projects_list": '"{}"'.format('", "'.join(params[0]))}
 
         assert message_id is not None, f"Unknown reason: {reason}"
 
@@ -615,21 +612,24 @@ class MergeRequestManager:
             emoji = AwardEmojiManager.SUSPICIOUS_ISSUE_EMOJI
             message = problem.text
 
-        if is_blocker:
-            self._add_comment(
-                title=problem.title, message=message, emoji=emoji, message_id=problem.id)
-            self._mr.award_emoji.create(AwardEmojiManager.BAD_ISSUE_EMOJI)
-        else:
-            self.create_thread(
-                title=problem.title, message=message, emoji=emoji, message_id=problem.id)
+        self.create_thread(
+            title=problem.title, message=message, emoji=emoji, message_id=problem.id)
 
-    def ensure_no_workflow_errors(self):
+        if is_blocker:
+            self._mr.award_emoji.create(AwardEmojiManager.BAD_ISSUE_EMOJI)
+
+    def ensure_no_workflow_errors(self, notes_to_resolve: list[Note]):
+        self._mr.award_emoji.delete(AwardEmojiManager.SUSPICIOUS_ISSUE_EMOJI, own=True)
         if self._mr.award_emoji.delete(AwardEmojiManager.BAD_ISSUE_EMOJI, own=True):
             self._add_comment(
                 title="Workflow errors are fixed",
                 message=robocat.comments.workflow_no_errors_message,
                 emoji=AwardEmojiManager.AUTOCHECK_OK_EMOJI,
                 message_id=MessageId.WorkflowOk)
+
+        for note in notes_to_resolve:
+            assert note.discussion_id is not None
+            self._mr.resolve_discussion(note.discussion_id)
 
     def squash_locally_if_needed(self, repo: automation_tools.git.Repo):
         if not self._mr.squash or len(list(self._mr.commits())) <= 1:

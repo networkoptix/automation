@@ -589,7 +589,8 @@ class TestWorkflowCheckRule:
 
         comments = mr.mock_comments()
         assert comments[-1].startswith(
-            f"### :{AwardEmojiManager.CHECK_FAIL_EXPLANATION_EMOJI}:"), f"Got comments: {comments}"
+            f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: No supported project found"), (
+                f"Got comments: {comments}")
         assert expected_comment in comments[-1], f"Got comment: {comments[-1]}"
 
         assert workflow_rule.execute(mr_manager) == expected_result

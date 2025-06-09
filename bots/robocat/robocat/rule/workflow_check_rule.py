@@ -36,6 +36,7 @@ class WorkflowStoredCheckResults(StoredCheckResults):
         MessageId.WorkflowParenthesesNotAllowed,
         MessageId.InconsistentAssigneesInJiraAndGitlab,
         MessageId.SuspiciousJiraIssueStatus,
+        MessageId.FailedCheckForNoSupportedProject,
     }
     OK_MESSAGE_IDS = {MessageId.WorkflowOk}
 
@@ -86,8 +87,13 @@ class WorkflowCheckRule(BaseRule):
             True for k in mr_manager.data.issue_keys
             if WorkflowPolicyChecker(project_keys=self._project_keys).is_applicable(k)])
         if not belongs_to_supported_projects:
-            mr_manager.explain_check_failure(
-                CheckFailureReason.bad_project_list, self._project_keys)
+            related_project_problems = [
+                Message(
+                    id=MessageId.FailedCheckForNoSupportedProject,
+                    params={"jira_projects_list": '"{}"'.format('", "'.join(self._project_keys))}),
+            ]
+            self._update_workflow_problems_info(
+                mr_manager=mr_manager, problems=related_project_problems, is_blocker=True)
             return self.ExecutionResult.bad_project_list
 
         if mr_manager.data.issue_keys and self._foreign_issues_only(mr_manager):
@@ -113,7 +119,9 @@ class WorkflowCheckRule(BaseRule):
         if previous_check_state.was_never_checked() or previous_check_state.has_errors():
             # This is the first check or we detected errors during the previous checks but not now.
             # Leave "good to go" comment.
-            mr_manager.ensure_no_workflow_errors()
+            error_notes = WorkflowStoredCheckResults(mr_manager).get_error_notes(
+                unresolved_only=True)
+            mr_manager.ensure_no_workflow_errors(error_notes)
 
         return self.ExecutionResult.rule_execution_successful
 
@@ -130,7 +138,7 @@ class WorkflowCheckRule(BaseRule):
     def _update_workflow_problems_info(
             self, mr_manager: MergeRequestManager, problems: list[Message], is_blocker: bool):
         current_errors_info = WorkflowStoredCheckResults(mr_manager)
-        reported_errors_by_id = current_errors_info.get_errors()
+        reported_errors_by_id = current_errors_info.get_errors(unresolved_only=True)
         for problem in problems:
             if problem.id not in reported_errors_by_id:
                 mr_manager.add_workflow_problem_info(problem=problem, is_blocker=is_blocker)

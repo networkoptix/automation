@@ -8,7 +8,6 @@ class CheckFailureReason(enum.Enum):
     conflicts = enum.auto()
     failed_pipeline = enum.auto()
     unresolved_threads = enum.auto()
-    bad_project_list = enum.auto()
 
 
 class WaitReason(enum.Enum):

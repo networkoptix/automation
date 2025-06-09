@@ -237,6 +237,21 @@ class MergeRequest:
         self._has_unloaded_notes = True
         return True
 
+    def resolve_discussion(self, discussion_id: str) -> bool:
+        logger.debug(f"{self}: Resolving discussion {discussion_id}")
+        try:
+            discussion = self._gitlab_mr.discussions.get(discussion_id)
+            discussion.resolved = True
+            discussion.save()
+        except GitlabError as e:
+            if e.response_code == 404:
+                logger.warning(f"{self}: Discussion {discussion_id} not found.")
+                return False
+            raise e
+
+        self._has_unloaded_notes = True
+        return True
+
     def approved_by(self) -> set[str]:
         approvals = self._gitlab_mr.approvals.get()
         return {approver["user"]["username"] for approver in approvals.approved_by}

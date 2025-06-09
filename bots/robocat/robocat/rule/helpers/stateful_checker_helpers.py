@@ -55,11 +55,16 @@ class StoredCheckResults:
     def is_current_revision_checked(self) -> bool:
         return self._current_revision_sha == self._last_checked_revision_sha
 
-    def get_errors(self) -> dict[MessageId, set[CheckErrorClass]]:
+    def get_errors(self, unresolved_only: bool = False) -> dict[MessageId, set[CheckErrorClass]]:
         result = {}
         for n in self._issue_notes:
+            if unresolved_only and n.resolved_by:
+                continue
             result.setdefault(n.message_id, set()).add(self.CheckErrorClass(**n.additional_data))
         return result
+
+    def get_error_notes(self, unresolved_only: bool = False) -> list[Note]:
+        return [n for n in self._issue_notes if not unresolved_only or not n.resolved_by]
 
     def has_errors(self) -> bool:
         return bool(self._issue_notes)

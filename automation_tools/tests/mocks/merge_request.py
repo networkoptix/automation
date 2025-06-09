@@ -207,6 +207,9 @@ class DiscussionsManagerMock:
     def list(self, **_):
         return [d for d in self.discussions if d.mock_is_visible]
 
+    def get(self, id: str) -> Optional[DiscussionMock]:
+        return next(iter(d for d in self.discussions if d.id == id), None)
+
     def _update_note(self, note: NoteMock):
         for discussion in self.discussions:
             for i, discussion_note in enumerate(discussion.notes):
