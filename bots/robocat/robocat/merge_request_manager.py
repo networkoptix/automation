@@ -618,7 +618,7 @@ class MergeRequestManager:
         if is_blocker:
             self._mr.award_emoji.create(AwardEmojiManager.BAD_ISSUE_EMOJI)
 
-    def ensure_no_workflow_errors(self, notes_to_resolve: list[Note]):
+    def ensure_no_workflow_errors(self, error_notes: list[Note]):
         self._mr.award_emoji.delete(AwardEmojiManager.SUSPICIOUS_ISSUE_EMOJI, own=True)
         if self._mr.award_emoji.delete(AwardEmojiManager.BAD_ISSUE_EMOJI, own=True):
             self._add_comment(
@@ -627,7 +627,9 @@ class MergeRequestManager:
                 emoji=AwardEmojiManager.AUTOCHECK_OK_EMOJI,
                 message_id=MessageId.WorkflowOk)
 
-        for note in notes_to_resolve:
+        for note in error_notes:
+            if not note.resolvable:
+                continue
             assert note.discussion_id is not None
             self._mr.resolve_discussion(note.discussion_id)
 

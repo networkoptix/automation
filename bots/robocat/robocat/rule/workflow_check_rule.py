@@ -118,7 +118,7 @@ class WorkflowCheckRule(BaseRule):
 
         if previous_check_state.was_never_checked() or previous_check_state.has_errors():
             # This is the first check or we detected errors during the previous checks but not now.
-            # Leave "good to go" comment.
+            # Create "good to go" comment.
             error_notes = WorkflowStoredCheckResults(mr_manager).get_error_notes(
                 unresolved_only=True)
             mr_manager.ensure_no_workflow_errors(error_notes)
