@@ -16,20 +16,28 @@ class AllowedVersionSet:
 ALLOWED_VERSIONS_SETS = {
     "VMS": [
         AllowedVersionSet(
-            ['5.1_patch', '6.0.4', '6.0_patch', 'master', 'mobile_25.1'],
+            ['6.0.4', '6.0_patch', '6.1', 'master', 'mobile_25.1'],
             "Technical issue which should go into all branches (e.g. CI-related changes)"
         ),
         AllowedVersionSet(
-            ['6.0_patch', '6.0.4', 'master'],
+            ['6.0_patch', '6.0.4', '6.1', 'master'],
             "Ongoing minor release development"
         ),
         AllowedVersionSet(
-            ['6.0_patch', 'master'],
+            ['6.0_patch', '6.1', 'master'],
             "Support / patch issue"
         ),
         AllowedVersionSet(
-            ['6.0_patch', 'master', 'mobile_25.1'],
+            ['6.0_patch', '6.1', 'master', 'mobile_25.1'],
             "Support / patch issue, important for the mobile branch"
+        ),
+        AllowedVersionSet(
+            ['6.1', 'master'],
+            "Current release development, actual for the desktop VMS part only"
+        ),
+        AllowedVersionSet(
+            ['6.1', 'master', 'mobile_25.1'],
+            "Current release development, important for the mobile branch"
         ),
         AllowedVersionSet(
             ['master'],
