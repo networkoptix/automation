@@ -69,6 +69,9 @@ class StoredCheckResults:
     def has_errors(self) -> bool:
         return bool(self._issue_notes)
 
+    def has_reported_problem(self, message_id: MessageId) -> bool:
+        return any(n.message_id == message_id for n in self._issue_notes)
+
     def was_never_checked(self) -> bool:
         return self._last_checked_revision_sha is None
 

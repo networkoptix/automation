@@ -129,19 +129,26 @@ class WorkflowCheckRule(BaseRule):
         jira_projects = {
             self._get_jira_issue_using_cache(k).project
             for k in self._exclude_ignored_issues(mr_manager.data.issue_keys)}
+        project_mapping = self.config.jira.project_mapping or {}
 
         return all(
             False
             for project in jira_projects
-            if self.config.jira.project_mapping.get(project) == self.project_manager.data.path)
+            if project_mapping.get(project) == self.project_manager.data.path)
 
     def _update_workflow_problems_info(
             self, mr_manager: MergeRequestManager, problems: list[Message], is_blocker: bool):
-        current_errors_info = WorkflowStoredCheckResults(mr_manager)
-        reported_errors_by_id = current_errors_info.get_errors(unresolved_only=True)
+        stored_info = WorkflowStoredCheckResults(mr_manager)
+        stored_errors_by_id = stored_info.get_errors(unresolved_only=True)
         for problem in problems:
-            if problem.id not in reported_errors_by_id:
-                mr_manager.add_workflow_problem_info(problem=problem, is_blocker=is_blocker)
+            # Re-create discussions for the problems that still present but marked as resolved,
+            # except for the ones with the "suspicious" status, which are not blockers.
+            if problem.id in stored_errors_by_id:
+                continue  # Error is already reported and the discussion is not resolved.
+            if (problem.id == MessageId.SuspiciousJiraIssueStatus
+                    and stored_info.has_reported_problem(MessageId.SuspiciousJiraIssueStatus)):
+                continue  # Do not re-create discussion for the non-blockers.
+            mr_manager.add_workflow_problem_info(problem=problem, is_blocker=is_blocker)
 
     def _get_jira_issue_errors(self, mr_manager: MergeRequestManager) -> list[Message]:
         jira_issue_errors = []
