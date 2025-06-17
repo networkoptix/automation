@@ -145,8 +145,14 @@ class WorkflowCheckRule(BaseRule):
             # except for the ones with the "suspicious" status, which are not blockers.
             if problem.id in stored_errors_by_id:
                 continue  # Error is already reported and the discussion is not resolved.
-            if (problem.id == MessageId.SuspiciousJiraIssueStatus
-                    and stored_info.has_reported_problem(MessageId.SuspiciousJiraIssueStatus)):
+            has_reported_suspicious_jira_status = (
+                problem.id == MessageId.SuspiciousJiraIssueStatus
+                and stored_info.has_reported_problem(MessageId.SuspiciousJiraIssueStatus))
+            has_reported_inconsistent_assignees = (
+                problem.id == MessageId.InconsistentAssigneesInJiraAndGitlab
+                and stored_info.has_reported_problem(
+                    MessageId.InconsistentAssigneesInJiraAndGitlab))
+            if (has_reported_suspicious_jira_status or has_reported_inconsistent_assignees):
                 continue  # Do not re-create discussion for the non-blockers.
             mr_manager.add_workflow_problem_info(problem=problem, is_blocker=is_blocker)
 
