@@ -24,6 +24,7 @@ from automation_tools.jira_helpers import (
     JIRA_STATUS_READY_TO_MERGE,
     JIRA_STATUS_OPEN,
     JIRA_STATUS_INQA,
+    JIRA_STATUS_VERIFICATION,
     JIRA_TRANSITION_WORKFLOW_FAILURE)
 import automation_tools.bot_info
 import automation_tools.utils
@@ -83,6 +84,7 @@ class JiraIssue:
             JIRA_STATUS_READY_TO_MERGE: "Ready to Merge",
             JIRA_STATUS_OPEN: "Open",
             JIRA_STATUS_INQA: "In QA",
+            JIRA_STATUS_VERIFICATION: "Pending Verification",
         },
         "transitions": {
             JIRA_TRANSITION_WORKFLOW_FAILURE: "Workflow failure",
@@ -250,7 +252,7 @@ class JiraIssue:
     def try_finalize(self) -> bool:
         logger.info(f"Trying to close issue {self}")
 
-        if self.status in [JIRA_STATUS_CLOSED, JIRA_STATUS_QA]:
+        if self.status in [JIRA_STATUS_CLOSED, JIRA_STATUS_QA, JIRA_STATUS_VERIFICATION]:
             # Check if the Issue was moved to this state by the bot. No warning if it was.
             # TODO: Consider removing adding the comment because even if the Issue was closed by
             # the bot, the situation still can be a workflow violation; on the other hand, it is
@@ -261,7 +263,10 @@ class JiraIssue:
             is_moved_to_qa_by_bot = (
                 self.status == JIRA_STATUS_QA
                 and self.has_bot_comment(message_id=JiraMessageId.IssueMovedToQa))
-            if is_closed_by_bot or is_moved_to_qa_by_bot:
+            is_set_for_verification = (
+                self.status == JIRA_STATUS_VERIFICATION
+                and self.has_bot_comment(message_id=JiraMessageId.IssueReadyToVerify))
+            if is_closed_by_bot or is_moved_to_qa_by_bot or is_set_for_verification:
                 return True
             self.add_comment(JiraComment(
                 JiraMessageId.IssueAlreadyFinalized, {"status": self.status}))
@@ -287,6 +292,13 @@ class JiraIssue:
             logger.info(
                 f'Status "{self._project_status_name(JIRA_STATUS_QA)}" is set for the Issue '
                 f"{self}.")
+            return True
+
+        if self._set_status(JIRA_STATUS_VERIFICATION, no_throw=True):
+            self.add_comment(JiraComment(message_id=JiraMessageId.IssueReadyToVerify, params={}))
+            logger.info(
+                f'Status "{self._project_status_name(JIRA_STATUS_VERIFICATION)}" is set for the '
+                f"Issue {self}.")
             return True
 
         self._set_status(JIRA_STATUS_CLOSED)

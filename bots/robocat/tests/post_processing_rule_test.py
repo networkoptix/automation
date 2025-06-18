@@ -189,6 +189,22 @@ class TestPostProcessingRule:
                 "squash_commit_sha": DEFAULT_COMMIT["sha"],
                 "target_branch": "vms_5.2",
             }, 3, "Waiting for QA"),
+            # Merged to all issue branches, Issue has "In Review" status, Issue type is
+            # "Security Issue".
+            ([{
+                "key": DEFAULT_JIRA_ISSUE_KEY,
+                "branches": ["master", "vms_5.1"],
+                "state": "In Review",
+                "comments_list": [
+                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master"),
+                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1"),
+                ],
+                "typ": "Security Issue",
+            }], {
+                "state": "merged",
+                "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
+                "squash_commit_sha": DEFAULT_COMMIT["sha"],
+            }, 3, "Pending Verification"),
         ])
     def test_finalize_one_issue(
             self,

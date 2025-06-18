@@ -23,6 +23,8 @@ JIRA_STATUS_QA = "qa"
 JIRA_STATUS_READY_TO_MERGE = "ready_to_merge"
 JIRA_STATUS_OPEN = "open"
 JIRA_STATUS_INQA = "inqa"
+JIRA_STATUS_VERIFICATION = "pending_verification"
+
 
 JIRA_TRANSITION_WORKFLOW_FAILURE = "workflow_failure"
 
@@ -35,6 +37,7 @@ JiraStatuses = TypedDict("JiraStatuses", {
     JIRA_STATUS_READY_TO_MERGE: str,
     JIRA_STATUS_OPEN: str,
     JIRA_STATUS_INQA: str,
+    JIRA_STATUS_VERIFICATION: str,
 })
 
 

@@ -20,6 +20,7 @@ class JiraMessageId(Enum):
     IssueAlreadyFinalized = auto()
     UnableToReopenIssue = auto()
     MrMergedToBranch = auto()
+    IssueReadyToVerify = auto()
 
 
 class JiraCommentDataKey(Enum):
@@ -47,7 +48,7 @@ class JiraComment:
             self,
             message_id: JiraMessageId,
             params: Union[dict[str, str], str],
-            data: dict[str, str] = None):
+            data: Optional[dict[str, str]] = None):
         self.message_id = message_id
         self.data = data
         if isinstance(params, str):
@@ -146,4 +147,5 @@ future.""",
     JiraMessageId.MrMergedToBranch: """Merge request [{mr_name}|{mr_url}] has been merged to branch
 *{mr_branch}*.
 """,
+    JiraMessageId.IssueReadyToVerify: "Security Issue is ready to verify."
 }

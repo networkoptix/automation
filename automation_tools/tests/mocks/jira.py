@@ -158,6 +158,9 @@ class Jira:
                 return [
                     {"name": "Back to development", "to": {"name": "In progress"}},
                     {"name": "Close", "to": {"name": "Closed"}}]
+            if issue.fields.issuetype.name == "Security Issue":
+                return [
+                    {"name": "Ready for verification", "to": {"name": "Pending Verification"}}]
             return [
                 {"name": "Merged", "to": {"name": "Waiting for QA"}},
                 {"name": "Review Failed", "to": {"name": "In progress"}}]
