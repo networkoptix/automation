@@ -36,7 +36,8 @@ class PostProcessingRule(BaseRule):
 
     def __init__(self, config: Config, project_manager: ProjectManager, jira: JiraAccessor):
         super().__init__(config, project_manager, jira)
-        self._default_branch_project_mapping = config.jira.project_mapping
+        self._default_branch_project_mapping = config.jira.project_mapping or {}
+        self._project_manager = project_manager
 
     def _execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing post-processing rule with {mr_manager}...")
@@ -64,9 +65,14 @@ class PostProcessingRule(BaseRule):
     def _try_close_jira_issue(self, mr_manager: MergeRequestManager, issue: JiraIssue) -> bool:
         logger.debug(f"{mr_manager} Trying to move to QA/close Issue {issue}.")
 
+        # Check, if the changes from relevant MRs are merged to all branches, mentioned in the
+        # "fixVersions" field of the issue. Relevant MRs are:
+        # 1. Current MR, if it is not a follow-up MR.
+        # 2. Original MR, if the current MR is a follow-up MR.
+        # 3. Another follow-up MR for the same original MR, if the current MR is a follow-up MR.
+        # 4. Any MR, if the Issue belongs to Project, other than the one of the current MR.
         declared_merged_branches = issue.declared_merged_branches()
-        declared_merged_branch_names = {str(b) for b in declared_merged_branches}
-        logger.debug(f"Declared merged branches for {issue}: {declared_merged_branch_names!r}")
+        logger.debug(f"Declared merged branches for {issue}: {declared_merged_branches!r}")
 
         for branch in issue.branches():
             if not self._check_if_branch_is_merged(
@@ -79,7 +85,7 @@ class PostProcessingRule(BaseRule):
                     f"{mr_manager}: Cannot move to QA/close issue {issue} because the changes are "
                     f'not merged to some of the branches determined by "fixVersions" field. Issue '
                     f'branches (from "fixVersions"): {fix_version_branch_names!r}, merged '
-                    f"branches:  {declared_merged_branch_names!r}.")
+                    f"branches: {declared_merged_branches!r}.")
                 return False
 
         try:
@@ -101,7 +107,7 @@ class PostProcessingRule(BaseRule):
             branch: GitlabBranchDescriptor,
             mr_manager: MergeRequestManager,
             issue: JiraIssue,
-            declared_merged_branches: list[GitlabBranchDescriptor]) -> bool:
+            declared_merged_branches: dict[GitlabBranchDescriptor, set[int]]) -> bool:
         project_path = (branch.project_path
                         or self._default_branch_project_mapping.get(issue.project, None))
         if project_path is None:
@@ -113,12 +119,31 @@ class PostProcessingRule(BaseRule):
                 params={"project": issue.project, "branch": str(branch), "issue": str(issue)}))
             return False
 
-        is_branch_declared_merged = any(
-            True
-            for b in declared_merged_branches
-            if b.project_path == project_path and b.branch_name == branch.branch_name)
-        if not is_branch_declared_merged:
+        merged_branch = next((
+            b
+            for b in declared_merged_branches.keys()
+            if b.project_path == project_path and b.branch_name == branch.branch_name),
+            None)
+        if not merged_branch:
             return False
 
-        logger.debug(f"{mr_manager}: The branch {branch} is merged.")
-        return True
+        # Branch belongs to "foreign" project, Do not check MR id.
+        if project_path != self._project_manager.data.path:
+            logger.debug(
+                f"{mr_manager}: The branch {branch} for project {project_path!r} is merged.")
+            return True
+
+        if not declared_merged_branches[merged_branch]:
+            logger.debug(
+                f"{mr_manager}: The branch {branch} is merged, but no MRs are declared for it. "
+                "Assuming the merge comment is in the old format and considering the branch "
+                "merged.")
+            return True
+
+        original_mr_id = mr_manager.get_original_mr_id() or mr_manager.data.id
+        if original_mr_id in declared_merged_branches[merged_branch]:
+            logger.debug(
+                f"{mr_manager}: The branch {branch} is merged in the MR {original_mr_id!r}.")
+            return True
+
+        return False

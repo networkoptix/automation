@@ -253,7 +253,7 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
                     for_changed_files=True,
                     for_affected_files=issue_descriptor.deleted_files_affect_result)
                 mr_manager.add_comment(
-                    message = robocat.comments.Message(
+                    message=robocat.comments.Message(
                         id=MessageId.JobStatusCheckNeedsApproval,
                         params={
                             "approvers": ", @".join(keepers),

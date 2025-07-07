@@ -176,12 +176,12 @@ class ProjectManager:
         mr = MergeRequest(raw_mr, self._current_user)
         mr.set_approvers_count(0)
         mr.award_emoji.create(AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI)
-        mr.create_note(body=robocat.comments.template.format(
-            title="Follow-up merge request",
-            message=robocat.comments.follow_up_initial_message.format(
-                branch=target_branch, original_mr_url=original_mr_data.url),
-            emoji=AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI,
-            revision=automation_tools.bot_info.revision()))
+        message = robocat.comments.Message(
+            id=MessageId.FollowUpInitialMessage,
+            params={"branch": target_branch, "original_mr_url": original_mr_data.url})
+        data_text = str(NoteDetails(
+            message_id=message.id, sha=mr.sha, data={"original_mr_id": original_mr_data.id}))
+        mr.create_note(message.format_body(data_text))
 
         if cherry_picked_commit_count < len(commits):
             manual_resolution_required_message = robocat.comments.Message(

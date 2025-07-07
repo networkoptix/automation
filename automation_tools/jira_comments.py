@@ -9,7 +9,7 @@ import automation_tools.bot_info
 
 
 class JiraMessageId(Enum):
-    def _generate_next_value_(name, *_):
+    def _generate_next_value_(name, *_, **__):
         return name
 
     IssueMovedToQa = auto()
@@ -26,6 +26,7 @@ class JiraMessageId(Enum):
 class JiraCommentDataKey(Enum):
     MrBranch = auto()
     MrId = auto()
+    OriginalMrId = auto()
 
 
 class JiraCommentError(RuntimeError):

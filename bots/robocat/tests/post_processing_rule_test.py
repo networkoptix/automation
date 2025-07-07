@@ -3,7 +3,11 @@
 import pytest
 
 from automation_tools.tests.gitlab_constants import (
-    DEFAULT_COMMIT, DEFAULT_JIRA_ISSUE_KEY, DEFAULT_CLOUD_ISSUE_KEY, MR_MERGED_COMMENT_TEMPLATE)
+    DEFAULT_COMMIT,
+    DEFAULT_JIRA_ISSUE_KEY,
+    DEFAULT_CLOUD_ISSUE_KEY,
+    MR_MERGED_COMMENT_TEMPLATE_LEGACY,
+    MR_MERGED_COMMENT_TEMPLATE)
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.rule.post_processing_rule import PostProcessingRule
 from tests.fixtures import *
@@ -43,8 +47,8 @@ class TestPostProcessingRule:
             "branches": ["master", "vms_5.1"],
             "state": "Open",
             "comments_list": [
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master"),
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.1"),
             ],
         }], {
             "state": "merged",
@@ -58,8 +62,8 @@ class TestPostProcessingRule:
             "branches": ["master", "vms_5.1"],
             "state": "In progress",
             "comments_list": [
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master"),
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.1"),
             ],
         }], {
             "state": "merged",
@@ -72,7 +76,7 @@ class TestPostProcessingRule:
             "key": DEFAULT_JIRA_ISSUE_KEY,
             "branches": ["master", "vms_5.1"],
             "state": "In Review",
-            "comments_list": [MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master")],
+            "comments_list": [MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master")],
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
@@ -85,8 +89,8 @@ class TestPostProcessingRule:
             "branches": ["master", "vms_5.1"],
             "state": "In Review",
             "comments_list": [
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master"),
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.2"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.2"),
             ],
         }], {
             "state": "merged",
@@ -101,13 +105,31 @@ class TestPostProcessingRule:
             "branches": ["master", "vms_5.1"],
             "state": "In Review",
             "comments_list": [
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master"),
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="cloud_portal:vms_5.1"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="cloud_portal:vms_5.1"),
             ],
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash_commit_sha": DEFAULT_COMMIT["sha"],
+        }, 2),
+        # Merged to all issue branches, Issue has "In Review" status, Issue type is "Internal", but
+        # one branch is merged with wrong original MR id.
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY,
+            "branches": ["master", "vms_5.1"],
+            "state": "In Review",
+            "comments_list": [
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
+                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1", original_mr_id=123),
+            ],
+            "typ": "Internal",
+        }], {
+            "state": "merged",
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "mock_original_mr_id": 321,
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
         }, 2),
     ])
@@ -123,6 +145,8 @@ class TestPostProcessingRule:
         assert issue.fields.status.name == issue_state_before
         assert len(issue.fields.comment.comments) == expected_comment_count
 
+    # TODO: Use MR_MERGED_COMMENT_TEMPLATE instead of MR_MERGED_COMMENT_TEMPLATE_LEGACY after some
+    # time, when all Jira Issues will have comments in the new format.
     @pytest.mark.parametrize(
         ("jira_issues", "mr_state", "expected_comment_count", "expected_status"),
         [
@@ -132,8 +156,8 @@ class TestPostProcessingRule:
                 "branches": ["master", "vms_5.1"],
                 "state": "In Review",
                 "comments_list": [
-                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master"),
-                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1"),
+                    MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
+                    MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.1"),
                 ],
                 "typ": "Internal",
             }], {
@@ -147,8 +171,8 @@ class TestPostProcessingRule:
                 "branches": ["master", "vms_5.1"],
                 "state": "In Review",
                 "comments_list": [
-                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master"),
-                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1"),
+                    MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
+                    MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.1"),
                 ],
                 "typ": "Task",
             }], {
@@ -162,8 +186,8 @@ class TestPostProcessingRule:
                 "branches": ["master", "vms_5.1"],
                 "state": "In Review",
                 "comments_list": [
-                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master"),
-                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1"),
+                    MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
+                    MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.1"),
                 ],
                 "typ": "Task",
             }], {
@@ -178,8 +202,8 @@ class TestPostProcessingRule:
                 "branches": ["master", "vms_5.1"],
                 "state": "In Review",
                 "comments_list": [
-                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master"),
-                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1"),
+                    MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
+                    MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.1"),
                 ],
                 "typ": "Task",
             }], {
@@ -196,8 +220,8 @@ class TestPostProcessingRule:
                 "branches": ["master", "vms_5.1"],
                 "state": "In Review",
                 "comments_list": [
-                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master"),
-                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1"),
+                    MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
+                    MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.1"),
                 ],
                 "typ": "Security Issue",
             }], {
@@ -205,6 +229,41 @@ class TestPostProcessingRule:
                 "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
                 "squash_commit_sha": DEFAULT_COMMIT["sha"],
             }, 3, "Pending Verification"),
+            # Merged to all issue branches, Issue has "In Review" status, Issue type is "Internal".
+            # The Issue has "merged to branch" comments in the new format.
+            ([{
+                "key": DEFAULT_JIRA_ISSUE_KEY,
+                "branches": ["master", "vms_5.1"],
+                "state": "In Review",
+                "comments_list": [
+                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master", original_mr_id=123),
+                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1", original_mr_id=123),
+                ],
+                "typ": "Internal",
+            }], {
+                "iid": 123,
+                "state": "merged",
+                "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
+                "squash_commit_sha": DEFAULT_COMMIT["sha"],
+            }, 3, "Closed"),
+            # Same, but MR is follow-up with the right original MR id.
+            ([{
+                "key": DEFAULT_JIRA_ISSUE_KEY,
+                "branches": ["master", "vms_5.1"],
+                "state": "In Review",
+                "comments_list": [
+                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master", original_mr_id=123),
+                    MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1", original_mr_id=123),
+                ],
+                "typ": "Internal",
+            }], {
+                "state": "merged",
+                "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
+                "squash_commit_sha": DEFAULT_COMMIT["sha"],
+                "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+                "mock_original_mr_id": 123,
+            }, 3, "Closed"),
+
         ])
     def test_finalize_one_issue(
             self,
@@ -229,16 +288,16 @@ class TestPostProcessingRule:
             "branches": ["master", "vms_5.1"],
             "state": "In Review",
             "comments_list": [
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master"),
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.1"),
             ],
         }, {
             "key": f"{DEFAULT_JIRA_ISSUE_KEY}1",
             "branches": ["master", "vms_5.2"],
             "state": "In Review",
             "comments_list": [
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master"),
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.2"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.2"),
             ],
         }], {
             "state": "merged",
@@ -246,24 +305,52 @@ class TestPostProcessingRule:
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
         }, {DEFAULT_JIRA_ISSUE_KEY: 3, f"{DEFAULT_JIRA_ISSUE_KEY}1": 3}),
-        # Issues from different projects.
+        # Issues from different projects with legacy "merged to branch" comments.
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY,
             "branches": ["master", "vms_5.1"],
             "state": "In Review",
             "comments_list": [
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master"),
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.1"),
             ],
         }, {
             "key": DEFAULT_CLOUD_ISSUE_KEY,
             "branches": ["cloud_portal:develop", "nx:master"],
             "state": "In Review",
             "comments_list": [
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master"),
-                MR_MERGED_COMMENT_TEMPLATE.format(branch="cloud_portal:develop"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
+                MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="cloud_portal:develop"),
             ],
         }], {
+            "state": "merged",
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}, {DEFAULT_CLOUD_ISSUE_KEY}: Test mr",
+            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "squash_commit_sha": DEFAULT_COMMIT["sha"],
+        }, {DEFAULT_JIRA_ISSUE_KEY: 3, DEFAULT_CLOUD_ISSUE_KEY: 3}),
+        # Issues from different projects.
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY,
+            "branches": ["master", "vms_5.1"],
+            "state": "In Review",
+            "comments_list": [
+                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master", original_mr_id=123),
+                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1", original_mr_id=123),
+            ],
+        }, {
+            "key": DEFAULT_CLOUD_ISSUE_KEY,
+            "branches": ["cloud_portal:develop", "nx:master"],
+            "state": "In Review",
+            "comments_list": [
+                MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master", original_mr_id=123),
+                # For Issue from "cloud_portal" project original MR id is different, but it should
+                # not affect the post-processing (do not check original MR id for different
+                # projects).
+                MR_MERGED_COMMENT_TEMPLATE.format(
+                    branch="cloud_portal:develop", original_mr_id=321),
+            ],
+        }], {
+            "iid": 123,
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}, {DEFAULT_CLOUD_ISSUE_KEY}: Test mr",
             "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],

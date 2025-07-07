@@ -76,6 +76,7 @@ class AwardEmojiManager():
         MessageId.CannotSquashLocally: LOCAL_SQUASH_PROBLEMS_EMOJI,
         MessageId.CannotRestoreApprovals: LOCAL_SQUASH_PROBLEMS_EMOJI,
         MessageId.FollowUpIssueNotMovedToQA: ISSUE_NOT_MOVED_TO_QA_EMOJI,
+        MessageId.FollowUpInitialMessage: FOLLOWUP_MERGE_REQUEST_EMOJI,
     }
 
     def __init__(self, gitlab_award_emoji_manager, current_user):

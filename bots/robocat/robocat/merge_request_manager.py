@@ -9,7 +9,6 @@ import time
 
 from gitlab.exceptions import GitlabError, GitlabMRClosedError
 import git
-import gitlab
 
 from automation_tools.mr_data_structures import ApprovalRequirements
 from robocat.action_reasons import WaitReason, CheckFailureReason
@@ -222,7 +221,7 @@ class MergeRequestManager:
             message_data: Optional[dict[str, Any]] = None):
         logger.debug(f"{self}: Adding comment with title: {message.title}")
         data_text = str(NoteDetails(
-                message_id=message.id, sha=self._mr.sha, data=(message_data or {})))
+            message_id=message.id, sha=self._mr.sha, data=(message_data or {})))
         self._mr.create_note(message.format_body(data_text))
 
     def run_user_requested_pipeline(self) -> bool:
@@ -479,8 +478,8 @@ class MergeRequestManager:
         elif reason == WaitReason.not_approved:
             message_id = MessageId.WaitingForApproval
             params = {"approvals_left": (str(self._approvals_left())
-                                            if self._approvals_left() is not None
-                                            else 'unknown number')}
+                                         if self._approvals_left() is not None
+                                         else 'unknown number')}
         elif reason == WaitReason.pipeline_running:
             last_pipeline = self._get_last_pipeline()
             assert last_pipeline is not None
@@ -542,7 +541,6 @@ class MergeRequestManager:
         else:
             position = None
 
-
         body = robocat.comments.format_body(title=title, message=message, emoji=emoji)
         if message_id:
             body += str(
@@ -561,9 +559,24 @@ class MergeRequestManager:
 
         return False
 
+    def get_original_mr_id(self) -> Optional[int]:
+        """Returns the original MR ID if this MR is a follow-up MR, otherwise returns None."""
+        if not self.is_follow_up():
+            return None
+
+        follow_up_initial_note = find_first_comment(
+            notes=self.notes(), message_id=MessageId.FollowUpInitialMessage)
+        if not follow_up_initial_note:
+            logger.warning(f"{self}: Cannot find initial follow-up comment")
+            return None
+        return (
+            int(follow_up_initial_note.additional_data["original_mr_id"])
+            if "original_mr_id" in follow_up_initial_note.additional_data
+            else None)
+
     def add_follow_up_creation_comment(self, branch: str, url: str, successful: bool):
         if successful:
-           message = robocat.comments.Message(
+            message = robocat.comments.Message(
                 id=MessageId.FollowUpCreationSuccessful, params={"branch": branch, "url": url})
         else:
             message = robocat.comments.Message(
@@ -596,7 +609,7 @@ class MergeRequestManager:
     def ensure_no_workflow_errors(self, error_notes: list[Note]):
         self._mr.award_emoji.delete(AwardEmojiManager.SUSPICIOUS_ISSUE_EMOJI, own=True)
         if self._mr.award_emoji.delete(AwardEmojiManager.BAD_ISSUE_EMOJI, own=True):
-           self.add_comment(robocat.comments.Message(id=MessageId.WorkflowOk))
+            self.add_comment(robocat.comments.Message(id=MessageId.WorkflowOk))
 
         for note in error_notes:
             if not note.resolvable:

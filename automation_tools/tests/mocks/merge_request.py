@@ -18,6 +18,14 @@ from automation_tools.tests.gitlab_constants import (
     DEFAULT_JIRA_ISSUE_KEY,
     BOT_USERNAME)
 from automation_tools.mr_data_structures import ApprovalsInfo
+try:
+    from robocat.note import MessageId, NoteDetails
+    import robocat.comments
+except ImportError:
+    # For testing Workflow Police we don't need Robocat, but need some functionality from this
+    # module. So if we can't import Robocat modules, we assume that we are testing the Workflow
+    # Police and do not need these imports.
+    pass
 
 DEFAULT_APPROVERS_NUMBER = 2
 
@@ -235,7 +243,7 @@ class MergeRequestMock:
     target_branch: str = "master"
     author: dict = field(default_factory=lambda: USERS[0])
     web_url: str = ""
-    squash_commit_sha: str = None
+    squash_commit_sha: Optional[str] = None
     source_project_id: int = DEFAULT_PROJECT_ID
     target_project_id: int = DEFAULT_PROJECT_ID
     diverged_commits_count: int = 0
@@ -254,6 +262,7 @@ class MergeRequestMock:
     commits_list: list = field(default_factory=lambda: [DEFAULT_COMMIT])
     assignee_ids: list = field(default_factory=list)
     reviewer_ids: list = field(default_factory=list)
+    mock_original_mr_id: Optional[int] = None
 
     detailed_merge_status: str = "mergeable"
 
@@ -321,6 +330,16 @@ class MergeRequestMock:
         for reviewer in self.reviewers:
             reviewer = self.project.users.list(username=reviewer["username"])[0]
             self.reviewer_ids.append(reviewer.id)
+
+        if self.mock_original_mr_id:
+            message = robocat.comments.Message(
+                id=MessageId.FollowUpInitialMessage,
+                params={"branch": self.target_branch, "original_mr_url": self.web_url})
+            data_text = str(NoteDetails(
+                message_id=message.id,
+                sha=self.squash_commit_sha or "",
+                data={"original_mr_id": self.mock_original_mr_id}))
+            self.notes.create({"body": message.format_body(data_text)})
 
     def _register_commit(self, commit_data):
         commit = CommitMock(**commit_data)

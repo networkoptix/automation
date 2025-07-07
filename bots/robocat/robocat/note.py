@@ -69,6 +69,8 @@ class MessageId(Enum):
     FollowUpCreationFailed = auto()
     CannotSquashLocally = auto()
     CannotRestoreApprovals = auto()
+    FollowUpInitialMessage = auto()
+
 
 class NoteDetails:
     _ID_KEY = "Message Id"

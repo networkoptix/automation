@@ -10,6 +10,7 @@ import re
 
 import jira
 import jira.exceptions
+import jira.resources
 
 from automation_tools.jira_comments import (
     JiraComment, JiraCommentDataKey, JiraCommentError, JiraMessageId)
@@ -155,7 +156,7 @@ class JiraIssue:
         return mr_ids
 
     def _extract_mr_id_from_link(
-            self, link: jira.resources.RemoteLink, project_path: str = None) -> int:
+            self, link: jira.resources.RemoteLink, project_path: Optional[str] = None) -> int:
         link_match = self._MERGE_REQUEST_LINK_RE.search(link.object.url)
         if not link_match:
             return None
@@ -177,13 +178,20 @@ class JiraIssue:
 
         return result
 
-    def declared_merged_branches(self) -> set[GitlabBranchDescriptor]:
-        result = set()
+    def declared_merged_branches(self) -> dict[GitlabBranchDescriptor, set[int]]:
+        result = {}
         for comment in self.bot_comments(message_ids=[JiraMessageId.MrMergedToBranch]):
-            if not (raw_branch_text := comment.data.get(JiraCommentDataKey.MrBranch.name)):
+            assert comment.data
+            if not (raw_branch_name := str(comment.data.get(JiraCommentDataKey.MrBranch.name))):
                 logger.error(f"Malformed '{JiraMessageId.MrMergedToBranch}' comment: {comment!r}")
                 continue
-            result.add(GitlabBranchDescriptor.from_string(raw_branch_text))
+
+            branch = GitlabBranchDescriptor.from_string(raw_branch_name)
+            if (original_mr_id := comment.data.get(JiraCommentDataKey.OriginalMrId.name)):
+                result.setdefault(branch, set()).add(int(original_mr_id))
+            elif branch not in result:
+                result[branch] = set()
+
         return result
 
     def bot_comments(self, message_ids: Optional[Iterable] = None) -> list[JiraComment]:
@@ -343,7 +351,7 @@ class JiraIssue:
 
             self.add_comment(JiraComment(
                 message_id=JiraMessageId.ReopenIssue,
-                params={"reason": reason, "resolution": issue.fields.resolution}))
+                params={"reason": reason, "resolution": str(issue.fields.resolution)}))
 
         except jira.exceptions.JIRAError as error:
             self.add_comment(JiraComment(
@@ -351,7 +359,7 @@ class JiraIssue:
                 params={
                     "issue": issue.key,
                     "error": str(error),
-                    "status": self._project_status_name(JIRA_STATUS_OPEN),
+                    "status": str(self._project_status_name(JIRA_STATUS_OPEN)),
                 }))
             self._set_status(JIRA_STATUS_OPEN)
 

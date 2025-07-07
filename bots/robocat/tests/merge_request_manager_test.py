@@ -8,6 +8,7 @@ from tests.fixtures import *
 from robocat.note import MessageId
 import robocat.comments
 
+
 class TestMergeRequestManager:
     @pytest.mark.parametrize(("mr_state", "requirements", "expected_result"), [
         # Nobody has approved the MR yet - ensure that approvals_left is the same that

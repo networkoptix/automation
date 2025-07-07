@@ -77,11 +77,6 @@ template = """### :{emoji}: {title}
 """  # noqa
 
 
-follow_up_initial_message = """This merge request is created as a follow-up for merging changes
-added in merge request {original_mr_url} into `{branch}` branch.
-"""
-
-
 workflow_error_message = """Workflow violation detected:
 {error}
 """
@@ -184,6 +179,7 @@ bot_readable_comment_title = {
     MessageId.CannotSquashLocally: "Cannot squash locally",
     MessageId.CannotRestoreApprovals: "Cannot restore approvals",
     MessageId.FollowUpIssueNotMovedToQA: "Issue was not moved to QA/Closed",
+    MessageId.FollowUpInitialMessage: "Follow-up merge request",
 }
 
 
@@ -361,7 +357,11 @@ Failed to squash commits locally by git. See bot logs for details.
 Failed to restore approvals of some of the following users: {approvers}. Please, re-approve
 manually.
 """,
-    MessageId.FollowUpIssueNotMovedToQA: """The Issue {issue_key} was not moved to the QA state because of
-its current status. Check the Issue status and fix in manually if necessary.
+    MessageId.FollowUpIssueNotMovedToQA: """The Issue {issue_key} was not moved to the QA state
+    because of its current status. Check the Issue status and fix in manually if necessary.
 """,
+    MessageId.FollowUpInitialMessage: """
+This merge request is created as a follow-up for merging changes added in Merge Request
+{original_mr_url} into `{branch}` branch.
+"""
 }

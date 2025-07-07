@@ -206,8 +206,10 @@ class Bot(threading.Thread):
                     project_path=self._project_manager.data.path)
                 if issue.has_bot_comment(
                         message_id=JiraMessageId.MrMergedToBranch,
-                        params={JiraCommentDataKey.MrId: mr_manager.data.id}):
+                        params={JiraCommentDataKey.MrId: str(mr_manager.data.id)}):
                     continue
+
+                original_mr_id = mr_manager.get_original_mr_id() or mr_manager.data.id
                 issue.add_comment(JiraComment(
                     message_id=JiraMessageId.MrMergedToBranch,
                     params={
@@ -217,6 +219,7 @@ class Bot(threading.Thread):
                     },
                     data={
                         JiraCommentDataKey.MrId.name: mr_manager.data.id,
+                        JiraCommentDataKey.OriginalMrId.name: original_mr_id,
                         JiraCommentDataKey.MrBranch.name: str(branch_descriptor),
                     }))
             except JiraError as e:

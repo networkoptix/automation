@@ -192,6 +192,10 @@ MERGED_TO_20_1_MERGE_REQUESTS_CB = {
     "opened": {"iid": 221, "target_branch": "vms_5.1", "state": "opened"},
 }
 
-MR_MERGED_COMMENT_TEMPLATE = (
+MR_MERGED_COMMENT_TEMPLATE_LEGACY = (
     "Some text\n\n{{noformat}}Message Id: MrMergedToBranch\nData:\n    MrId: 1234\n    MrBranch: "
     "{branch}\n{{noformat}}")
+
+MR_MERGED_COMMENT_TEMPLATE = (
+    "Some text\n\n{{noformat}}Message Id: MrMergedToBranch\nData:\n    MrId: 1234\n    MrBranch: "
+    "{branch}\n    OriginalMrId: {original_mr_id}{{noformat}}")

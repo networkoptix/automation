@@ -12,7 +12,6 @@ import robocat.comments
 import robocat.merge_request_actions.follow_up_actions
 
 
-
 logger = logging.getLogger(__name__)
 
 
