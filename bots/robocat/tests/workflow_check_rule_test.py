@@ -547,7 +547,7 @@ class TestWorkflowCheckRule:
 
         # Fix the error - the emoji must be unset, new comment "good to go" is added.
         expected_comment_title = (
-            f"### :{AwardEmojiManager.AUTOCHECK_OK_EMOJI}: Workflow errors are fixed")
+            f"### :{AwardEmojiManager.AUTOCHECK_OK_EMOJI}: Workflow check passed")
         _check_mr(
             successfull=True,
             comments_count=2,

@@ -6,7 +6,7 @@ from automation_tools.tests.gitlab_constants import OPEN_SOURCE_APPROVER_COMMON
 from automation_tools.mr_data_structures import ApprovalRequirements
 from tests.fixtures import *
 from robocat.note import MessageId
-
+import robocat.comments
 
 class TestMergeRequestManager:
     @pytest.mark.parametrize(("mr_state", "requirements", "expected_result"), [
@@ -64,14 +64,15 @@ class TestMergeRequestManager:
         ]
     ])
     def test_update_merge_base(self, mr_manager, previous_base_sha, is_just_rebased):
-        mr_manager.add_comment_with_message_id(
-            MessageId.InitialMessage,
-            message_params={
-                "bot_gitlab_username": mr_manager._current_user,
-                "bot_revision": automation_tools.bot_info.revision(),
-                "command_list": "\n- ".join(
-                    cls.description() for cls in robocat.commands.parser.command_classes()),
-            },
+        mr_manager.add_comment(
+            message=robocat.comments.Message(
+                id=MessageId.InitialMessage,
+                params={
+                    "bot_gitlab_username": mr_manager._current_user,
+                    "bot_revision": automation_tools.bot_info.revision(),
+                    "command_list": "\n- ".join(
+                        cls.description() for cls in robocat.commands.parser.command_classes()),
+                }),
             message_data={"base_sha": previous_base_sha})
         mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
         initial_base_sha = mr_manager.notes()[0].additional_data["base_sha"]

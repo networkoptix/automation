@@ -21,7 +21,7 @@ class AwardEmojiManager():
     AUTOCHECK_OK_EMOJI = "white_check_mark"
     MERGED_EMOJI = "white_check_mark"
     FOLLOWUP_CREATED_EMOJI = "arrow_heading_down"
-    FOLOWUP_CREATION_FAILED_EMOJI = "x"
+    FOLLOWUP_CREATION_FAILED_EMOJI = "x"
     FOLLOWUP_MERGE_REQUEST_EMOJI = "fast_forward"
     CHERRY_PICK_EMOJI = "cherries"
     UNFINISHED_POST_MERGING_EMOJI = "point_up"
@@ -63,6 +63,19 @@ class AwardEmojiManager():
         # From now on do not add constant emoji to the list above. Use this dictionary instead.
         MessageId.FailedMrMergedJiraComment: "exclamation",
         MessageId.UnknownProjectWhenClosingIssue: "warning",
+        MessageId.RefuseRunPipelineMessage: NO_PIPELINE_EMOJI,
+        MessageId.AuthorizedApproversAssigned: NOTIFICATION_EMOJI,
+        MessageId.RunPipelineMessage: PIPELINE_EMOJI,
+        MessageId.WaitingForCommits: WAIT_EMOJI,
+        MessageId.WaitingForPipeline: WAIT_EMOJI,
+        MessageId.WaitingForApproval: WAIT_EMOJI,
+        MessageId.MrMerged: MERGED_EMOJI,
+        MessageId.FollowUpCreationSuccessful: FOLLOWUP_CREATED_EMOJI,
+        MessageId.FollowUpCreationFailed: FOLLOWUP_CREATION_FAILED_EMOJI,
+        MessageId.WorkflowOk: AUTOCHECK_OK_EMOJI,
+        MessageId.CannotSquashLocally: LOCAL_SQUASH_PROBLEMS_EMOJI,
+        MessageId.CannotRestoreApprovals: LOCAL_SQUASH_PROBLEMS_EMOJI,
+        MessageId.FollowUpIssueNotMovedToQA: ISSUE_NOT_MOVED_TO_QA_EMOJI,
     }
 
     def __init__(self, gitlab_award_emoji_manager, current_user):

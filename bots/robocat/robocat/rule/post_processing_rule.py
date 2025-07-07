@@ -11,6 +11,7 @@ from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
+import robocat.comments
 
 logger = logging.getLogger(__name__)
 
@@ -107,10 +108,9 @@ class PostProcessingRule(BaseRule):
             logger.warning(
                 f"{mr_manager}: The branch {branch} belongs to the unknown project - can't check "
                 f"if it is merged. Skipping the Issue {issue} post-processing.")
-            mr_manager.add_comment_with_message_id(
-                MessageId.UnknownProjectWhenClosingIssue,
-                message_params={
-                    "project": issue.project, "branch": str(branch), "issue": str(issue)})
+            mr_manager.add_comment(robocat.comments.Message(
+                id=MessageId.UnknownProjectWhenClosingIssue,
+                params={"project": issue.project, "branch": str(branch), "issue": str(issue)}))
             return False
 
         is_branch_declared_merged = any(

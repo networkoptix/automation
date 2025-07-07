@@ -48,7 +48,7 @@ class JiraComment:
             self,
             message_id: JiraMessageId,
             params: Union[dict[str, str], str],
-            data: Optional[dict[str, str]] = None):
+            data: Optional[dict[str, Union[str, int]]] = None):
         self.message_id = message_id
         self.data = data
         if isinstance(params, str):

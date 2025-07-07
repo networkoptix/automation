@@ -11,6 +11,7 @@ from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.note import find_last_comment, MessageId
 import automation_tools.utils
+import robocat.comments
 import robocat.merge_request_actions.follow_up_actions
 
 logger = logging.getLogger(__name__)
@@ -37,7 +38,7 @@ class FollowUpRule(BaseRule):
     def __init__(self, config: Config, project_manager: ProjectManager, jira: JiraAccessor):
         super().__init__(config, project_manager, jira)
         self._needs_robocat_approval = self.config.repo.need_code_owner_approval
-        self._default_branch_project_mapping = config.jira.project_mapping
+        self._default_branch_project_mapping = config.jira.project_mapping or {}
 
     def _execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing follow-up rule with {mr_manager}...")
@@ -61,7 +62,7 @@ class FollowUpRule(BaseRule):
             # A follow-up Merge Request. Do not try to create follow-up for it.
             if mr_manager.is_follow_up():
                 logger.debug(f"{mr_manager}: The Merge Request is a follow-up itself.")
-                mr_manager.add_comment_with_message_id(MessageId.FollowUpNotNeeded)
+                mr_manager.add_comment(robocat.comments.Message(MessageId.FollowUpNotNeeded))
                 return self.ExecutionResult.rule_execution_successful
 
             # Primary merge request.
@@ -79,7 +80,7 @@ class FollowUpRule(BaseRule):
                 project_manager=self.project_manager,
                 mr_manager=mr_manager,
                 set_draft_flag=draft_follow_up_requested_comment is not None,
-                approve_by_robocat=self._needs_robocat_approval,
+                approve_by_robocat=bool(self._needs_robocat_approval),
                 default_branch_project_mapping=self._default_branch_project_mapping)
             return self.ExecutionResult.rule_execution_successful
 

@@ -58,7 +58,17 @@ class MessageId(Enum):
     ManualResolutionRequired = auto()
     FailedMrMergedJiraComment = auto()
     UnknownProjectWhenClosingIssue = auto()
-
+    RefuseRunPipelineMessage = auto()
+    AuthorizedApproversAssigned = auto()
+    RunPipelineMessage = auto()
+    WaitingForCommits = auto()
+    WaitingForApproval = auto()
+    WaitingForPipeline = auto()
+    MrMerged = auto()
+    FollowUpCreationSuccessful = auto()
+    FollowUpCreationFailed = auto()
+    CannotSquashLocally = auto()
+    CannotRestoreApprovals = auto()
 
 class NoteDetails:
     _ID_KEY = "Message Id"

@@ -18,6 +18,7 @@ from automation_tools.jira import GitlabBranchDescriptor, JiraAccessor, JiraErro
 from automation_tools.jira_comments import JiraComment, JiraCommentDataKey, JiraMessageId
 import automation_tools.git
 import robocat.commands.parser
+import robocat.comments
 from robocat.gitlab_events import (
     GitlabEventType,
     GitlabMrEventData,
@@ -220,9 +221,10 @@ class Bot(threading.Thread):
                     }))
             except JiraError as e:
                 logger.error(f'{mr_manager}: Failed to add "MR merged" comment to Jira Issue: {e}')
-                self.add_comment_with_message_id(
-                    message_id=MessageId.FailedMrMergedJiraComment,
-                    message_params={"error": str(e), "issue_key": issue_key})
+                mr_manager.add_comment(
+                    robocat.comments.Message(
+                        id=MessageId.FailedMrMergedJiraComment,
+                        params={"error": str(e), "issue_key": issue_key}))
 
     def _execute_post_merge_rules(self, mr_manager: MergeRequestManager):
         logger.debug(f"{mr_manager}: Executing post-merge rules")
@@ -452,5 +454,6 @@ def create_exception_comment(
             "stack_trace": stack_trace_repr,
             "repetitions": 1,
         }
-        mr_manager.add_comment_with_message_id(
-            message_id=MessageId.ExceptionOccurred, message_data=comment_data)
+        mr_manager.add_comment(
+            message=robocat.comments.Message(id=MessageId.ExceptionOccurred),
+            message_data=comment_data)

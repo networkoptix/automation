@@ -138,7 +138,7 @@ class Pipeline:
         self._gitlab_pipeline = pipeline
 
     @property
-    def id(self):
+    def id(self) -> str:
         return self._gitlab_pipeline.id
 
     @property
@@ -149,7 +149,7 @@ class Pipeline:
         return None
 
     @property
-    def web_url(self):
+    def web_url(self) -> str:
         return self._gitlab_pipeline.web_url
 
     def __str__(self):

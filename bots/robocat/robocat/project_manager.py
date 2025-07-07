@@ -88,11 +88,9 @@ class ProjectManager:
                 cherry_picked_commit_count=cherry_picked_commit_count)
         except MergeRequestAlreadyExistsError as e:
             logger.info(f"Failed to create follow-up merge request: {e}")
-            original_mr_manager.add_comment_with_message_id(
-                MessageId.FollowUpExistsForTheBranch,
-                message_params={
-                    "source_branch": e.source_branch,
-                    "target_branch": e.target_branch})
+            original_mr_manager.add_comment(robocat.comments.Message(
+                id=MessageId.FollowUpExistsForTheBranch,
+                params={"source_branch": e.source_branch, "target_branch": e.target_branch}))
             raise
 
         if set_draft_flag:

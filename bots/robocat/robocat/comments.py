@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from automation_tools.bot_info import revision as robocat_revision
+from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.note import MessageId
 
 
@@ -23,23 +25,30 @@ class Message:
                 if self.params
                 else bot_readable_comment_title[self.id])
 
+    @property
+    def emoji(self) -> str:
+        return AwardEmojiManager.EMOJI_BY_MESSAGE_ID.get(self.id, "")
 
-merged_message = "Merge request was successfully merged into `{branch}` branch."
-run_pipeline_message = "Running pipeline [#{pipeline_id}]({pipeline_url}): {reason}."
-refuse_run_pipeline_message = """
-Refusing to run user-requested pipeline becasue the previous pipeline
-([{pipeline_id}]({pipeline_url})) ran for the same commit (sha: {sha}).
-"""
+    def format_body(self, data_text: Optional[str] = None) -> str:
+        return format_body(
+            title=self.title, message=self.text, emoji=self.emoji) + (data_text or "")
 
-commits_wait_message = """There are no commits in MR. I won't do anything until commits arrive."""
-pipeline_wait_message = """There is already [pipeline {pipeline_id}]({pipeline_url}) in progress.
-Let's wait until it finishes."""
-approval_wait_message = """Not enough approvals, **{approvals_left} more** required.
-I will start merging process once all approvals are collected."""
+
+def format_body(title: str, message: str, emoji: str) -> str:
+    return f"""### :{emoji}: {title}
+
+{message}
+
+---
+
+###### Robocat rev. {robocat_revision()}. See its [documentation](https://github.com/networkoptix/automation/blob/master/bots/robocat/readme.md)
+"""  # noqa
+
 
 has_new_files_in_open_source = """This merge request contains new or renamed files in the
 open-source part of the project, so it **must be approved** by one of: @{approvers}.
 """
+
 
 bad_commit_message = """{error_message}
 
@@ -47,13 +56,16 @@ Auto-check of this Merge Request has failed. Fix all the issues, or ask one of @
 approve this Merge Request. Otherwise, this Merge Request **will not be merged**.
 """
 
+
 bad_commit_message_from_authorized_approver = """{error_message}
 
 Auto-check of this Merge Request has failed. Please, check carefully all the issues and fix them if
 needed.
 """
 
+
 commit_message_is_ok = "Commit message is ok."
+
 
 template = """### :{emoji}: {title}
 
@@ -64,31 +76,16 @@ template = """### :{emoji}: {title}
 ###### Robocat rev. {revision}. See its [documentation](https://github.com/networkoptix/automation/blob/master/bots/robocat/readme.md)
 """  # noqa
 
-follow_up_merge_request_message = """Follow-up merge request {url} is created for merging changes
-added in this merge request into `{branch}` branch.
-"""
-
-failed_follow_up_merge_request_message = """Failed to create follow-up merge request for merging
-changes added in this merge request into `{branch}` branch: {comment}.
-"""
 
 follow_up_initial_message = """This merge request is created as a follow-up for merging changes
 added in merge request {original_mr_url} into `{branch}` branch.
 """
 
+
 workflow_error_message = """Workflow violation detected:
 {error}
 """
 
-workflow_no_errors_message = "No workflow errors found."
-
-cannot_squash_locally = "Failed to squash commits locally by git. See bot logs for details."
-
-cannot_restore_approvals = """Failed to restore approvals of some of the following users:
-{approvers}. Please, re-approve manually."""
-
-authorized_approvers_assigned = """@{approvers} were assigned to this merge request because it
-contains new or renamed files in the open-source part of the project."""
 
 has_invalid_changes = """{error_message}
 
@@ -96,14 +93,17 @@ Auto-check of this merge request has failed. Fix all the issues, otherwise this 
 **will not be merged**.
 """
 
+
 nx_submodule_autocheck_passed = """Auto-check for Nx Submodule(s) changed by this
 Merge Request passed successfully. The Merge Request can be merged once all other criteria are met.
 """
+
 
 nx_submodule_autocheck_impossible = """Unable to check Nx Submodule(s) changed
 by this Merge Request due to the huge amount of changes (gitlab limitation). Please, double-check
 it manually.
 """
+
 
 inconsistent_nx_submodule_change = """The content of the directory `{nx_submodule_dir}` differs
 from the content of the directory `{subrepo_dir}` in repository `{subrepo_url}` checked out at
@@ -111,26 +111,28 @@ commit `{subrepo_commit_sha}`: *{explanation}*. Fix this using `nx_submodule.py`
 manually.
 """
 
+
 nx_submodule_config_deleted = """Nx Submodule config file was deleted from the directory
 `{nx_submodule_dir}`. This file must be restored to merge this Merge Request.
 """
 
+
 nx_submodule_config_malformed = """Nx Submodule config file in the directory `{nx_submodule_dir}`
 has wrong format. Fix this using `nx_submodule.py` utility or manually.
 """
+
 
 unknown_nx_submodule_error = """An unknown error was found while auto-checking Nx Submodule(s)
 changed by this Merge Request. **This must be an internal error of the Robocat - report
 it to the support**.
 """
 
+
 nx_submodule_bad_git_data = """Git error occurred while fetching subrepo `{subrepo_url}` at commit
 `{subrepo_commit_sha}` for Nx submodule `{nx_submodule_dir}` (probably, because of an incorrect
 value in `subrepo-url` or `commit-sha`): *{explanation}*.
 """
 
-issue_is_not_finalized = """The Issue {issue_key} was not moved to the QA state because of its
-current status. Check the Issue status and fix in manually if necessary."""
 
 bot_readable_comment_title = {
     MessageId.CommandProcess: "User command action",
@@ -169,7 +171,22 @@ bot_readable_comment_title = {
     MessageId.ManualResolutionRequired: "Manual conflict resolution required",
     MessageId.FailedMrMergedJiraComment: "Failed to add information to Jira Issue",
     MessageId.UnknownProjectWhenClosingIssue: "Failed to close Jira Issue",
+    MessageId.RefuseRunPipelineMessage: "Pipeline was not started",
+    MessageId.AuthorizedApproversAssigned: "Update assignee list",
+    MessageId.RunPipelineMessage: "Pipeline started",
+    MessageId.WaitingForCommits: "Waiting for commits",
+    MessageId.WaitingForApproval: "Waiting for approvals",
+    MessageId.WaitingForPipeline: "Waiting for pipeline",
+    MessageId.MrMerged: "MR merged",
+    MessageId.FollowUpCreationSuccessful: "Follow-up merge request added",
+    MessageId.FollowUpCreationFailed: "Failed to add follow-up merge request",
+    MessageId.WorkflowOk: "Workflow check passed",
+    MessageId.CannotSquashLocally: "Cannot squash locally",
+    MessageId.CannotRestoreApprovals: "Cannot restore approvals",
+    MessageId.FollowUpIssueNotMovedToQA: "Issue was not moved to QA/Closed",
 }
+
+
 bot_readable_comment = {
     MessageId.CommandProcess: "Re-checking Merge Request",
     MessageId.CommandRunPipeline: "Initiating pipeline run",
@@ -306,5 +323,45 @@ the bot cannot check if the branch is merged. Please, process the Issue {issue} 
 
 Consider fixing the Release descriptions for the Jira Project {project} to explicitly specify
 GitLab Projects for all the branches.
+""",
+    MessageId.RefuseRunPipelineMessage: """
+Refusing to run user-requested pipeline because the previous pipeline
+([{pipeline_id}]({pipeline_url})) ran for the same commit (sha: {sha}).
+""",
+    MessageId.AuthorizedApproversAssigned: """
+@{approvers} were assigned to this merge request because it contains new or renamed files in the
+open-source part of the project.
+""",
+    MessageId.RunPipelineMessage: "Running pipeline [#{pipeline_id}]({pipeline_url}): {reason}.",
+    MessageId.WaitingForCommits: """
+There are no commits in MR. I won't do anything until commits arrive.
+""",
+    MessageId.WaitingForApproval: """
+Not enough approvals, **{approvals_left} more** required. I will start merging process once all
+approvals are collected.
+""",
+    MessageId.WaitingForPipeline: """
+There is already [pipeline {pipeline_id}]({pipeline_url}) in progress. Let's wait until it
+finishes.
+""",
+    MessageId.MrMerged: "Merge request was successfully merged into `{branch}` branch.",
+    MessageId.FollowUpCreationSuccessful: """
+Follow-up merge request {url} is created for merging changes added in this merge request into
+`{branch}` branch.
+""",
+    MessageId.FollowUpCreationFailed: """
+Failed to create follow-up merge request for merging changes added in this merge request into
+`{branch}` branch: {comment}.
+""",
+    MessageId.WorkflowOk: "No workflow errors found.",
+    MessageId.CannotSquashLocally: """
+Failed to squash commits locally by git. See bot logs for details.
+""",
+    MessageId.CannotRestoreApprovals: """
+Failed to restore approvals of some of the following users: {approvers}. Please, re-approve
+manually.
+""",
+    MessageId.FollowUpIssueNotMovedToQA: """The Issue {issue_key} was not moved to the QA state because of
+its current status. Check the Issue status and fix in manually if necessary.
 """,
 }

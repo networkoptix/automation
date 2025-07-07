@@ -8,7 +8,9 @@ from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
 from robocat.project_manager import ProjectManager
+import robocat.comments
 import robocat.merge_request_actions.follow_up_actions
+
 
 
 logger = logging.getLogger(__name__)
@@ -28,7 +30,7 @@ class BaseCommand:
 
     def run(self, mr_manager: MergeRequestManager, **_):
         logger.info(f'Executing "{self}" for {mr_manager}')
-        mr_manager.add_comment_with_message_id(self._confirmation_message_id)
+        mr_manager.add_comment(robocat.comments.Message(id=self._confirmation_message_id))
 
 
 def robocat_command(
@@ -88,13 +90,13 @@ class FollowUpCommand(BaseCommand):
                 approve_by_robocat=config.repo.need_code_owner_approval,
                 default_branch_project_mapping=config.jira.project_mapping)
         else:
-            mr_manager.add_comment_with_message_id(
-                MessageId.CommandNotExecuted,
-                message_params={
+            mr_manager.add_comment(robocat.comments.Message(
+                id=MessageId.CommandNotExecuted,
+                params={
                     'command': self.command,
                     'explanation': (
                         'Refusing to execute follow-up actions upon unmerged Merge Request'),
-                })
+                }))
 
 
 @robocat_command(
@@ -119,7 +121,7 @@ class DraftFollowUpCommand(BaseCommand):
             return
 
         # If the Merge Request is already merged, create the follow-up Merge Requests.
-        mr_manager.add_comment_with_message_id(MessageId.CommandFollowUp)
+        mr_manager.add_comment(robocat.comments.Message(id=MessageId.CommandFollowUp))
         robocat.merge_request_actions.follow_up_actions.create_follow_up_merge_requests(
             jira=jira,
             project_manager=project_manager,
@@ -135,6 +137,6 @@ class UnknownCommand(BaseCommand):
 
     def run(self, mr_manager: MergeRequestManager, **_):
         logger.info(f'Executing "{self}" for {mr_manager}')
-        mr_manager.add_comment_with_message_id(
-            self._confirmation_message_id,
-            message_params={'command': self.command})
+        mr_manager.add_comment(robocat.comments.Message(
+            id=self._confirmation_message_id,
+            params={'command': self.command}))

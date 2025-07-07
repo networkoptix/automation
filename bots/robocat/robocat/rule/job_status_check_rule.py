@@ -12,13 +12,13 @@ from robocat.note import MessageId
 from robocat.pipeline import JobStatus
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
-import robocat.rule.helpers.approve_rule_helpers as approve_rule_helpers
 from robocat.rule.helpers.stateful_checker_helpers import (
     CheckError,
     CheckChangesMixin,
     ErrorCheckResult,
     StoredCheckResults)
-from source_file_compliance import RepoCheckConfig
+import robocat.comments
+import robocat.rule.helpers.approve_rule_helpers as approve_rule_helpers
 
 logger = logging.getLogger(__name__)
 
@@ -238,7 +238,7 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
             return
 
         if not errors.current_errors:
-            mr_manager.add_comment_with_message_id(message_id=MessageId.JobStatusChecksPassed)
+            mr_manager.add_comment(robocat.comments.Message(MessageId.JobStatusChecksPassed))
             return
 
         for error in errors.new_errors:
@@ -252,10 +252,11 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
                     mr_manager=mr_manager,
                     for_changed_files=True,
                     for_affected_files=issue_descriptor.deleted_files_affect_result)
-                mr_manager.add_comment_with_message_id(
-                    message_id=MessageId.JobStatusCheckNeedsApproval,
-                    message_params={
-                        "approvers": ", @".join(keepers),
-                        "job_name": issue_descriptor.job_name,
-                    },
+                mr_manager.add_comment(
+                    message = robocat.comments.Message(
+                        id=MessageId.JobStatusCheckNeedsApproval,
+                        params={
+                            "approvers": ", @".join(keepers),
+                            "job_name": issue_descriptor.job_name,
+                        }),
                     message_data={"type": error.type})

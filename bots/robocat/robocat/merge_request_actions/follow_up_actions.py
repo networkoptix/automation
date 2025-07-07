@@ -4,10 +4,11 @@ import logging
 
 from automation_tools.jira import JiraAccessor, JiraIssue, GitlabBranchDescriptor
 from automation_tools.jira_comments import JiraComment, JiraMessageId
-from robocat.merge_request_manager import MergeRequestManager, FollowUpCreationResult
+from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
 from robocat.project_manager import EmptyFollowUpError, ProjectManager
 from robocat.project import MergeRequestAlreadyExistsError
+import robocat.comments
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +31,11 @@ def create_follow_up_merge_requests(
         for version, branches in issue.versions_to_branches_map.items():
             if not branches:
                 logger.warning(
-                    f"{mr_manager}: The target branch for the viersion {version!r} in Issue "
+                    f"{mr_manager}: The target branch for the version {version!r} in Issue "
                     f"{issue} is unknown. Skipping the follow-up MR creation.")
-                mr_manager.add_comment_with_message_id(
-                    MessageId.UnknownBranchWhenCreatingFollowUp,
-                    message_params={'version': version})
+                mr_manager.add_comment(robocat.comments.Message(
+                    id=MessageId.UnknownBranchWhenCreatingFollowUp,
+                    params={'version': version}))
                 continue
 
             for target_branch in branches:
@@ -78,11 +79,11 @@ def _create_follow_up_merge_request_for_branch(
         logger.info(
             f"{mr_manager}: The target branch for the issue {issue} is in a different project "
             f"({target_branch.project_path}). Skipping the follow-up MR creation.")
-        return
+        return False
 
     target_branch_name = target_branch.branch_name
     if target_branch_name in (created_follow_up_branches | {original_target_branch}):
-        return
+        return False
 
     logger.info(
         f"{mr_manager}: Trying to create follow-up merge requests for issue {issue} (branch "
@@ -118,10 +119,8 @@ def create_follow_up_merge_request(
         return False
 
     new_mr_manager = MergeRequestManager(new_mr)
-    mr_manager.add_follow_up_creation_comment(FollowUpCreationResult(
-        branch=target_branch,
-        url=new_mr_manager.data.url,
-        successful=True))
+    mr_manager.add_follow_up_creation_comment(
+        branch=target_branch, url=new_mr_manager.data.url, successful=True)
 
     if approve_by_robocat:
         logger.debug(f"{mr_manager}: Adding Robocat approval to the follow-up MR.")
