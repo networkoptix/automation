@@ -83,7 +83,10 @@ class Bot(threading.Thread):
                 project.get_file_content(ref=config_ref, file="robocat.json"), "json")
             self.config = Config(**dict(merge_dicts(config, local_config)))
         except gitlab.GitlabGetError:
+            logger.warning("Failed to local robocat.json from repository!")
             self.config = Config(**config)
+
+        logger.debug(f"Loaded configuration: {str(self.config)}")
 
         if config_check_only:
             return
