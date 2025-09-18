@@ -19,7 +19,7 @@ For a complete list of options and further information on how to use nx_lint, ru
 
 ### Prerequisites
 
-  * Python 3.9 or newer
+  * Python 3.12 or newer
 
 For local usage, the recommended way to install nx_lint is via pip:
 
