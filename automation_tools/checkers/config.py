@@ -16,28 +16,36 @@ class AllowedVersionSet:
 ALLOWED_VERSIONS_SETS = {
     "VMS": [
         AllowedVersionSet(
-            ['6.0.6', '6.0_patch', '6.1', 'master', 'mobile_25.2.1'],
+            ['6.0.6', '6.0_patch', '6.1', '6.1_patch', 'master', 'mobile_25.2.1'],
             "Technical issue which should go into all branches (e.g. CI-related changes)"
         ),
         AllowedVersionSet(
-            ['6.0_patch', '6.0.6', '6.1', 'master'],
+            ['6.0_patch', '6.0.6', '6.1', '6.1_patch', 'master'],
             "Ongoing minor release development"
         ),
         AllowedVersionSet(
-            ['6.0_patch', '6.1', 'master'],
-            "Support / patch issue"
+            ['6.0_patch', '6.1', '6.1_patch', 'master'],
+            "6.0 Support / patch issue"
         ),
         AllowedVersionSet(
-            ['6.0_patch', '6.1', 'master', 'mobile_25.2.1'],
-            "Support / patch issue, important for the mobile branch"
+            ['6.0_patch', '6.1', '6.1_patch', 'master', 'mobile_25.2.1'],
+            "6.0 Support / patch issue, important for the mobile branch"
         ),
         AllowedVersionSet(
-            ['6.1', 'master'],
+            ['6.1', '6.1_patch', 'master'],
             "Current release development, actual for the desktop VMS part only"
         ),
         AllowedVersionSet(
-            ['6.1', 'master', 'mobile_25.2.1'],
+            ['6.1', '6.1_patch', 'master', 'mobile_25.2.1'],
             "Current release development, important for the mobile branch"
+        ),
+        AllowedVersionSet(
+            ['6.1_patch', 'master'],
+            "6.1 Support / patch issue"
+        ),
+        AllowedVersionSet(
+            ['6.1_patch', 'master', 'mobile_25.2.1'],
+            "6.1 Support / patch issue, important for the mobile branch"
         ),
         AllowedVersionSet(
             ['master'],
