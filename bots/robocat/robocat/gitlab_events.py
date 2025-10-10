@@ -3,7 +3,7 @@
 from dataclasses import asdict, dataclass, field
 import enum
 import time
-from typing import TypedDict, Union
+from typing import Optional, TypedDict, Union
 
 
 class GitlabEventType(enum.Enum):
@@ -23,8 +23,8 @@ class GitlabMrRelatedEventData(TypedDict):
 
 
 class GitlabMrEventData(GitlabMrRelatedEventData):
-    mr_previous_data: MrPreviousData
-    code_changed: bool
+    mr_previous_data: Optional[MrPreviousData]
+    code_changed: Optional[bool]
 
 
 class GitlabPipelineEventData(GitlabMrRelatedEventData):

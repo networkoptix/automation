@@ -81,8 +81,8 @@ async def merge_request_event(event, mr_object):
             k: MR_STATE_ID_TO_STATE_NAME[v] for k, v in mr_changes["state_id"].items()}
         del mr_changes["state_id"]
 
-    mr_previous_data = {
-        k: mr_changes.get(k, {}).get("previous") for k in MrPreviousData.__required_keys__}
+    mr_previous_data = MrPreviousData(**{
+        k: mr_changes.get(k, {}).get("previous") for k in MrPreviousData.__required_keys__})
     payload = GitlabMrEventData(
         mr_id=mr_id,
         mr_state=mr_state,

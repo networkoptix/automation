@@ -378,7 +378,7 @@ class Bot(threading.Thread):
         logger.info(f"Start processing Merge Request event {payload}.")
         if (self.config.repo.need_code_owner_approval
                 and mr_manager.is_follow_up()
-                and payload["code_changed"]):
+                and payload.get("code_changed", False)):
             mr_manager.remove_robocat_approval()
 
         self._handle_mr_if_needed(
