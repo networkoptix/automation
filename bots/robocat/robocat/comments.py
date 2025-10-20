@@ -104,17 +104,23 @@ inconsistent_nx_submodule_change = """The content of the directory `{nx_submodul
 from the content of the directory `{subrepo_dir}` in repository `{subrepo_url}` checked out at
 commit `{subrepo_commit_sha}`: *{explanation}*. Fix this using `nx_submodule.py` utility or
 manually.
-"""
+
+[Nx Submodule documentation](https://github.com/networkoptix/tools/blob/master/nx_submodule/readme.md)
+"""  # noqa
 
 
 nx_submodule_config_deleted = """Nx Submodule config file was deleted from the directory
 `{nx_submodule_dir}`. This file must be restored to merge this Merge Request.
-"""
+
+[Nx Submodule documentation](https://github.com/networkoptix/tools/blob/master/nx_submodule/readme.md)
+"""  # noqa
 
 
 nx_submodule_config_malformed = """Nx Submodule config file in the directory `{nx_submodule_dir}`
 has wrong format. Fix this using `nx_submodule.py` utility or manually.
-"""
+
+[Nx Submodule documentation](https://github.com/networkoptix/tools/blob/master/nx_submodule/readme.md)
+"""  # noqa
 
 
 unknown_nx_submodule_error = """An unknown error was found while auto-checking Nx Submodule(s)
@@ -126,7 +132,9 @@ it to the support**.
 nx_submodule_bad_git_data = """Git error occurred while fetching subrepo `{subrepo_url}` at commit
 `{subrepo_commit_sha}` for Nx submodule `{nx_submodule_dir}` (probably, because of an incorrect
 value in `subrepo-url` or `commit-sha`): *{explanation}*.
-"""
+
+[Nx Submodule documentation](https://github.com/networkoptix/tools/blob/master/nx_submodule/readme.md)
+"""  # noqa
 
 
 bot_readable_comment_title = {
