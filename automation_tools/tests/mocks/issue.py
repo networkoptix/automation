@@ -1,6 +1,6 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from typing import Any
+from typing import Any, Optional
 from jira.resources import dict2resource
 
 from automation_tools.tests.mocks.resources import Comment, JiraProject
@@ -12,14 +12,17 @@ class JiraIssue:
             key: str,
             fields: dict[str, Any],
             comments: list[Comment],
-            assignee: str = ""):
+            assignee: Optional[str] = ""):
         self.key = key
         self.fields = dict2resource(fields)
         project_key, _, __ = key.partition("-")
         self.fields.project = JiraProject(project_key)
         self.fields.comment = dict2resource({"comments": comments})
-        self.fields.assignee = dict2resource({
-            "displayName": assignee, "emailAddress": "", "accountId": 0})
+        if assignee is None:
+            self.fields.assignee = None
+        else:
+            self.fields.assignee = dict2resource({
+                "displayName": assignee, "emailAddress": "", "accountId": 0})
 
     def update(self, fields: dict = None):
         if not fields:

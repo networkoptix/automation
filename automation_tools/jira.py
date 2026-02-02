@@ -378,8 +378,10 @@ class JiraIssue:
         self._raw_issue.update(fields={"labels": self._raw_issue.fields.labels})
 
     @property
-    def assignee(self) -> automation_tools.utils.User:
+    def assignee(self) -> Optional[automation_tools.utils.User]:
         assignee = self._raw_issue.fields.assignee
+        if assignee is None:
+            return None
         return automation_tools.utils.User(
             name=assignee.displayName, email=assignee.emailAddress, username=assignee.accountId)
 

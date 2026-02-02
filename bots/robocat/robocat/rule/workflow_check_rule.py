@@ -35,6 +35,7 @@ class WorkflowStoredCheckResults(StoredCheckResults):
         MessageId.WorkflowNoJiraIssueInMr,
         MessageId.WorkflowParenthesesNotAllowed,
         MessageId.InconsistentAssigneesInJiraAndGitlab,
+        MessageId.UnassignedJiraIssue,
         MessageId.SuspiciousJiraIssueStatus,
         MessageId.FailedCheckForNoSupportedProject,
     }
@@ -152,7 +153,12 @@ class WorkflowCheckRule(BaseRule):
                 problem.id == MessageId.InconsistentAssigneesInJiraAndGitlab
                 and stored_info.has_reported_problem(
                     MessageId.InconsistentAssigneesInJiraAndGitlab))
-            if (has_reported_suspicious_jira_status or has_reported_inconsistent_assignees):
+            has_reported_unassigned_jira_issue = (
+                problem.id == MessageId.UnassignedJiraIssue
+                and stored_info.has_reported_problem(MessageId.UnassignedJiraIssue))
+            if (has_reported_suspicious_jira_status
+                    or has_reported_inconsistent_assignees
+                    or has_reported_unassigned_jira_issue):
                 continue  # Do not re-create discussion for the non-blockers.
             mr_manager.add_workflow_problem_info(problem=problem, is_blocker=is_blocker)
 
@@ -315,7 +321,11 @@ class WorkflowCheckRule(BaseRule):
         # Here we check all the MR Issues, including the ones labeld as ignored.
         for issue_key in mr_data.issue_keys:
             issue = self._get_jira_issue_using_cache(issue_key)
-            if issue.assignee.name != mr_data.author.name:
+            if issue.assignee is None:
+                parameters = {"issue_key": issue_key}
+                result.append(Message(
+                    id=MessageId.UnassignedJiraIssue, params=parameters))
+            elif issue.assignee.name != mr_data.author.name:
                 parameters = {
                     "issue_key": issue_key,
                     "jira_assignee": issue.assignee.name,

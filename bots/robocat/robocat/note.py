@@ -34,6 +34,7 @@ class MessageId(Enum):
     WorkflowOk = auto()
     WorkflowParenthesesNotAllowed = auto()
     InconsistentAssigneesInJiraAndGitlab = auto()
+    UnassignedJiraIssue = auto()
     SuspiciousJiraIssueStatus = auto()
     FollowUpNotNeeded = auto()
     FollowUpIssueNotMovedToQA = auto()

@@ -170,6 +170,7 @@ bot_readable_comment_title = {
     MessageId.WorkflowNoJiraIssueInCommitMessage: (
         "Merge request title/description does not comply with the rules"),
     MessageId.InconsistentAssigneesInJiraAndGitlab: "Possible workflow violation",
+    MessageId.UnassignedJiraIssue: "Possible workflow violation",
     MessageId.SuspiciousJiraIssueStatus: "Possible workflow violation",
     MessageId.ManualResolutionRequired: "Manual conflict resolution required",
     MessageId.FailedMrMergedJiraComment: "Failed to add information to Jira Issue",
@@ -299,6 +300,11 @@ Jira Issue {issue_key} ({jira_assignee!r}). This is not a problem by itself, but
 the wrong Jira Issue was mentioned in the Merge Request title and/or description. Double-check the
 Jira Issue(s) mentioned in the Merge Request and resolve this comment to continue the merging
 process.
+""",
+    MessageId.UnassignedJiraIssue: """
+The related Jira Issue {issue_key} has no assignee. This is not a problem by itself, but may be a
+sign of an incomplete workflow. Double-check the Jira Issue(s) mentioned in the Merge Request and
+resolve this comment to continue the merging process.
 """,
     MessageId.SuspiciousJiraIssueStatus: """
 The Issue {issue_key} has status {issue_status!r}. This is not a problem by itself, but may be a

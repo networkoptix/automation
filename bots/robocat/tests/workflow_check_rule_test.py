@@ -295,6 +295,13 @@ class TestWorkflowCheckRule:
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Merge request attached to Jira Issue",
             "author": USERS[0],
         }, 2, ["has status 'Open'", "is different from the assignee"]),
+        # Merge Request is attached to Jira Issue with no assignee.
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"], "state": "In progress",
+            "assignee": None,
+        }], {
+            "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Merge request attached to Jira Issue",
+        }, 1, ["has no assignee"]),
     ])
     def test_jira_issues_with_warnings(self, workflow_rule, mr, mr_manager, error_count, errors):
         for _ in range(2):  # State must not change after any number of rule executions.
