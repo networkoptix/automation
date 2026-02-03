@@ -58,6 +58,10 @@ ALLOWED_VERSIONS_SETS = {
             "Next release/ support / patch issue"
         ),
         AllowedVersionSet(
+            ['master (26.2)', '26.1', '25.2.2'],
+            "Next release/ support / patch issue"
+        ),
+        AllowedVersionSet(
             ['Future'],
             "Postponed for the future releases"
         )
