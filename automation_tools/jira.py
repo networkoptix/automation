@@ -433,7 +433,7 @@ class JiraAccessor:
         logger.debug(f'Searching issues with filter [{issues_filter}]')
         issues = []
         branch_mappings = self.version_to_branch_mappings()
-        for raw_issue in self._jira.search_issues(issues_filter, maxResults=None):
+        for raw_issue in self._jira.enhanced_search_issues(issues_filter, maxResults=0):
             project = raw_issue.fields.project.key
             assert project in branch_mappings, (
                 f"Internal logic error: project {project!r} is not in branch mappings.")

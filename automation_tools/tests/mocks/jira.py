@@ -22,7 +22,7 @@ class Jira:
         except KeyError:
             raise jira.exceptions.JIRAError
 
-    def search_issues(self, issue_filter, **__):
+    def enhanced_search_issues(self, issue_filter, **__):
         issues = []
         match = re.match(
             r"project (?:in \(|\= \")(?P<projects_string>.+?)(?:\)|\")", issue_filter)
