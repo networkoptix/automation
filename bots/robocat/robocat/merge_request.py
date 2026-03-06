@@ -185,14 +185,15 @@ class MergeRequest:
 
     def merge(self):
         project = self.raw_gitlab_object.projects.get(self.project_id, lazy=False)
-        merge_trains_enabled = project.attributes.get("merge_pipelines_enabled", False)
+        merge_trains_enabled = project.attributes.get("merge_trains_enabled", False)
 
         if merge_trains_enabled:
             logger.debug(f"{self}: Adding to merge train")
             endpoint = (
                 f"/projects/{self.project_id}/merge_trains/merge_requests/{self._gitlab_mr.iid}"
             )
-            self._gitlab_mr.manager.gitlab.http_post(endpoint)
+            self._gitlab_mr.manager.gitlab.http_post(
+                endpoint, post_data={"auto_merge": True})
         else:
             logger.debug(f"{self}: Merging")
             squash_commit_message = None
