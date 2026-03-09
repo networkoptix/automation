@@ -4,7 +4,7 @@ from typing import Any, Optional
 import logging
 import re
 
-from gitlab.exceptions import GitlabError
+from gitlab.exceptions import GitlabError, GitlabHttpError
 from gitlab.v4.objects import ProjectMergeRequestDiff
 import gitlab
 
@@ -188,12 +188,21 @@ class MergeRequest:
         merge_trains_enabled = project.attributes.get("merge_trains_enabled", False)
 
         if merge_trains_enabled:
-            logger.debug(f"{self}: Adding to merge train")
+            logger.info(f"{self}: Adding to merge train (auto_merge=False, adds immediately)")
             endpoint = (
                 f"/projects/{self.project_id}/merge_trains/merge_requests/{self._gitlab_mr.iid}"
             )
-            self._gitlab_mr.manager.gitlab.http_post(
-                endpoint, post_data={"auto_merge": True})
+            try:
+                self._gitlab_mr.manager.gitlab.http_post(
+                    endpoint, post_data={"auto_merge": False})
+                logger.info(f"{self}: Successfully added to merge train")
+            except GitlabHttpError as e:
+                logger.error(
+                    f"{self}: Failed to add to merge train (HTTP {e.response_code}): {e}. "
+                    f"endpoint: {endpoint!r}, "
+                    f"MR state: {self._gitlab_mr.state!r}, "
+                    f"merge_status: {self._gitlab_mr.detailed_merge_status!r}"
+                )
         else:
             logger.debug(f"{self}: Merging")
             squash_commit_message = None
