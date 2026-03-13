@@ -120,10 +120,16 @@ async def note_event(event, mr_object):
 
 @add_event_hook("Job")
 async def job_event(event):
+    build_status = event.data["build_status"]
+    if build_status not in {"success", "failed"}:
+        logger.debug(
+            f'Ignoring Job event with non-terminal status {build_status!r}. '
+            f'Pipeline id: {event.data["pipeline_id"]}, name: {event.data["build_name"]}')
+        return
+
     pipeline_id = event.data["pipeline_id"]
     project_id = event.data["project_id"]
     build_name = event.data["build_name"]
-    build_status = event.data["build_status"]
 
     logger.debug(
         f'Got Job event. Pipeline id: {pipeline_id}, status {build_status}, name {build_name}')
@@ -136,6 +142,9 @@ async def job_event(event):
         stage=event.data["build_stage"],
         allow_failure=event.data["build_allow_failure"])
     mr_queue.put(GitlabEventData(event_type=GitlabEventType.job, payload=payload))
+    logger.info(
+        f'Queuing Job event: status={build_status!r}, name={build_name!r}, '
+        f'pipeline_id={pipeline_id}, queue_size={mr_queue.qsize()}')
 
 
 class ServiceNameFilter(logging.Filter):

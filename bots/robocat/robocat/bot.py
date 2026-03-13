@@ -274,6 +274,12 @@ class Bot(threading.Thread):
                 f"delta: {timedelta(seconds=start_time - event_data.receive_time)}.")
             logger.log(level=log_level, msg=log_message)
             logger.log(level=log_level, msg=f"Tasks left in the queue: {self._mr_queue.qsize()}")
+            if self._mr_queue.qsize() > 0:
+                from collections import Counter
+                type_counts = Counter(
+                    item.event_type.value for item in list(self._mr_queue.queue))
+                logger.log(
+                    level=log_level, msg=f"Queue breakdown by type: {dict(type_counts)}")
 
         def _log_processing_end():
             end_time = time.time()
