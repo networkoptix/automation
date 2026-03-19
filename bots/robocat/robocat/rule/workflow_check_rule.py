@@ -5,11 +5,9 @@ from typing import Optional
 import logging
 import re
 
-from automation_tools.checkers.checkers import (
-    IssueIgnoreLabelChecker, WorkflowPolicyChecker, WrongVersionChecker)
 from automation_tools.jira import JiraAccessor, JiraIssue, GitlabBranchDescriptor
 from automation_tools.jira_helpers import JIRA_STATUS_PROGRESS, JIRA_STATUS_REVIEW
-from robocat.action_reasons import CheckFailureReason
+import automation_tools.checkers.config as automation_config
 from robocat.comments import Message
 from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
@@ -77,6 +75,10 @@ class WorkflowCheckRule(BaseRule):
     def _execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
         logger.debug(f"Executing Jira Issue check rule with {mr_manager}...")
 
+        def _project_from_key(issue_key: str):
+            project_name, *_ = issue_key.partition("-")
+            return project_name
+
         self._jira_issue_cache = {}
 
         mr_data = mr_manager.data
@@ -86,7 +88,7 @@ class WorkflowCheckRule(BaseRule):
 
         belongs_to_supported_projects = any([
             True for k in mr_manager.data.issue_keys
-            if WorkflowPolicyChecker(project_keys=self._project_keys).is_applicable(k)])
+            if _project_from_key(k) in self._project_keys])
         if not belongs_to_supported_projects:
             related_project_problems = [
                 Message(
@@ -201,12 +203,36 @@ class WorkflowCheckRule(BaseRule):
 
     def _check_jira_issue_for_bad_version_set(self, issue: JiraIssue) -> list[Message]:
         result = []
-        checker = WrongVersionChecker(
-            project_keys=self.jira.project_keys, gitlab_project=self.project_manager.data.path)
-        if version_error_string := checker.run(issue):
-            parameters = {"issue_key": str(issue), "version_error_string": version_error_string}
-            result.append(
-                Message(id=MessageId.WorkflowBadFixVersions, params=parameters))
+
+        if issue.has_label(automation_config.VERSION_SPECIFIC_LABEL):
+            logger.debug("Issue has version_specific label, ignore it")
+            return result
+
+        if issue.project not in automation_config.ALLOWED_VERSIONS_SETS:
+            logger.debug(
+                f"Issue project {issue.project} is not in the allowed version sets "
+                f"{automation_config.ALLOWED_VERSIONS_SETS}, ignore it.")
+            return result
+
+        allowed_version_sets = [set(x.versions)
+                                for x in automation_config.ALLOWED_VERSIONS_SETS[issue.project]]
+        version_set = set(issue.versions_to_branches_map.keys())
+        if version_set in allowed_version_sets:
+            logger.debug(
+                f"Issue version set {sorted(version_set)!r} is in the allowed version sets "
+                f"{allowed_version_sets}, ignore it.")
+            return result
+
+        version_error_string = (
+            f"Version set {sorted(version_set)!r} is not allowed for the project {issue.project}. "
+            + "Allowed versions sets are:"
+            + '\n'
+            + '\n'.join(["- " + str(x)
+                         for x in automation_config.ALLOWED_VERSIONS_SETS[issue.project]]))
+
+        result.append(Message(
+            id=MessageId.WorkflowBadFixVersions,
+            params={"issue_key": str(issue), "version_error_string": version_error_string}))
 
         return result
 
@@ -307,9 +333,9 @@ class WorkflowCheckRule(BaseRule):
         result = []
         for key in issue_keys:
             issue = self._get_jira_issue_using_cache(key)
-            checker = IssueIgnoreLabelChecker(project_keys=self.jira.project_keys)
-            if checker.run(issue):
+            if issue.has_label(automation_config.IGNORE_LABEL):
                 continue
+
             result.append(key)
 
         return result

@@ -17,6 +17,7 @@ from automation_tools.tests.gitlab_constants import (
     BOT_NAME,
 )
 from tests.fixtures import *
+from automation_tools.tests.fixtures import repo_versions
 
 
 class TestBot:
@@ -85,7 +86,7 @@ class TestBot:
             "key": DEFAULT_JIRA_ISSUE_KEY,
             "branches": ["master"],
             "state": "In Review",
-            "typ": "Task",
+            "type": "Task",
         }], {
             "title": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[0],
             "description": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[1],

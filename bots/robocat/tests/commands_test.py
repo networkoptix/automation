@@ -26,6 +26,7 @@ from robocat.commands.commands import (
 import robocat.commands.parser
 from robocat.note import MessageId
 from tests.fixtures import *
+from automation_tools.tests.fixtures import repo_versions
 
 
 class TestRobocatCommands:

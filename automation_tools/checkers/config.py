@@ -81,4 +81,7 @@ ALLOWED_VERSIONS_SETS = {
 
 IGNORE_LABEL = "hide_from_police"
 VERSION_SPECIFIC_LABEL = "version_specific"
+
+# This label is kept for compatibility reasons. The recommended way is to use "Done Externally"
+# issue resolution.
 DONE_EXTERNALLY_LABEL = "done_externally"

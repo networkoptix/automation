@@ -19,6 +19,7 @@ from automation_tools.tests.gitlab_constants import (
     MERGED_TO_4_2_MERGE_REQUESTS,
     BOT_USERNAME)
 from tests.fixtures import *
+from automation_tools.tests.fixtures import repo_versions
 
 
 class TestFollowUpRule:

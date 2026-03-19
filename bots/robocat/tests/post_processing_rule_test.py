@@ -11,6 +11,7 @@ from automation_tools.tests.gitlab_constants import (
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.rule.post_processing_rule import PostProcessingRule
 from tests.fixtures import *
+from automation_tools.tests.fixtures import repo_versions
 
 
 class TestPostProcessingRule:
@@ -124,7 +125,7 @@ class TestPostProcessingRule:
                 MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
                 MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1", original_mr_id=123),
             ],
-            "typ": "Internal",
+            "type": "Internal",
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
@@ -159,7 +160,7 @@ class TestPostProcessingRule:
                     MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
                     MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.1"),
                 ],
-                "typ": "Internal",
+                "type": "Internal",
             }], {
                 "state": "merged",
                 "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
@@ -174,7 +175,7 @@ class TestPostProcessingRule:
                     MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
                     MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.1"),
                 ],
-                "typ": "Task",
+                "type": "Task",
             }], {
                 "state": "merged",
                 "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
@@ -189,7 +190,7 @@ class TestPostProcessingRule:
                     MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
                     MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.1"),
                 ],
-                "typ": "Task",
+                "type": "Task",
             }], {
                 "state": "merged",
                 "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
@@ -205,7 +206,7 @@ class TestPostProcessingRule:
                     MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
                     MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.1"),
                 ],
-                "typ": "Task",
+                "type": "Task",
             }], {
                 "state": "merged",
                 "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
@@ -223,7 +224,7 @@ class TestPostProcessingRule:
                     MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:master"),
                     MR_MERGED_COMMENT_TEMPLATE_LEGACY.format(branch="nx:vms_5.1"),
                 ],
-                "typ": "Security Issue",
+                "type": "Security Issue",
             }], {
                 "state": "merged",
                 "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
@@ -239,7 +240,7 @@ class TestPostProcessingRule:
                     MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master", original_mr_id=123),
                     MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1", original_mr_id=123),
                 ],
-                "typ": "Internal",
+                "type": "Internal",
             }], {
                 "iid": 123,
                 "state": "merged",
@@ -255,7 +256,7 @@ class TestPostProcessingRule:
                     MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:master", original_mr_id=123),
                     MR_MERGED_COMMENT_TEMPLATE.format(branch="nx:vms_5.1", original_mr_id=123),
                 ],
-                "typ": "Internal",
+                "type": "Internal",
             }], {
                 "state": "merged",
                 "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",

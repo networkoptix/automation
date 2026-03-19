@@ -1,7 +1,6 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 import os
-import re
 from typing import Optional
 
 import jira.exceptions
@@ -13,8 +12,9 @@ from automation_tools.tests.mocks.resources import (
 
 
 class Jira:
-    def __init__(self, **_):
+    def __init__(self, repo_versions=None, **_):
         self._issues = {}
+        self._repo_versions = repo_versions
 
     def issue(self, key):
         try:
@@ -24,11 +24,9 @@ class Jira:
 
     def enhanced_search_issues(self, issue_filter, **__):
         issues = []
-        match = re.match(
-            r"project (?:in \(|\= \")(?P<projects_string>.+?)(?:\)|\")", issue_filter)
         for key, issue in self._issues.items():
             project, _, __ = key.partition("-")
-            if project in [p.strip('" ') for p in match.group('projects_string').split(',')]:
+            if project in issue_filter:
                 issues.append(issue)
         return issues
 
@@ -36,24 +34,27 @@ class Jira:
             self,
             key: str,
             state: str = "Open",
-            typ: str = "Internal",
+            type: str = "Internal",
             branches: list[str] = None,
+            fix_versions: list[str] = None,
             merge_requests: list[int] = None,
             labels: list[str] = None,
             comments_list: list[str] = None,
             resolution: Optional[str] = None,
             assignee: Optional[str] = DEFAULT_USER["name"]):
-        project, _, __ = key.partition("-")
-        fixVersions = []
-        for branch in branches:
-            if branch:
-                versions = [
-                    v for v in self.project_versions(project)
-                    if v.description.startswith(f"<{branch}>")]
-            else:
-                versions = [Version("Unknown version", "unknown")]
-            if versions:
-                fixVersions.append(versions[0])
+        project, *_ = key.partition("-")
+        fixVersions = [v for v in self.project_versions(project) if v.name in (fix_versions or [])]
+
+        if branches:
+            for branch in branches:
+                if branch:
+                    versions = [
+                        v for v in self.project_versions(project)
+                        if v.description.startswith(f"<{branch}>")]
+                else:
+                    versions = [Version("Unknown version", "unknown")]
+                if versions:
+                    fixVersions.append(versions[0])
 
         gitlab_host_url = os.getenv("CI_SERVER_URL", "https://gitlab.example.com")
         remoteLinks = [
@@ -61,7 +62,7 @@ class Jira:
             for mr_id in (merge_requests or [])]
         comments = [Comment(body=c) for c in (comments_list or [])]
         status = Status(state)
-        issuetype = IssueType(typ)
+        issuetype = IssueType(type)
 
         self._issues[key] = JiraIssue(
             key=key,
@@ -76,8 +77,10 @@ class Jira:
             },
             assignee=assignee)
 
-    @staticmethod
-    def project_versions(project: str):
+    def project_versions(self, project: str):
+        if self._repo_versions:
+            return self._repo_versions.get(project, {})
+
         return {
             "VMS": [
                 Version("5.0", "<vms_5.0> 5.0 Release"),

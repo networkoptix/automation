@@ -19,7 +19,12 @@ import automation_tools.utils
 
 
 @pytest.fixture
-def jira(jira_issues, monkeypatch):
+def repo_versions():
+    return None
+
+
+@pytest.fixture
+def jira(monkeypatch, jira_issues, repo_versions):
     def init_with_mock(this):
         project_keys_list = list({i["key"].partition("-")[0] for i in jira_issues})
         this.project_keys = set(project_keys_list)
@@ -40,7 +45,7 @@ def jira(jira_issues, monkeypatch):
             key: type(
                 f"JiraIssue{key}", (automation_tools.jira.JiraIssue,), {'_project_config': config})
             for key, config in custom_project_configs.items()}
-        this._jira = automation_tools.tests.mocks.jira.Jira()
+        this._jira = automation_tools.tests.mocks.jira.Jira(repo_versions=repo_versions)
 
     def version_to_branch_mappings(obj):
         return {p: obj._version_to_branch_mapping(p) for p in obj.project_keys}
@@ -67,3 +72,17 @@ def repo_accessor(monkeypatch):
     committer = automation_tools.utils.User(
         email=BOT_EMAIL, name=BOT_NAME, username=BOT_USERNAME)
     return automation_tools.git.Repo(Path("foo_path"), "foo_url", committer=committer)
+
+
+@pytest.fixture
+def repo_accessor_factory(monkeypatch):
+    monkeypatch.setattr(automation_tools.git.git, "Repo", RepoMock)
+    monkeypatch.setattr(automation_tools.git.git.remote, "Remote", RemoteMock)
+
+    def _factory():
+        committer = automation_tools.utils.User(
+            email=BOT_EMAIL, name=BOT_NAME, username=BOT_USERNAME
+        )
+        return automation_tools.git.Repo(Path("foo_path"), "foo_url", committer=committer)
+
+    return _factory

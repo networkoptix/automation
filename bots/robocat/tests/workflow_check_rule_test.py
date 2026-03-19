@@ -9,7 +9,7 @@ from tests.fixtures import *
 from automation_tools.tests.gitlab_constants import DEFAULT_JIRA_ISSUE_KEY, DEFAULT_COMMIT, USERS
 
 import automation_tools.checkers.config
-from automation_tools.tests.fixtures import jira
+from automation_tools.tests.fixtures import jira, repo_versions
 from automation_tools.tests.mocks.resources import Version
 
 
