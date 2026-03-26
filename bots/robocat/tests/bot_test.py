@@ -1,10 +1,19 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+import queue
+import time
+from pathlib import Path
+from unittest.mock import MagicMock, call
+
+import gitlab
 import pytest
 
 from automation_tools.tests.mocks.git_mocks import CommitMock, BranchMock
+from automation_tools.utils import parse_config_file
 from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.bot import GitlabEventData, GitlabJobEventData, GitlabEventType
+from robocat.bot import Bot, GitlabEventData, GitlabJobEventData, GitlabEventType
+from robocat.config import Config
+from robocat.project import Project
 from automation_tools.tests.gitlab_constants import (
     BAD_OPENSOURCE_COMMIT,
     DEFAULT_COMMIT,
@@ -18,6 +27,199 @@ from automation_tools.tests.gitlab_constants import (
 )
 from tests.fixtures import *
 from automation_tools.tests.fixtures import repo_versions
+
+_CONFIG_TEMPLATE = (
+    Path(__file__).parents[4].resolve() / "bots/robocat/config_template.yaml")
+
+
+class TestBotInit:
+    @pytest.fixture
+    def global_config(self):
+        return parse_config_file(_CONFIG_TEMPLATE)
+
+    @pytest.fixture
+    def mock_gl(self):
+        gl = MagicMock()
+        gl.user.id = 1
+        mock_user = MagicMock()
+        mock_user.username = "bot"
+        mock_user.email = "bot@test.com"
+        mock_user.name = "Bot"
+        gl.users.get.return_value = mock_user
+        return gl
+
+    def test_robocat_json_404_uses_global_config(
+            self, monkeypatch, global_config, mock_gl):
+        monkeypatch.setattr(
+            Project, "get_file_content",
+            lambda *_, **__: (_ for _ in ()).throw(
+                gitlab.GitlabGetError(response_code=404)))
+        sleep_mock = MagicMock()
+        monkeypatch.setattr(time, "sleep", sleep_mock)
+
+        bot = Bot(global_config, 1, queue.PriorityQueue(),
+                  raw_gitlab=mock_gl, config_check_only=True)
+
+        assert bot.config == Config(**global_config)
+        sleep_mock.assert_not_called()
+
+    def test_robocat_json_500_retries_then_falls_back_to_git(
+            self, monkeypatch, global_config, mock_gl, tmp_path):
+        monkeypatch.setattr(
+            Project, "get_file_content",
+            lambda *_, **__: (_ for _ in ()).throw(
+                gitlab.GitlabGetError(response_code=500)))
+        sleep_mock = MagicMock()
+        monkeypatch.setattr(time, "sleep", sleep_mock)
+
+        # Set up a local git repo with robocat.json on origin/master
+        import git as gitmodule
+        # Create a "remote" repo with the file on a "master" branch
+        remote_path = tmp_path / "remote"
+        remote_path.mkdir()
+        remote_repo = gitmodule.Repo.init(remote_path, initial_branch="master")
+        robocat_json = remote_path / "robocat.json"
+        robocat_json.write_text('{"jira": {"project_keys": ["GIT_FALLBACK"]}}')
+        remote_repo.index.add(["robocat.json"])
+        remote_repo.index.commit("initial")
+        # Clone it so we get origin/master
+        local_path = tmp_path / "local"
+        gitmodule.Repo.clone_from(str(remote_path), str(local_path))
+
+        global_config["repo"]["path"] = str(local_path)
+        bot = Bot(global_config, 1, queue.PriorityQueue(),
+                  raw_gitlab=mock_gl, config_check_only=True)
+
+        assert bot.config.jira.project_keys == ["GIT_FALLBACK"]
+        assert sleep_mock.call_count == 2
+        assert sleep_mock.call_args_list == [call(5), call(10)]
+
+    def test_robocat_json_500_git_fallback_fetches_latest(
+            self, monkeypatch, global_config, mock_gl, tmp_path):
+        monkeypatch.setattr(
+            Project, "get_file_content",
+            lambda *_, **__: (_ for _ in ()).throw(
+                gitlab.GitlabGetError(response_code=500)))
+        monkeypatch.setattr(time, "sleep", MagicMock())
+
+        import git as gitmodule
+        # Create remote and clone it
+        remote_path = tmp_path / "remote"
+        remote_path.mkdir()
+        remote_repo = gitmodule.Repo.init(remote_path, initial_branch="master")
+        robocat_json = remote_path / "robocat.json"
+        robocat_json.write_text('{"jira": {"project_keys": ["OLD"]}}')
+        remote_repo.index.add(["robocat.json"])
+        remote_repo.index.commit("initial")
+        local_path = tmp_path / "local"
+        gitmodule.Repo.clone_from(str(remote_path), str(local_path))
+
+        # Update the remote after clone
+        robocat_json.write_text('{"jira": {"project_keys": ["UPDATED"]}}')
+        remote_repo.index.add(["robocat.json"])
+        remote_repo.index.commit("update config")
+
+        global_config["repo"]["path"] = str(local_path)
+        bot = Bot(global_config, 1, queue.PriorityQueue(),
+                  raw_gitlab=mock_gl, config_check_only=True)
+
+        assert bot.config.jira.project_keys == ["UPDATED"]
+
+    def test_robocat_json_500_git_fallback_raises_on_fetch_failure(
+            self, monkeypatch, global_config, mock_gl, tmp_path):
+        monkeypatch.setattr(
+            Project, "get_file_content",
+            lambda *_, **__: (_ for _ in ()).throw(
+                gitlab.GitlabGetError(response_code=500)))
+        monkeypatch.setattr(time, "sleep", MagicMock())
+
+        import git as gitmodule
+        remote_path = tmp_path / "remote"
+        remote_path.mkdir()
+        remote_repo = gitmodule.Repo.init(remote_path, initial_branch="master")
+        robocat_json = remote_path / "robocat.json"
+        robocat_json.write_text('{"jira": {"project_keys": ["STALE"]}}')
+        remote_repo.index.add(["robocat.json"])
+        remote_repo.index.commit("initial")
+        local_path = tmp_path / "local"
+        local_repo = gitmodule.Repo.clone_from(str(remote_path), str(local_path))
+
+        # Break the remote URL so fetch fails
+        with local_repo.remotes.origin.config_writer as cw:
+            cw.set("url", "/nonexistent/path")
+
+        global_config["repo"]["path"] = str(local_path)
+        with pytest.raises(RuntimeError, match="Git fallback also failed"):
+            Bot(global_config, 1, queue.PriorityQueue(),
+                raw_gitlab=mock_gl, config_check_only=True)
+
+    def test_robocat_json_500_git_fallback_clones_when_repo_missing(
+            self, monkeypatch, global_config, mock_gl, tmp_path):
+        monkeypatch.setattr(
+            Project, "get_file_content",
+            lambda *_, **__: (_ for _ in ()).throw(
+                gitlab.GitlabGetError(response_code=500)))
+        sleep_mock = MagicMock()
+        monkeypatch.setattr(time, "sleep", sleep_mock)
+
+        # Create a bare "remote" with robocat.json on master
+        import git as gitmodule
+        remote_path = tmp_path / "remote"
+        remote_path.mkdir()
+        remote_repo = gitmodule.Repo.init(remote_path, initial_branch="master")
+        robocat_json = remote_path / "robocat.json"
+        robocat_json.write_text('{"jira": {"project_keys": ["CLONED"]}}')
+        remote_repo.index.add(["robocat.json"])
+        remote_repo.index.commit("initial")
+
+        # Point config at a path that doesn't exist yet, with the remote URL
+        local_path = tmp_path / "clone_target"
+        global_config["repo"]["path"] = str(local_path)
+        global_config["repo"]["url"] = str(remote_path)
+
+        bot = Bot(global_config, 1, queue.PriorityQueue(),
+                  raw_gitlab=mock_gl, config_check_only=True)
+
+        assert bot.config.jira.project_keys == ["CLONED"]
+        assert local_path.exists(), "Repo should have been cloned"
+
+    def test_robocat_json_500_raises_when_git_fallback_also_fails(
+            self, monkeypatch, global_config, mock_gl, tmp_path):
+        monkeypatch.setattr(
+            Project, "get_file_content",
+            lambda *_, **__: (_ for _ in ()).throw(
+                gitlab.GitlabGetError(response_code=500)))
+        sleep_mock = MagicMock()
+        monkeypatch.setattr(time, "sleep", sleep_mock)
+
+        global_config["repo"]["path"] = str(tmp_path / "nonexistent")
+        with pytest.raises(RuntimeError, match="Git fallback also failed"):
+            Bot(global_config, 1, queue.PriorityQueue(),
+                raw_gitlab=mock_gl, config_check_only=True)
+
+        assert sleep_mock.call_count == 2
+
+    def test_robocat_json_500_then_success_uses_local_config(
+            self, monkeypatch, global_config, mock_gl):
+        local_json = '{"jira": {"project_keys": ["LOCAL"]}}'
+        call_count = [0]
+
+        def get_file_content_side_effect(*_, **__):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise gitlab.GitlabGetError(response_code=500)
+            return local_json
+
+        monkeypatch.setattr(Project, "get_file_content", get_file_content_side_effect)
+        sleep_mock = MagicMock()
+        monkeypatch.setattr(time, "sleep", sleep_mock)
+
+        bot = Bot(global_config, 1, queue.PriorityQueue(),
+                  raw_gitlab=mock_gl, config_check_only=True)
+
+        assert bot.config.jira.project_keys == ["LOCAL"]
+        assert sleep_mock.call_count == 1
+        assert sleep_mock.call_args_list == [call(5)]
 
 
 class TestBot:
@@ -353,3 +555,17 @@ class TestBot:
         assert not any(
             e for e in emojis if e.name == AwardEmojiManager.UNFINISHED_POST_MERGING_EMOJI), (
             "The Unfinished Processing flag should not be set.")
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"]}], {}),
+    ])
+    def test_run_skips_initial_scan_on_gitlab_error(self, bot, monkeypatch):
+        def raise_list_error():
+            raise gitlab.GitlabListError("500")
+
+        monkeypatch.setattr(
+            bot._project_manager, "get_next_open_merge_request", raise_list_error)
+
+        bot._enqueue_initial_open_mrs()
+
+        assert bot._mr_queue.empty()

@@ -14,6 +14,7 @@ import gitlab
 
 import automation_tools.utils
 import automation_tools.bot_info
+from automation_tools.utils import merge_dicts, parse_config_string
 from automation_tools.jira import GitlabBranchDescriptor, JiraAccessor, JiraError
 from automation_tools.jira_comments import JiraComment, JiraCommentDataKey, JiraMessageId
 import automation_tools.git
@@ -38,6 +39,8 @@ from robocat.rule import ALL_RULES
 logger = logging.getLogger(__name__)
 
 MR_POLL_RATE_S = 30
+_ROBOCAT_JSON_FETCH_RETRIES = 3
+_ROBOCAT_JSON_FETCH_RETRY_DELAY_S = 5
 
 
 class Bot(threading.Thread):
@@ -77,14 +80,56 @@ class Bot(threading.Thread):
         gitlab_project = raw_gitlab.projects.get(project_id)
         project = Project(gitlab_project)
 
-        try:
-            from automation_tools.utils import merge_dicts, parse_config_string
-            local_config = parse_config_string(
-                project.get_file_content(ref=config_ref, file="robocat.json"), "json")
-            self.config = Config(**dict(merge_dicts(config, local_config)))
-        except gitlab.GitlabGetError:
-            logger.warning("Failed to local robocat.json from repository!")
-            self.config = Config(**config)
+        last_error = None
+        for attempt in range(_ROBOCAT_JSON_FETCH_RETRIES):
+            try:
+                local_config = parse_config_string(
+                    project.get_file_content(ref=config_ref, file="robocat.json"), "json")
+                self.config = Config(**dict(merge_dicts(config, local_config)))
+                break
+            except gitlab.GitlabGetError as e:
+                if e.response_code == 404:
+                    logger.info("No robocat.json in repository, using global config.")
+                    self.config = Config(**config)
+                    break
+                last_error = e
+                if attempt < _ROBOCAT_JSON_FETCH_RETRIES - 1:
+                    delay = _ROBOCAT_JSON_FETCH_RETRY_DELAY_S * (2 ** attempt)
+                    logger.warning(
+                        f"Transient error fetching robocat.json (attempt {attempt + 1}/"
+                        f"{_ROBOCAT_JSON_FETCH_RETRIES}): {e}. Retrying in {delay}s.")
+                    time.sleep(delay)
+        else:
+            repo_path = config.get('repo', {}).get('path')
+            repo_url = config.get('repo', {}).get('url')
+            if repo_path:
+                try:
+                    try:
+                        local_repo = git.Repo(repo_path)
+                        logger.info("Fetching latest changes before git fallback.")
+                        local_repo.remotes.origin.fetch()
+                    except git.exc.NoSuchPathError:
+                        if not repo_url:
+                            raise
+                        logger.info(
+                            f"Local repo not found at {repo_path}, cloning from {repo_url}.")
+                        local_repo = git.Repo.clone_from(repo_url, repo_path)
+                    content = local_repo.git.show(f"origin/{config_ref}:robocat.json")
+                    local_config = parse_config_string(content, "json")
+                    self.config = Config(**dict(merge_dicts(config, local_config)))
+                    logger.warning(
+                        f"Loaded robocat.json from local git checkout (may be stale). "
+                        f"GitLab API failed after {_ROBOCAT_JSON_FETCH_RETRIES} attempts: "
+                        f"{last_error}")
+                except Exception as git_error:
+                    raise RuntimeError(
+                        f"Failed to fetch robocat.json after "
+                        f"{_ROBOCAT_JSON_FETCH_RETRIES} attempts: {last_error}. "
+                        f"Git fallback also failed: {git_error}")
+            else:
+                raise RuntimeError(
+                    f"Failed to fetch robocat.json after "
+                    f"{_ROBOCAT_JSON_FETCH_RETRIES} attempts: {last_error}")
 
         logger.debug(f"Loaded configuration: {str(self.config)}")
 
@@ -242,20 +287,25 @@ class Bot(threading.Thread):
 
         mr_manager.update_unfinished_post_merging_flag(False)
 
+    def _enqueue_initial_open_mrs(self):
+        try:
+            for mr in self._project_manager.get_next_open_merge_request():
+                self._mr_queue.put(
+                    GitlabEventData(
+                        payload=GitlabMrEventData(mr_id=mr.id, mr_state='opened'),
+                        event_type=GitlabEventType.merge_request))
+        except gitlab.GitlabError as e:
+            logger.warning(
+                f"Failed to fetch initial open MR list: {e}. "
+                f"Skipping initial scan; bot will process incoming webhook events normally.")
+
     def run(self):
         logger.info(
             f"Robocat revision {automation_tools.bot_info.revision()}. Started for project "
             f"[{self._project_manager.data.name}].")
-
         self._polling = False
-
-        for mr in self._project_manager.get_next_open_merge_request():
-            self._mr_queue.put(
-                GitlabEventData(
-                    payload=GitlabMrEventData(mr_id=mr.id, mr_state='opened'),
-                    event_type=GitlabEventType.merge_request))
-
-        while (True):
+        self._enqueue_initial_open_mrs()
+        while True:
             self.process_event(self._mr_queue.get())
 
     def process_event(self, event_data: GitlabEventData):
