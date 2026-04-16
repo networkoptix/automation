@@ -178,6 +178,12 @@ class MergeRequest:
     def raw_pipelines_list(self) -> list[dict]:
         return self._gitlab_mr.pipelines()
 
+    def refresh(self):
+        """Re-fetch MR data from GitLab to get current detailed_merge_status."""
+        logger.debug(f"{self}: Refreshing MR data")
+        self._gitlab_mr = self._gitlab_mr.manager.get(
+            self._gitlab_mr.iid, lazy=False)
+
     def rebase(self):
         logger.debug(f"{self}: Rebasing")
         self.rebase_in_progress = True

@@ -278,6 +278,8 @@ class MergeRequestMock:
     def __post_init__(self):
         # Bind to "self.project".
         self.manager.gitlab = self.project.manager.gitlab
+        # Allow MergeRequest.refresh() to re-fetch via manager.get().
+        self.manager.get = lambda iid, **_: self.project.mergerequests.get(iid)
         self.project.mergerequests.add_mock_mr(self)
 
         # Create notes manager and bind it to itself.

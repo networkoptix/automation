@@ -457,6 +457,39 @@ class TestBot:
             e for e in emojis if e.name == AwardEmojiManager.UNFINISHED_POST_MERGING_EMOJI), (
             'Hasn\'t unfinished processing flag.')
 
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        # INFRA-636: MR initially appears mergeable, but after refresh it needs rebase.
+        # prepare_to_merge should re-fetch MR data and detect the change.
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"], "state": "Waiting for QA"}], {
+            "blocking_discussions_resolved": True,
+            "needed_approvers_number": 0,
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
+            "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
+            "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
+            "detailed_merge_status": "mergeable",
+        }),
+    ])
+    def test_prepare_to_merge_refreshes_mr_data(self, bot, mr, mr_manager):
+        """prepare_to_merge re-fetches MR data before the final merge decision (INFRA-636).
+
+        Simulates a race condition where the MR appears mergeable initially but
+        needs a rebase after refresh (e.g., target branch moved).
+        """
+        import robocat.merge_request as mr_module
+        original_refresh = mr_module.MergeRequest.refresh
+
+        def mock_refresh(mr_self):
+            mr_self._gitlab_mr.detailed_merge_status = "need_rebase"
+
+        mr_module.MergeRequest.refresh = mock_refresh
+        try:
+            bot.handle(mr_manager)
+            assert mr.state != "merged", \
+                "MR should NOT be merged after refresh detects need_rebase"
+            assert mr.mock_rebased, "Rebase should have been triggered after refresh"
+        finally:
+            mr_module.MergeRequest.refresh = original_refresh
+
     @pytest.mark.parametrize(("jira_issues", "mr_state", "should_trigger_processing"), [
         # "Check" stage is finished
         ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"]}], {

@@ -725,4 +725,16 @@ class MergeRequestManager:
             self._run_pipeline(RunPipelineReason.needed_by_project_settings)
             return False
 
+        # Re-fetch MR data to guard against race conditions where the target
+        # branch moved or a new pipeline started since we last checked.
+        self._mr.refresh()
+
+        if self._mr.is_rebase_needed:
+            self._mr.rebase()
+            return False
+
+        if self._mr.is_pipeline_run_needed:
+            self._run_pipeline(RunPipelineReason.needed_by_project_settings)
+            return False
+
         return self._mr.is_mergeable

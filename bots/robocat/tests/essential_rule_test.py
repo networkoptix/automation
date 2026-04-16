@@ -3,8 +3,10 @@
 import pytest
 
 from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.merge_request import MergeRequest
+from robocat.merge_request_manager import MergeRequestManager
 from robocat.rule.essential_rule import EssentialRule
-from automation_tools.tests.gitlab_constants import DEFAULT_COMMIT
+from automation_tools.tests.gitlab_constants import BOT_USERNAME, DEFAULT_COMMIT
 from tests.fixtures import *
 
 
@@ -379,6 +381,42 @@ class TestEssentialRule:
 
         assert essential_rule.execute(mr_manager) in [
             EssentialRule.ExecutionResult.work_in_progress, expected_result]
+
+    @pytest.mark.parametrize("mr_state", [
+        # INFRA-636: Old successful pipeline exists, but a newer "created" pipeline is pending.
+        # The essential rule should see the "created" pipeline as running and wait.
+        {
+            "needed_approvers_number": 0,
+            "commits_list": [
+                {"sha": "old_sha", "message": DEFAULT_COMMIT["message"]},
+                DEFAULT_COMMIT],
+            "pipelines_list": [
+                ("old_sha", "success"),
+                (DEFAULT_COMMIT["sha"], "created")]
+        },
+    ])
+    def test_created_pipeline_blocks_then_allows_after_success(
+            self, essential_rule, mr, mr_manager, project):
+        """A 'created' pipeline blocks merge; once it succeeds, merge proceeds (INFRA-636)."""
+        # Phase 1: pipeline is "created" → essential rule blocks
+        assert not essential_rule.execute(mr_manager)
+
+        emojis = mr.awardemojis.list()
+        assert any(e for e in emojis if e.name == AwardEmojiManager.WAIT_EMOJI)
+
+        comments = mr.mock_comments()
+        assert any("Waiting for pipeline" in c for c in comments)
+
+        # Phase 2: pipeline transitions to "success"
+        pipeline_mock = project.pipelines.get(1)  # ID 1 = the "created" pipeline
+        assert pipeline_mock.sha == DEFAULT_COMMIT["sha"]
+        pipeline_mock.status = "success"
+
+        # Create a fresh MergeRequestManager (resets LRU cache, simulates next event handling)
+        fresh_mr_manager = MergeRequestManager(MergeRequest(mr, BOT_USERNAME))
+
+        # Now essential rule should pass
+        assert essential_rule.execute(fresh_mr_manager)
 
     @pytest.mark.parametrize("mr_state", [
         # Good MR linked to a good Jira Project.

@@ -3,8 +3,19 @@
 import pytest
 
 from automation_tools.tests.gitlab_constants import DEFAULT_COMMIT
-from robocat.pipeline import JobStatus, Pipeline
+from robocat.pipeline import JobStatus, Pipeline, PipelineStatus
 from tests.fixtures import *
+
+
+class TestTranslateStatus:
+    def test_created_pipeline_is_running(self):
+        """A pipeline in "created" state is pending execution, not skipped.
+
+        If "created" is treated as skipped, newly-created merge-ref pipelines
+        are invisible to get_last_pipeline_status(), causing Robocat to merge
+        based on a stale pipeline result. See INFRA-636.
+        """
+        assert Pipeline.translate_status("created") == PipelineStatus.running
 
 
 class TestPipeline:

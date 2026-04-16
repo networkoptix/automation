@@ -169,10 +169,12 @@ class Pipeline:
 
     @staticmethod
     def translate_status(status: str) -> PipelineStatus:
-        if status in ["canceled", "canceling", "skipped", "created", "manual"]:
+        if status in ["canceled", "canceling", "skipped", "manual"]:
             return PipelineStatus.skipped
 
-        if status in ["waiting_for_resource", "preparing", "pending", "running", "scheduled"]:
+        if status in [
+                "waiting_for_resource", "preparing", "pending", "running", "scheduled",
+                "created"]:
             return PipelineStatus.running
 
         if status == "success":
