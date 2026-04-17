@@ -1,5 +1,6 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+from enum import Enum, auto
 from typing import Any, Optional
 import logging
 import re
@@ -13,6 +14,11 @@ from robocat.award_emoji_manager import AwardEmojiManager
 import automation_tools.utils
 
 logger = logging.getLogger(__name__)
+
+
+class MergeResult(Enum):
+    MERGED = auto()
+    ADDED_TO_MERGE_TRAIN = auto()
 
 
 class MergeRequest:
@@ -189,7 +195,7 @@ class MergeRequest:
         self.rebase_in_progress = True
         self._gitlab_mr.rebase()
 
-    def merge(self):
+    def merge(self) -> MergeResult:
         project = self.raw_gitlab_object.projects.get(self.project_id, lazy=False)
         merge_trains_enabled = project.attributes.get("merge_trains_enabled", False)
 
@@ -203,18 +209,24 @@ class MergeRequest:
                     endpoint, post_data={"auto_merge": False})
                 logger.info(f"{self}: Successfully added to merge train")
             except GitlabHttpError as e:
+                if e.response_code == 409:
+                    logger.info(f"{self}: Already in merge train (HTTP 409): {e}")
+                    return MergeResult.ADDED_TO_MERGE_TRAIN
                 logger.error(
                     f"{self}: Failed to add to merge train (HTTP {e.response_code}): {e}. "
                     f"endpoint: {endpoint!r}, "
                     f"MR state: {self._gitlab_mr.state!r}, "
                     f"merge_status: {self._gitlab_mr.detailed_merge_status!r}"
                 )
-        else:
-            logger.debug(f"{self}: Merging")
-            squash_commit_message = None
-            if self._gitlab_mr.squash:
-                squash_commit_message = f"{self._gitlab_mr.title}\n\n{self._gitlab_mr.description}"
-            self._gitlab_mr.merge(squash_commit_message=squash_commit_message)
+                raise
+            return MergeResult.ADDED_TO_MERGE_TRAIN
+
+        logger.debug(f"{self}: Merging")
+        squash_commit_message = None
+        if self._gitlab_mr.squash:
+            squash_commit_message = f"{self._gitlab_mr.title}\n\n{self._gitlab_mr.description}"
+        self._gitlab_mr.merge(squash_commit_message=squash_commit_message)
+        return MergeResult.MERGED
 
     def create_discussion(
             self, body: str, position: dict = None, autoresolve: bool = False) -> bool:

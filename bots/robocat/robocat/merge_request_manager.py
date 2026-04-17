@@ -14,7 +14,7 @@ from automation_tools.mr_data_structures import ApprovalRequirements
 from robocat.action_reasons import WaitReason, CheckFailureReason
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.gitlab import Gitlab
-from robocat.merge_request import MergeRequest
+from robocat.merge_request import MergeRequest, MergeResult
 from robocat.note import find_first_comment, find_last_comment, MessageId, Note, NoteDetails
 from robocat.pipeline import (
     Pipeline, PipelineLocation, PipelineStatus, RunPipelineReason, JobStatus)
@@ -501,12 +501,18 @@ class MergeRequestManager:
 
         logger.info(f"{self}: Trying to merge")
         try:
-            self._mr.merge()
+            result = self._mr.merge()
         except GitlabMRClosedError as e:
             # This is a workaround for unexpected "mergeable" value in "detailed_merge_status"
             # field instead of "need_rebase". TODO: Remove this as soon as possible.
             logger.info(f"{self}: Cannot merge the MR: {e}. Probably, rebase is required")
             self._mr.rebase()
+            return False
+
+        if result == MergeResult.ADDED_TO_MERGE_TRAIN:
+            logger.info(
+                f"{self}: Queued in merge train; not yet merged. Skipping post-merge actions "
+                f"until the train completes the merge.")
             return False
 
         try:
