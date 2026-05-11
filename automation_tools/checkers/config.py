@@ -76,7 +76,16 @@ ALLOWED_VERSIONS_SETS = {
             "Ongoing release development"
         )
     ],
-
+    "MDS": [
+        AllowedVersionSet(
+            ['master (26.2)'],
+            "Next release development"
+        ),
+        AllowedVersionSet(
+            ['master (26.2)', '26.1'],
+            "Ongoing release development"
+        )
+    ],
 }
 
 IGNORE_LABEL = "hide_from_police"
