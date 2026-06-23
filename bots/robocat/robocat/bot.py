@@ -9,12 +9,11 @@ import time
 from datetime import timedelta, datetime
 from typing import Optional
 
-import git
 import gitlab
 
 import automation_tools.utils
 import automation_tools.bot_info
-from automation_tools.utils import merge_dicts, parse_config_string
+from automation_tools.utils import merge_dicts
 from automation_tools.jira import GitlabBranchDescriptor, JiraAccessor, JiraError
 from automation_tools.jira_comments import JiraComment, JiraCommentDataKey, JiraMessageId
 import automation_tools.git
@@ -29,18 +28,24 @@ from robocat.gitlab_events import (
     GitlabEventData)
 from robocat.config import Config
 from robocat.project_manager import ProjectManager
-from robocat.project import Project
 from robocat.merge_request_actions.notify_user_actions import add_failed_pipeline_comment_if_needed
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import find_last_comment, MessageId
 from robocat.pipeline import Job, JobStatus, PlayPipelineError, Pipeline, PipelineStatus
 from robocat.rule import ALL_RULES
 
+# Per-repo config lives in the proprietary section (bots/robocat/robocat_config) and is baked
+# into the deployment image. Open-source builds don't ship it, so all repos fall back to the
+# global config.
+try:
+    from robocat_config.repo_configs import PROJECT_ID_TO_REPO, REPO_CONFIGS
+except ImportError:
+    PROJECT_ID_TO_REPO = {}
+    REPO_CONFIGS = {}
+
 logger = logging.getLogger(__name__)
 
 MR_POLL_RATE_S = 30
-_ROBOCAT_JSON_FETCH_RETRIES = 3
-_ROBOCAT_JSON_FETCH_RETRY_DELAY_S = 5
 
 
 class Bot(threading.Thread):
@@ -65,8 +70,7 @@ class Bot(threading.Thread):
             project_id: int,
             mr_queue: queue.PriorityQueue,
             raw_gitlab: gitlab.Gitlab = None,
-            config_check_only: bool = False,
-            config_ref: str = "master"):
+            config_check_only: bool = False):
         super().__init__()
 
         raw_gitlab = raw_gitlab or gitlab.Gitlab.from_config("nx_gitlab")
@@ -78,58 +82,15 @@ class Bot(threading.Thread):
             username=gitlab_user_info.username)
 
         gitlab_project = raw_gitlab.projects.get(project_id)
-        project = Project(gitlab_project)
 
-        last_error = None
-        for attempt in range(_ROBOCAT_JSON_FETCH_RETRIES):
-            try:
-                local_config = parse_config_string(
-                    project.get_file_content(ref=config_ref, file="robocat.json"), "json")
-                self.config = Config(**dict(merge_dicts(config, local_config)))
-                break
-            except gitlab.GitlabGetError as e:
-                if e.response_code == 404:
-                    logger.info("No robocat.json in repository, using global config.")
-                    self.config = Config(**config)
-                    break
-                last_error = e
-                if attempt < _ROBOCAT_JSON_FETCH_RETRIES - 1:
-                    delay = _ROBOCAT_JSON_FETCH_RETRY_DELAY_S * (2 ** attempt)
-                    logger.warning(
-                        f"Transient error fetching robocat.json (attempt {attempt + 1}/"
-                        f"{_ROBOCAT_JSON_FETCH_RETRIES}): {e}. Retrying in {delay}s.")
-                    time.sleep(delay)
+        repo_name = PROJECT_ID_TO_REPO.get(project_id, "")
+        local_config = REPO_CONFIGS.get(repo_name, {})
+        if local_config:
+            self.config = Config(**dict(merge_dicts(config, local_config)))
         else:
-            repo_path = config.get('repo', {}).get('path')
-            repo_url = config.get('repo', {}).get('url')
-            if repo_path:
-                try:
-                    try:
-                        local_repo = git.Repo(repo_path)
-                        logger.info("Fetching latest changes before git fallback.")
-                        local_repo.remotes.origin.fetch()
-                    except git.exc.NoSuchPathError:
-                        if not repo_url:
-                            raise
-                        logger.info(
-                            f"Local repo not found at {repo_path}, cloning from {repo_url}.")
-                        local_repo = git.Repo.clone_from(repo_url, repo_path)
-                    content = local_repo.git.show(f"origin/{config_ref}:robocat.json")
-                    local_config = parse_config_string(content, "json")
-                    self.config = Config(**dict(merge_dicts(config, local_config)))
-                    logger.warning(
-                        f"Loaded robocat.json from local git checkout (may be stale). "
-                        f"GitLab API failed after {_ROBOCAT_JSON_FETCH_RETRIES} attempts: "
-                        f"{last_error}")
-                except Exception as git_error:
-                    raise RuntimeError(
-                        f"Failed to fetch robocat.json after "
-                        f"{_ROBOCAT_JSON_FETCH_RETRIES} attempts: {last_error}. "
-                        f"Git fallback also failed: {git_error}")
-            else:
-                raise RuntimeError(
-                    f"Failed to fetch robocat.json after "
-                    f"{_ROBOCAT_JSON_FETCH_RETRIES} attempts: {last_error}")
+            logger.info(
+                f"No source config for project {project_id} ({repo_name}), using global config.")
+            self.config = Config(**config)
 
         logger.debug(f"Loaded configuration: {str(self.config)}")
 

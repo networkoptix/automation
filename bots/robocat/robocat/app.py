@@ -179,12 +179,11 @@ def thread_exception_hook(args):
     signal.raise_signal(signal.SIGTERM)
 
 
-def config_check(config: dict, project_id: int, config_ref: str):
+def config_check(config: dict, project_id: int):
     import gitlab
 
     # Create a GitLab client instance to check the config. We don't have the nx_gitlab config
     # in the automation pipeline, but we do have the GITLAB_API_TOKEN environment variable set.
-    # We only need this token to fetch a repo-specific config, so this is enough for this case.
     gitlab_token = os.getenv("GITLAB_API_TOKEN")
     if not gitlab_token:
         logger.error(
@@ -197,7 +196,6 @@ def config_check(config: dict, project_id: int, config_ref: str):
     Bot(
         config=config,
         project_id=project_id,
-        config_ref=config_ref,
         mr_queue=mr_queue,
         raw_gitlab=raw_gitlab,
         config_check_only=True)
@@ -231,11 +229,6 @@ def main():
         help="Merge Request id to process. Make sense only for \"run_once\" mode",
         type=int,
         required=False)
-    parser.add_argument(
-        '--config-ref',
-        help="Git reference to get the repo-specific config from",
-        type=str,
-        default="master")
     parser.add_argument('--graylog', help="Hostname of Graylog service")
     arguments = parser.parse_args()
 
@@ -259,22 +252,19 @@ def main():
         executor_thread = Bot(
             config=arguments.config,
             project_id=arguments.project_id,
-            mr_queue=mr_queue,
-            config_ref=arguments.config_ref)
+            mr_queue=mr_queue)
         executor_thread.start()
         robocat.run()
     elif arguments.mode == "poll":
         executor = Bot(
             config=arguments.config,
             project_id=arguments.project_id,
-            mr_queue=mr_queue,
-            config_ref=arguments.config_ref)
+            mr_queue=mr_queue)
         executor.run_poller()
     elif arguments.mode == "config_check":
         config_check(
             config=arguments.config,
-            project_id=arguments.project_id,
-            config_ref=arguments.config_ref)
+            project_id=arguments.project_id)
     elif arguments.mode == "run_once":
         if not arguments.mr_id:
             logger.error("MR id is required for \"run_once\" mode, exiting.")
@@ -282,8 +272,7 @@ def main():
         executor = Bot(
             config=arguments.config,
             project_id=arguments.project_id,
-            mr_queue=mr_queue,
-            config_ref=arguments.config_ref)
+            mr_queue=mr_queue)
         executor.run_poller(arguments.mr_id)
 
 
