@@ -17,7 +17,9 @@ Request merging routine and enforce some workflow rules. _Robocat_ does the foll
 
 Robocat only handles Merge Requests assigned to it. Note that any Merge Request assigned to Robocat
 must mention (using MR Title/Description or commit messages) Issues from at least one of the
-supported Projects. Supported Projects can be listed in the per-repo configuration file.
+supported Projects. Supported Projects are defined in the bot's per-repo configuration
+(`jira.project_mapping`) in `bots/robocat/robocat_config/repo_configs.py`, which is merged over
+the global `config.yaml` at startup.
 
 This bot relies on **webhooks** - it receives notification about changes in Merge Requests
 (changing of title, target branch, Draft status, adding new commits, etc.), about adding
