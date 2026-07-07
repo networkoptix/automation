@@ -173,6 +173,8 @@ class TestRobocatCommands:
         repo_accessor.repo.remotes[project_remote].mock_attach_gitlab_project(project)
         repo_accessor.repo.mock_add_gitlab_project(source_project)
 
+        mrs_before = len(project.mergerequests.list())
+
         payload = GitlabCommentEventData(
             mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} {command}")
         event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
@@ -183,6 +185,14 @@ class TestRobocatCommands:
         assert len(comments) == 2, f"Got comments: {comments}"
         assert f":{AwardEmojiManager.NOTIFICATION_EMOJI}:" in comments[0], (
             f"First comment: {comments[0]}.")
+
+        # Regardless of the command used, the missing follow-up to "vms_5.1" (e.g. a fixVersion
+        # added to the Issue after the primary Merge Request was already merged) must be created.
+        mrs = project.mergerequests.list()
+        assert len(mrs) == mrs_before + 1, f"Follow-up Merge Request wasn't created: {mrs}"
+        follow_up_mr = sorted(mrs, key=lambda mr: mr.iid)[-1]
+        assert follow_up_mr.target_branch == "vms_5.1"
+        assert follow_up_mr.source_branch == f"{mr.source_branch}_vms_5.1"
 
     @pytest.mark.parametrize(("mr_state", "jira_issues"), [({}, [])])
     def test_set_draft_follow_up_mode(

@@ -8,16 +8,21 @@ import gitlab
 import pytest
 
 from automation_tools.tests.mocks.git_mocks import CommitMock, BranchMock
+from automation_tools.tests.mocks.project import ProjectMock
 from automation_tools.utils import parse_config_file, merge_dicts
 import robocat.bot
 from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.bot import Bot, GitlabEventData, GitlabJobEventData, GitlabEventType
+from robocat.bot import (
+    Bot, GitlabEventData, GitlabJobEventData, GitlabEventType,
+    GitlabMrEventData, GitlabPipelineEventData)
 from robocat.config import Config
 from automation_tools.tests.gitlab_constants import (
     BAD_OPENSOURCE_COMMIT,
     DEFAULT_COMMIT,
     GOOD_README_COMMIT_NEW_FILE,
     FILE_COMMITS_SHA,
+    FORK_PROJECT_ID,
+    MERGED_TO_MASTER_MERGE_REQUESTS,
     OPEN_SOURCE_APPROVER_COMMON,
     DEFAULT_JIRA_ISSUE_KEY,
     USERS,
@@ -451,3 +456,109 @@ class TestBot:
         bot._enqueue_initial_open_mrs()
 
         assert bot._mr_queue.empty()
+
+    @staticmethod
+    def _setup_follow_up_git_state(project, repo_accessor, mr, target_branch="vms_5.1"):
+        source_project = ProjectMock(id=mr.source_project_id, manager=project.manager)
+        for c in mr.commits_list:
+            source_project.add_mock_commit("master", c["sha"], c["message"])
+        project_remote = project.namespace["full_path"]
+        repo_accessor.create_branch(
+            target_remote=project_remote, new_branch=target_branch, source_branch="master")
+        for c in mr.commits_list:
+            repo_accessor.repo.add_mock_commit(c["sha"], c["message"])
+        repo_accessor.repo.remotes[project_remote].mock_attach_gitlab_project(project)
+        repo_accessor.repo.mock_add_gitlab_project(source_project)
+        return source_project
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY,
+            "branches": ["master", "vms_5.1"],
+            "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
+            "state": "In Review",
+        }], {
+            "title": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[0],
+            "description": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[1],
+            "blocking_discussions_resolved": True,
+            "needed_approvers_number": 0,
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
+            "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
+            "source_project_id": FORK_PROJECT_ID,
+            "state": "merged",
+        }),
+    ])
+    def test_post_merge_rules_not_triggered_without_state_transition(
+            self, project, repo_accessor, bot, mr):
+        # Set up git repo so that follow-up would be created if POST_MERGE_RULES ran.
+        self._setup_follow_up_git_state(project, repo_accessor, mr)
+
+        # Pipeline event: previous_mr_state="" because GitlabPipelineEventData has no
+        # mr_previous_data field.
+        pipeline_event = GitlabEventData(
+            payload=GitlabPipelineEventData(
+                mr_id=mr.iid, mr_state="merged",
+                raw_pipeline_status="success", pipeline_id="0"),
+            event_type=GitlabEventType.pipeline)
+
+        # MR event without state change: simulates a real GitLab webhook payload, where the
+        # "state" key is present but set to None when the state did not change.
+        mr_event = GitlabEventData(
+            payload=GitlabMrEventData(
+                mr_id=mr.iid, mr_state="merged",
+                mr_previous_data={"state": None}, code_changed=False),
+            event_type=GitlabEventType.merge_request)
+
+        for event in [pipeline_event, mr_event]:
+            bot.process_event(event)
+            assert len(mr.mock_comments()) == 0, (
+                f"Event {event.event_type} triggered POST_MERGE_RULES unexpectedly: "
+                f"{mr.mock_comments()}")
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        ([{
+            "key": DEFAULT_JIRA_ISSUE_KEY,
+            "branches": ["master", "vms_5.1"],
+            "merge_requests": [MERGED_TO_MASTER_MERGE_REQUESTS["merged"]["iid"]],
+            "state": "In Review",
+        }], {
+            "title": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[0],
+            "description": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[1],
+            "blocking_discussions_resolved": True,
+            "needed_approvers_number": 0,
+            "commits_list": [GOOD_README_COMMIT_NEW_FILE],
+            "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
+            "source_project_id": FORK_PROJECT_ID,
+            "state": "merged",
+        }),
+    ])
+    def test_post_merge_rules_run_exactly_once_per_merge(
+            self, project, repo_accessor, bot, mr):
+        # Set up git repo so that a follow-up would be created by POST_MERGE_RULES.
+        self._setup_follow_up_git_state(project, repo_accessor, mr)
+
+        mrs_before = len(project.mergerequests.list())
+
+        # The real "opened" -> "merged" transition. This is the only event in the sequence
+        # below that is expected to trigger POST_MERGE_RULES.
+        merge_event = GitlabEventData(
+            payload=GitlabMrEventData(
+                mr_id=mr.iid, mr_state="merged",
+                mr_previous_data={"state": "opened"}, code_changed=True),
+            event_type=GitlabEventType.merge_request)
+        bot.process_event(merge_event)
+
+        # GitLab typically fires more than one Pipeline event for the branch pipeline that runs
+        # after the merge (retries, several stages, etc). None of them carry mr_previous_data,
+        # so none of them should re-run POST_MERGE_RULES.
+        pipeline_event = GitlabEventData(
+            payload=GitlabPipelineEventData(
+                mr_id=mr.iid, mr_state="merged",
+                raw_pipeline_status="success", pipeline_id="0"),
+            event_type=GitlabEventType.pipeline)
+        bot.process_event(pipeline_event)
+        bot.process_event(pipeline_event)
+
+        mrs = project.mergerequests.list()
+        assert len(mrs) == mrs_before + 1, (
+            f"Expected exactly one follow-up Merge Request to be created, got: {mrs}")

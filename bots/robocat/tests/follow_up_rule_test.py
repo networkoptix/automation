@@ -3,6 +3,7 @@
 import re
 import pytest
 
+from automation_tools.tests.mocks.git_mocks import BranchMock, CommitMock
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.bot import GitlabEventData, GitlabCommentEventData, GitlabEventType
 from robocat.note import MessageId
@@ -94,6 +95,20 @@ class TestFollowUpRule:
         repo_accessor.repo.mock_add_gitlab_project(project)
         repo_accessor.repo.add_mock_commit(DEFAULT_COMMIT["sha"], DEFAULT_COMMIT["message"])
 
+        # The existing follow-up branch has its own commit, e.g. a manual conflict resolution
+        # done by a human reviewer, which must survive the rule execution untouched.
+        repo_accessor.repo.branches["feature_vms_5.1"] = BranchMock(
+            repo_accessor.repo, name="feature_vms_5.1", commits=[
+                CommitMock(
+                    repo_accessor.repo, sha="deadbeef000",
+                    message="Manual conflict resolution")])
+        # A copy, not an alias: if a regression mutated the same BranchMock's commits list
+        # in place, comparing against the original object would trivially pass.
+        commits_before = list(repo_accessor.repo.branches["feature_vms_5.1"].commits)
+        # Drop the setup commands from the log, so that only commands issued by the rule
+        # execution below are checked.
+        repo_accessor.repo.mock_read_commands_log()
+
         assert follow_up_rule.execute(mr_manager)
 
         issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
@@ -110,6 +125,13 @@ class TestFollowUpRule:
         assert not any(
             e for e in emojis if e.name == AwardEmojiManager.FOLLOWUP_CREATED_EMOJI), (
             'Hasn\'t "follow-up created" emoji.')
+
+        assert repo_accessor.repo.branches["feature_vms_5.1"].commits == commits_before, (
+            "The existing follow-up branch was modified even though its Merge Request already "
+            "exists")
+        assert not repo_accessor.repo.mock_read_commands_log(), (
+            "No git operations should be performed when a follow-up Merge Request already "
+            "exists for the branch")
 
     @pytest.mark.parametrize(("jira_issues", "mr_state", "robocat_approval"), [
         # Squashed merge request (issue detection from the title).

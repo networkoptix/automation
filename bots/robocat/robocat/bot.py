@@ -332,7 +332,9 @@ class Bot(threading.Thread):
     def _handle_mr_if_needed(
             self, current_mr_state: str, previous_mr_state: str, mr_manager: MergeRequestManager):
 
-        if current_mr_state == "merged" and previous_mr_state != current_mr_state:
+        if (current_mr_state == "merged"
+                and previous_mr_state
+                and previous_mr_state != current_mr_state):
             logger.info(f"{mr_manager}: Merge Request was just merged; executing necessary rules.")
             self._execute_rules(mr_manager, self.POST_MERGE_RULES)
             return
@@ -355,9 +357,11 @@ class Bot(threading.Thread):
                 project_manager=self._project_manager,
                 jira=self._jira)
             if command.should_handle_mr_after_run:
-                current_mr_state = "merged" if mr_manager.data.is_merged else "opened"
-                self._handle_mr_if_needed(
-                    current_mr_state=current_mr_state, previous_mr_state="", mr_manager=mr_manager)
+                if mr_manager.data.is_merged:
+                    self._execute_rules(mr_manager, self.POST_MERGE_RULES)
+                else:
+                    self._handle_mr_if_needed(
+                        current_mr_state="opened", previous_mr_state="", mr_manager=mr_manager)
 
     def _process_pipeline_event(
             self, payload: GitlabPipelineEventData, mr_manager: MergeRequestManager):

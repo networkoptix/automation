@@ -62,23 +62,32 @@ class ProjectManager:
         follow_up_mr_source_branch = f"{original_mr_data.source_branch}_{target_branch}"
         source_project = self._gitlab.get_project(
             original_mr_data.source_branch_project_id, lazy=False)
-        self._create_new_branch(
-            new_branch=follow_up_mr_source_branch,
-            base_branch=target_branch,
-            project=source_project)
 
         try:
-            cherry_picked_commit_count = self._add_commits_to_branch(
-                branch=follow_up_mr_source_branch,
-                remote=source_project.namespace,
-                commits=commits)
-        except EmptyFollowUpError:
-            logger.info(
-                f"Seems that all the changes from '{original_mr_manager}' are already in branch "
-                f"{target_branch}. Follow-up merge request is not created.")
-            raise
+            if self._project.get_raw_mrs(
+                    source_branch=follow_up_mr_source_branch,
+                    target_branch=target_branch,
+                    state='opened',
+                    per_page=1):
+                raise MergeRequestAlreadyExistsError(
+                    source=follow_up_mr_source_branch, target=target_branch)
 
-        try:
+            self._create_new_branch(
+                new_branch=follow_up_mr_source_branch,
+                base_branch=target_branch,
+                project=source_project)
+
+            try:
+                cherry_picked_commit_count = self._add_commits_to_branch(
+                    branch=follow_up_mr_source_branch,
+                    remote=source_project.namespace,
+                    commits=commits)
+            except EmptyFollowUpError:
+                logger.info(
+                    f"Seems that all the changes from '{original_mr_manager}' are already in "
+                    f"branch {target_branch}. Follow-up merge request is not created.")
+                raise
+
             mr = self._create_follow_up_mr_from_branch(
                 source_branch=follow_up_mr_source_branch,
                 target_branch=target_branch,

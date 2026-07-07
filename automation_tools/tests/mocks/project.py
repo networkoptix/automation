@@ -84,8 +84,15 @@ class MergeRequestManagerMock:
         self.merge_requests[mr.iid] = mr
         return mr
 
-    def list(self, **_):
-        return self.merge_requests.values()
+    def list(self, source_branch=None, target_branch=None, state=None, **_):
+        mrs = self.merge_requests.values()
+        if source_branch:
+            mrs = [mr for mr in mrs if mr.source_branch == source_branch]
+        if target_branch:
+            mrs = [mr for mr in mrs if mr.target_branch == target_branch]
+        if state:
+            mrs = [mr for mr in mrs if mr.state == state]
+        return mrs
 
 
 @dataclass
