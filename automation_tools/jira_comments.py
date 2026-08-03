@@ -108,7 +108,7 @@ class JiraComment:
 
 
 BOT_SIGNATURES = {
-    "Robocat": """h5. 🐱 Robocat rev. {revision}. See its [documentation|https://github.com/networkoptix/automation/blob/master/bots/robocat/readme.md].""",  # noqa
+    "Robocat": """h5. 🐱 Robocat rev. {revision}.""",  # noqa
     "Police": "h5. 🚔 Workflow Police {revision}. Find its documentation in Confluence.",
 }
 

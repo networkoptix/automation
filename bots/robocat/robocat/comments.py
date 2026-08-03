@@ -41,7 +41,7 @@ def format_body(title: str, message: str, emoji: str) -> str:
 
 ---
 
-###### Robocat rev. {robocat_revision()}. See its [documentation](https://github.com/networkoptix/automation/blob/master/bots/robocat/readme.md)
+###### Robocat rev. {robocat_revision()}.
 """  # noqa
 
 
@@ -73,7 +73,7 @@ template = """### :{emoji}: {title}
 
 ---
 
-###### Robocat rev. {revision}. See its [documentation](https://github.com/networkoptix/automation/blob/master/bots/robocat/readme.md)
+###### Robocat rev. {revision}.
 """  # noqa
 
 
