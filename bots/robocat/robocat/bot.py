@@ -69,8 +69,7 @@ class Bot(threading.Thread):
             config,
             project_id: int,
             mr_queue: queue.PriorityQueue,
-            raw_gitlab: gitlab.Gitlab = None,
-            config_check_only: bool = False):
+            raw_gitlab: gitlab.Gitlab = None):
         super().__init__()
 
         raw_gitlab = raw_gitlab or gitlab.Gitlab.from_config("nx_gitlab")
@@ -93,9 +92,6 @@ class Bot(threading.Thread):
             self.config = Config(**config)
 
         logger.debug(f"Loaded configuration: {str(self.config)}")
-
-        if config_check_only:
-            return
 
         self._setup_environment()
         self._repo = automation_tools.git.Repo(

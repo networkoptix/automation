@@ -58,8 +58,10 @@ class TestBotInit:
         monkeypatch.setattr(robocat.bot, "PROJECT_ID_TO_REPO", {7: "test/repo"})
         monkeypatch.setattr(robocat.bot, "REPO_CONFIGS", {"test/repo": repo_config})
 
-        bot = Bot(global_config, 7, queue.PriorityQueue(),
-                  raw_gitlab=mock_gl, config_check_only=True)
+        monkeypatch.setattr("automation_tools.git.Repo", MagicMock())
+        monkeypatch.setattr(robocat.bot, "JiraAccessor", MagicMock())
+
+        bot = Bot(global_config, 7, queue.PriorityQueue(), raw_gitlab=mock_gl)
 
         assert bot.config == Config(**dict(merge_dicts(global_config, repo_config)))
         # The repo-specific mapping was merged over the global one.
@@ -70,8 +72,10 @@ class TestBotInit:
         monkeypatch.setattr(robocat.bot, "PROJECT_ID_TO_REPO", {7: "test/repo"})
         monkeypatch.setattr(robocat.bot, "REPO_CONFIGS", {"test/repo": {"jira": {}}})
 
-        bot = Bot(global_config, 99999, queue.PriorityQueue(),
-                  raw_gitlab=mock_gl, config_check_only=True)
+        monkeypatch.setattr("automation_tools.git.Repo", MagicMock())
+        monkeypatch.setattr(robocat.bot, "JiraAccessor", MagicMock())
+
+        bot = Bot(global_config, 99999, queue.PriorityQueue(), raw_gitlab=mock_gl)
 
         assert bot.config == Config(**global_config)
 

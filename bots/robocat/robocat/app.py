@@ -179,29 +179,6 @@ def thread_exception_hook(args):
     signal.raise_signal(signal.SIGTERM)
 
 
-def config_check(config: dict, project_id: int):
-    import gitlab
-
-    # Create a GitLab client instance to check the config. We don't have the nx_gitlab config
-    # in the automation pipeline, but we do have the GITLAB_API_TOKEN environment variable set.
-    gitlab_token = os.getenv("GITLAB_API_TOKEN")
-    if not gitlab_token:
-        logger.error(
-            "The config_check mode requires the GITLAB_API_TOKEN environment variable.")
-        sys.exit(1)
-    gitlab_url = os.getenv("CI_SERVER_URL", "https://gitlab.example.com")
-    raw_gitlab = gitlab.Gitlab(gitlab_url, private_token=gitlab_token)
-    # Creating a Bot instance will load the configuration and the pydantic code that verifies
-    # the structure will be executed.
-    Bot(
-        config=config,
-        project_id=project_id,
-        mr_queue=mr_queue,
-        raw_gitlab=raw_gitlab,
-        config_check_only=True)
-    logger.info("Config check passed successfully, exiting.")
-
-
 def main():
     parser = argparse.ArgumentParser(sys.argv[0])
     parser.add_argument(
@@ -222,7 +199,7 @@ def main():
     parser.add_argument(
         '--mode',
         help="Working mode",
-        choices=["webhook", "poll", "config_check", "run_once"],
+        choices=["webhook", "poll", "run_once"],
         default="webhook")
     parser.add_argument(
         '--mr-id',
@@ -261,10 +238,6 @@ def main():
             project_id=arguments.project_id,
             mr_queue=mr_queue)
         executor.run_poller()
-    elif arguments.mode == "config_check":
-        config_check(
-            config=arguments.config,
-            project_id=arguments.project_id)
     elif arguments.mode == "run_once":
         if not arguments.mr_id:
             logger.error("MR id is required for \"run_once\" mode, exiting.")
