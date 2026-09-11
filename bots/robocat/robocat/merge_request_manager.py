@@ -356,7 +356,15 @@ class MergeRequestManager:
     def rebase_in_progress(self):
         return self._mr.rebase_in_progress
 
-    def ensure_authorized_approvers(self, approvers: list[set[str]]) -> bool:
+    def ensure_authorized_approvers(
+            self,
+            approvers: list[set[str]],
+            message_id: MessageId = MessageId.AuthorizedApproversAssigned) -> bool:
+        """For each approver set, if none of its members is already an assignee,
+        reviewer, or the author, mark the whole set for assignment.
+
+        If nothing needs assigning, return False (no comment posted). Otherwise
+        assign, bump the required-approval count, post `message_id`, return True."""
         current_approvers = (
             self._mr.assignees | self._mr.reviewers | set([self._mr.author.username]))
         approvers_to_assign = set()
@@ -383,7 +391,7 @@ class MergeRequestManager:
         self._mr.set_approvers_count(self._mr.get_approvers_count() + 1)
 
         message = robocat.comments.Message(
-            id=MessageId.AuthorizedApproversAssigned,
+            id=message_id,
             params={"approvers": ", @".join(approvers_to_assign)})
         self.add_comment(message)
 

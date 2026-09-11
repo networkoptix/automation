@@ -89,7 +89,8 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
             return self.ExecutionResult.not_applicable
 
         error_check_result = self._do_error_check(
-            mr_manager=mr_manager, check_results_class=CommitMessageStoredCheckResults)
+            mr_manager=mr_manager,
+            check_results_class=CommitMessageStoredCheckResults)
 
         if error_check_result.current_errors:
             self._ensure_problem_comments(mr_manager, error_check_result)
@@ -99,7 +100,9 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
                 return self.ExecutionResult.merge_authorized
             preferred_approvers = approve_rule_helpers.get_keepers(
                 approve_rules=self._approve_rules, mr_manager=mr_manager, for_affected_files=True)
-            if mr_manager.ensure_authorized_approvers([preferred_approvers]):
+            if mr_manager.ensure_authorized_approvers(
+                    [preferred_approvers],
+                    message_id=MessageId.CommitMessageAuthorizedApproversAssigned):
                 logger.debug(f"{mr_manager}: Preferred approvers assigned to MR.")
             return self.ExecutionResult.commit_message_not_ok
 

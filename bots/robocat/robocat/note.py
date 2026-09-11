@@ -61,6 +61,7 @@ class MessageId(Enum):
     UnknownProjectWhenClosingIssue = auto()
     RefuseRunPipelineMessage = auto()
     AuthorizedApproversAssigned = auto()
+    CommitMessageAuthorizedApproversAssigned = auto()
     RunPipelineMessage = auto()
     WaitingForCommits = auto()
     WaitingForApproval = auto()

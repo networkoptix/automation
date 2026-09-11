@@ -187,3 +187,40 @@ class TestCommitMessageRule:
                 assert message_details in comment, f"Comment is: {comment}"
 
             mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
+
+    @pytest.mark.parametrize("mr_state", [
+        # A new open source file with a commit message tripping the open source compliance check.
+        # The author is not a keeper and there is no keeper among the reviewers, so the rule has
+        # to assign the authorized approvers itself.
+        {
+            "commits_list": [{
+                "sha": f'{GOOD_README_COMMIT_NEW_FILE["sha"]}4',
+                "message": f"{DEFAULT_JIRA_ISSUE_KEY}: title\n\nchanges in copyright\ngpl",
+                "diffs": GOOD_README_COMMIT_NEW_FILE["diffs"],
+                "files": GOOD_README_COMMIT_NEW_FILE["files"],
+            }],
+            "blocking_discussions_resolved": True,
+            "pipelines_list": [(
+                GOOD_README_COMMIT_NEW_FILE["sha"],
+                "success",
+                [("open-source:check", "success"), ("new-open-source-files:check", "failed")],
+            )],
+        },
+    ])
+    def test_assigned_approvers_comment_states_commit_message_reason(
+            self, commit_message_rule, mr, mr_manager):
+        assert commit_message_rule.execute(mr_manager) == (
+            CommitMessageCheckRule.ExecutionResult.commit_message_not_ok)
+
+        comments = mr.mock_comments()
+        assigned_details = (
+            f"{NoteDetails._ID_KEY}: "
+            f"{MessageId.CommitMessageAuthorizedApproversAssigned.value}\n")
+        assigned_comments = [c for c in comments if assigned_details in c]
+        assert len(assigned_comments) == 1, f"Got comments: {comments}"
+
+        # The approvers were called in by the commit message check, so the comment must not claim
+        # the open source new or renamed files reason used by the job status rule.
+        comment = assigned_comments[0]
+        assert "commit message" in comment, f"Comment is: {comment}"
+        assert "new or renamed files" not in comment, f"Comment is: {comment}"

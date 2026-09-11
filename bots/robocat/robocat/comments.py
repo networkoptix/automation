@@ -177,6 +177,7 @@ bot_readable_comment_title = {
     MessageId.UnknownProjectWhenClosingIssue: "Failed to close Jira Issue",
     MessageId.RefuseRunPipelineMessage: "Pipeline was not started",
     MessageId.AuthorizedApproversAssigned: "Update assignee list",
+    MessageId.CommitMessageAuthorizedApproversAssigned: "Update assignee list",
     MessageId.RunPipelineMessage: "Pipeline started",
     MessageId.WaitingForCommits: "Waiting for commits",
     MessageId.WaitingForApproval: "Waiting for approvals",
@@ -341,6 +342,10 @@ Refusing to run user-requested pipeline because the previous pipeline
     MessageId.AuthorizedApproversAssigned: """
 @{approvers} were assigned to this merge request because it contains new or renamed files in the
 open-source part of the project.
+""",
+    MessageId.CommitMessageAuthorizedApproversAssigned: """
+@{approvers} were assigned to this merge request because its commit message contains
+licensing-related or other sensitive wording.
 """,
     MessageId.RunPipelineMessage: "Running pipeline [#{pipeline_id}]({pipeline_url}): {reason}.",
     MessageId.WaitingForCommits: """

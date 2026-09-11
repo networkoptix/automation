@@ -65,6 +65,7 @@ class AwardEmojiManager():
         MessageId.UnknownProjectWhenClosingIssue: "warning",
         MessageId.RefuseRunPipelineMessage: NO_PIPELINE_EMOJI,
         MessageId.AuthorizedApproversAssigned: NOTIFICATION_EMOJI,
+        MessageId.CommitMessageAuthorizedApproversAssigned: NOTIFICATION_EMOJI,
         MessageId.RunPipelineMessage: PIPELINE_EMOJI,
         MessageId.WaitingForCommits: WAIT_EMOJI,
         MessageId.WaitingForPipeline: WAIT_EMOJI,
