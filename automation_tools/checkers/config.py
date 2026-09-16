@@ -74,12 +74,20 @@ ALLOWED_VERSIONS_SETS = {
     ],
     "MDS": [
         AllowedVersionSet(
-            ['master (26.2)'],
-            "Next release development"
+            ['1.0 (master)'],
+            "QR Code Deployment 1.0 release"
         ),
         AllowedVersionSet(
-            ['master (26.2)', '26.1'],
-            "Ongoing release development"
+            ['1.1 (master)'],
+            "Ongoing development, not required for the 1.0 release"
+        ),
+        AllowedVersionSet(
+            ['1.0 (master)', '1.1 (master)'],
+            "Needed both in the 1.0 release and in ongoing development"
+        ),
+        AllowedVersionSet(
+            ['Future'],
+            "Postponed for the future releases"
         )
     ],
 }
