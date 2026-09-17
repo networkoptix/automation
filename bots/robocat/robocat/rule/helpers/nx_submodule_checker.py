@@ -77,6 +77,7 @@ class NxSubmoduleChecker:
             return None
 
         return self._check_file_consistency(
+            nx_submodule_dir=nx_submodule_dir,
             file_name=file_name,
             is_executable=is_executable,
             is_deleted=is_deleted)
@@ -153,7 +154,11 @@ class NxSubmoduleChecker:
         return None
 
     def _check_file_consistency(
-            self, file_name: str, is_executable: bool, is_deleted: bool) -> Optional[CheckError]:
+            self,
+            nx_submodule_dir: str,
+            file_name: str,
+            is_executable: bool,
+            is_deleted: bool) -> Optional[CheckError]:
         def _inconsistency_error(explanation):
             return CheckError(
                 type=self.INCONSISTENT_CONTENT,
@@ -165,7 +170,6 @@ class NxSubmoduleChecker:
                     "explanation": explanation,
                 })
 
-        nx_submodule_dir = self._get_nx_submodule_by_file_name(file_name)
         subrepo_dir = Path(self._nx_submodules_repo_dirs[nx_submodule_dir].name)
         nx_submodule_config = self._nx_submodule_configs[nx_submodule_dir]
 
