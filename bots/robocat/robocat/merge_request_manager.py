@@ -721,6 +721,12 @@ class MergeRequestManager:
             return False
 
         note = Note(note_data)
+        if note.message_id is None:
+            logger.warning(
+                f"{self}: Not updating the data of note {note_id}: its Robocat details are "
+                "missing or could not be parsed.")
+            return False
+
         note.update_details(NoteDetails(message_id=note.message_id, sha=note.sha, data=data))
         self._mr.update_note(note_id=note_id, body=note.body)
         return True

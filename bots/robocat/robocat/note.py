@@ -86,7 +86,9 @@ class NoteDetails:
         self.data = data
 
     def __str__(self):
-        payload = {self._ID_KEY: self.message_id.value, self._SHA_KEY: self.sha}
+        payload = {
+            self._ID_KEY: self.message_id.value if self.message_id is not None else None,
+            self._SHA_KEY: self.sha}
         if self.data:
             payload[self._DATA_KEY] = self.data
         return f"<details><pre>{yaml.dump(payload, default_flow_style=False)}</pre></details>"
