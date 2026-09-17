@@ -384,8 +384,8 @@ class Bot(threading.Thread):
         if job.status == JobStatus.failed and not job.allow_failure:
             add_failed_pipeline_comment_if_needed(mr_manager=mr_manager, job_name=job.name)
 
-        autorun_stage = self.config.pipeline.autorun_stage
-        if job.stage == autorun_stage:
+        autorun_stage = self.config.pipeline.autorun_stage if self.config.pipeline else None
+        if autorun_stage is not None and job.stage == autorun_stage:
             job_pipeline = self._project_manager.get_pipeline(job.pipeline_location)
             if job_pipeline.is_stage_completed(autorun_stage):
                 logger.info(f"MR {mr_manager!r} processing triggered by Job event {payload}.")
