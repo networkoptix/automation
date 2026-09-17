@@ -9,6 +9,7 @@ import time
 from datetime import timedelta, datetime
 from typing import Optional
 
+import git
 import gitlab
 
 import automation_tools.utils
