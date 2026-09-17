@@ -369,7 +369,7 @@ class Bot(threading.Thread):
 
         self._handle_mr_if_needed(
             current_mr_state=payload["mr_state"],
-            previous_mr_state=payload.get("mr_previous_data", {}).get("state", ""),
+            previous_mr_state=(payload.get("mr_previous_data") or {}).get("state") or "",
             mr_manager=mr_manager)
 
     def _process_job_event(self, payload: GitlabJobEventData, mr_manager: MergeRequestManager):
@@ -401,7 +401,7 @@ class Bot(threading.Thread):
 
         self._handle_mr_if_needed(
             current_mr_state=payload["mr_state"],
-            previous_mr_state=payload.get("mr_previous_data", {}).get("state", ""),
+            previous_mr_state=(payload.get("mr_previous_data") or {}).get("state") or "",
             mr_manager=mr_manager)
 
     def get_merge_requests_manager(self, mr_id: Optional[int] = None):
