@@ -1,6 +1,7 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 import pytest
+from typing import Any, cast
 
 from automation_tools.git import Repo
 from automation_tools.tests.gitlab_constants import (
@@ -43,18 +44,20 @@ class TestRobocatCommands:
         (f"@{BOT_USERNAME} follow-up", FollowUpCommand),
         (f"@{BOT_USERNAME} follow_up", FollowUpCommand),
     ])
-    def test_command_parsing(self, comment: str, command_class: BaseCommand):
+    def test_command_parsing(
+            self, comment: str, command_class: type[BaseCommand] | None):
         command = robocat.commands.parser.create_command_from_text(
             username=BOT_USERNAME,
             text=comment)
-        assert command == command_class or isinstance(command, command_class)
+        assert command == command_class or (
+            command_class is not None and isinstance(command, command_class))
 
     @pytest.mark.parametrize(("mr_state", "jira_issues"), [
         ({"pipelines_list": [(f"{DEFAULT_COMMIT['sha']}0", "failed")]}, [])
     ])
     def test_run_pipeline(self, bot: Bot, mr: MergeRequestMock):
         payload = GitlabCommentEventData(
-            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} run_pipeline")
+            mr_id=mr.iid, mr_state=mr.state, added_comment=f"@{BOT_USERNAME} run_pipeline")
         event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
         bot.process_event(event_data)
 
@@ -72,7 +75,7 @@ class TestRobocatCommands:
     ])
     def test_refuse_run_pipeline(self, bot: Bot, mr: MergeRequestMock):
         payload = GitlabCommentEventData(
-            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} run_pipeline")
+            mr_id=mr.iid, mr_state=mr.state, added_comment=f"@{BOT_USERNAME} run_pipeline")
         event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
         bot.process_event(event_data)
 
@@ -98,7 +101,7 @@ class TestRobocatCommands:
     ])
     def test_process_unmerged(self, bot: Bot, mr: MergeRequestMock):
         payload = GitlabCommentEventData(
-            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} follow-up")
+            mr_id=mr.iid, mr_state=mr.state, added_comment=f"@{BOT_USERNAME} follow-up")
         event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
         bot.process_event(event_data)
         comments = mr.mock_comments()
@@ -106,7 +109,7 @@ class TestRobocatCommands:
             f"Last comment: {comments}.")
 
         payload = GitlabCommentEventData(
-            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} process")
+            mr_id=mr.iid, mr_state=mr.state, added_comment=f"@{BOT_USERNAME} process")
         event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
         bot.process_event(event_data)
         assert mr.state == "merged"
@@ -168,15 +171,16 @@ class TestRobocatCommands:
         project_remote = project.namespace["full_path"]
         repo_accessor.create_branch(
             target_remote=project_remote, new_branch="vms_5.1", source_branch="master")
+        mock_repo = cast(Any, repo_accessor.repo)
         for c in mr.commits_list:
-            repo_accessor.repo.add_mock_commit(c["sha"], c["message"])
+            mock_repo.add_mock_commit(c["sha"], c["message"])
         repo_accessor.repo.remotes[project_remote].mock_attach_gitlab_project(project)
-        repo_accessor.repo.mock_add_gitlab_project(source_project)
+        mock_repo.mock_add_gitlab_project(source_project)
 
         mrs_before = len(project.mergerequests.list())
 
         payload = GitlabCommentEventData(
-            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} {command}")
+            mr_id=mr.iid, mr_state=mr.state, added_comment=f"@{BOT_USERNAME} {command}")
         event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
 
         bot.process_event(event_data)
@@ -201,7 +205,7 @@ class TestRobocatCommands:
             mr: MergeRequestMock,
             mr_manager: MergeRequestManager):
         payload = GitlabCommentEventData(
-            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} draft-follow-up")
+            mr_id=mr.iid, mr_state=mr.state, added_comment=f"@{BOT_USERNAME} draft-follow-up")
         event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
         bot.process_event(event_data)
 

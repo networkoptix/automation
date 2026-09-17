@@ -525,9 +525,9 @@ class TestWorkflowCheckRule:
     def test_comment_updates(self, workflow_rule, mr, mr_manager):
         def _check_mr(
                 successfull: bool,
-                comments_count: str,
+                comments_count: int,
                 expected_comment_title: str,
-                new_mr_title: str = None):
+                new_mr_title: str | None = None):
             if new_mr_title is not None:
                 mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
                 mr.title = new_mr_title

@@ -1,5 +1,6 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+from collections.abc import Iterable
 from enum import Enum
 import logging
 
@@ -58,7 +59,7 @@ class PostProcessingRule(BaseRule):
             if self._try_close_jira_issues(mr_manager=mr_manager, issues=jira_issues)
             else self.ExecutionResult.rule_execution_failed)
 
-    def _try_close_jira_issues(self, mr_manager, issues: list[JiraIssue]) -> bool:
+    def _try_close_jira_issues(self, mr_manager, issues: Iterable[JiraIssue]) -> bool:
         return bool(all(
             self._try_close_jira_issue(mr_manager=mr_manager, issue=issue) for issue in issues))
 

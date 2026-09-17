@@ -130,7 +130,7 @@ class NxSubmoduleChecker:
             subrepo.head.reset(
                 commit=nx_submodule_config.commit_sha,
                 index=True, working_tree=True)
-        except git.exc.GitCommandError as err:
+        except git.GitCommandError as err:
             return CheckError(
                 type=self.CONFIG_BAD_GIT_DATA,
                 params={
@@ -158,7 +158,7 @@ class NxSubmoduleChecker:
             nx_submodule_dir: str,
             file_name: str,
             is_executable: bool,
-            is_deleted: bool) -> Optional[CheckError]:
+            is_deleted: bool) -> CheckError | None:
         def _inconsistency_error(explanation):
             return CheckError(
                 type=self.INCONSISTENT_CONTENT,

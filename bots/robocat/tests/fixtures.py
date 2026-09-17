@@ -4,8 +4,9 @@ from pathlib import Path
 import pytest
 import queue
 from dataclasses import dataclass
-from typing import Set
+from typing import Any, Set, cast
 
+from automation_tools.jira import JiraAccessor
 from automation_tools.tests.fixtures import jira, repo_accessor
 from automation_tools.tests.gitlab_constants import (
     DEFAULT_APPROVE_RULESET,
@@ -62,7 +63,7 @@ def project(mr_state, monkeypatch):
     def create_pipeline(_, *__, **___):
         new_pipeline_id = len(project.pipelines.list())
         pipeline = PipelineMock(
-            project=project, id=new_pipeline_id, sha=mr.sha, status="manual")
+            project=project, id=new_pipeline_id, sha=cast(str, mr.sha), status="manual")
         project.pipelines.add_mock_pipeline(pipeline)
 
     monkeypatch.setattr(robocat.gitlab.Gitlab, "create_detached_pipeline", create_pipeline)
@@ -96,12 +97,12 @@ def project_manager(project, repo_accessor):
 
 @pytest.fixture
 def essential_rule(bot_config, project_manager):
-    return EssentialRule(bot_config, project_manager, None)
+    return EssentialRule(bot_config, project_manager, cast(JiraAccessor, None))
 
 
 @pytest.fixture
 def nx_submodule_check_rule(bot_config, project_manager):
-    return NxSubmoduleCheckRule(bot_config, project_manager, None)
+    return NxSubmoduleCheckRule(bot_config, project_manager, cast(JiraAccessor, None))
 
 
 @pytest.fixture
@@ -113,17 +114,20 @@ def job_status_rule(
     code_owner_approve_ruleset
 ):
     rule = bot_config.job_status_check_rule
+    assert rule is not None and rule.apidoc is not None
+    assert rule.code_owner_approval is not None
     rule.open_source.approve_ruleset = ApproveRulesetConfig(**open_source_approve_ruleset)
     rule.apidoc.approve_ruleset = ApproveRulesetConfig(**apidoc_approve_ruleset)
     rule.code_owner_approval.approve_ruleset = ApproveRulesetConfig(**code_owner_approve_ruleset)
-    return JobStatusCheckRule(bot_config, project_manager, None)
+    return JobStatusCheckRule(bot_config, project_manager, cast(JiraAccessor, None))
 
 
 @pytest.fixture
 def commit_message_rule(bot_config: Config, project_manager):
     config = ApproveRulesetConfig(**DEFAULT_APPROVE_RULESET)
+    assert bot_config.job_status_check_rule is not None
     bot_config.job_status_check_rule.open_source.approve_ruleset = config
-    return CommitMessageCheckRule(bot_config, project_manager, None)
+    return CommitMessageCheckRule(bot_config, project_manager, cast(JiraAccessor, None))
 
 
 @pytest.fixture
@@ -134,45 +138,45 @@ def workflow_rule(bot_config, project, project_manager, jira, monkeypatch):
         {
             "VMS": [
                 AllowedVersionSet(
-                    ['5.0', '5.0_patch', '5.1', '5.1_patch', 'master'],
+                    {'5.0', '5.0_patch', '5.1', '5.1_patch', 'master'},
                     "Technical issue"
                 ),
                 AllowedVersionSet(
-                    ['5.0_patch', '5.1', '5.1_patch', 'master'],
+                    {'5.0_patch', '5.1', '5.1_patch', 'master'},
                     "Old patch support"
                 ),
                 AllowedVersionSet(
-                    ['5.1', '5.1_patch', 'master'],
+                    {'5.1', '5.1_patch', 'master'},
                     "Current release support"
                 ),
                 AllowedVersionSet(
-                    ['5.1_patch', 'master'],
+                    {'5.1_patch', 'master'},
                     "Current patch support"
                 ),
                 AllowedVersionSet(
-                    ['master'],
+                    {'master'},
                     "Next release development"
                 ),
                 AllowedVersionSet(
-                    ['Future'],
+                    {'Future'},
                     "Postponed for the future releases"
                 )
             ],
             "MOBILE": [
                 AllowedVersionSet(
-                    ['23.1', '22.5', 'master'],
+                    {'23.1', '22.5', 'master'},
                     "Technical issue"
                 ),
                 AllowedVersionSet(
-                    ['23.1', 'master'],
+                    {'23.1', 'master'},
                     "Current release support"
                 ),
                 AllowedVersionSet(
-                    ['master'],
+                    {'master'},
                     "Next release development"
                 ),
                 AllowedVersionSet(
-                    ['Future'],
+                    {'Future'},
                     "Postponed for the future releases"
                 )
             ],
@@ -236,4 +240,4 @@ def bot(
     monkeypatch.setattr(Bot, "__init__", bot_init)
     monkeypatch.setenv("BOT_NAME", "Robocat")
 
-    return Bot()
+    return cast(Any, Bot)()

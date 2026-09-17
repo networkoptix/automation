@@ -64,6 +64,8 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
 
     def __init__(self, config: Config, project_manager: ProjectManager, jira: JiraAccessor):
         super().__init__(config, project_manager, jira)
+        assert config.job_status_check_rule is not None, (
+            "JobStatusCheckRule requires the \"job_status_check_rule\" configuration section")
 
         # Always have "open_source_issue". TODO: Check, if it is needed at all, looks like now
         # all the work for this type of problems is done by the pipline job.
@@ -93,7 +95,7 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
 
     def _update_possible_issues(
             self,
-            config: ApproveRulesetEntryConfig,
+            config: ApproveRulesetEntryConfig | None,
             issue_name: str,
             job_name: str,
             deleted_files_affect_result: bool = False,

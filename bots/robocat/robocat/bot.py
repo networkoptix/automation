@@ -7,10 +7,12 @@ import requests
 import threading
 import time
 from datetime import timedelta, datetime
-from typing import Optional
+from pathlib import Path
+from typing import Optional, cast
 
 import git
 import gitlab
+import gitlab.exceptions
 
 import automation_tools.utils
 import automation_tools.bot_info
@@ -26,6 +28,7 @@ from robocat.gitlab_events import (
     GitlabPipelineEventData,
     GitlabCommentEventData,
     GitlabJobEventData,
+    GitlabMrRelatedEventData,
     GitlabEventData)
 from robocat.config import Config
 from robocat.project_manager import ProjectManager
@@ -70,7 +73,7 @@ class Bot(threading.Thread):
             config,
             project_id: int,
             mr_queue: queue.PriorityQueue,
-            raw_gitlab: gitlab.Gitlab = None):
+            raw_gitlab: gitlab.Gitlab | None = None):
         super().__init__()
 
         raw_gitlab = raw_gitlab or gitlab.Gitlab.from_config("nx_gitlab")
@@ -96,15 +99,15 @@ class Bot(threading.Thread):
 
         self._setup_environment()
         self._repo = automation_tools.git.Repo(
-            path=self.config.repo.path,
+            path=Path(self.config.repo.path),
             url=self.config.repo.url,
             committer=committer)
         self._project_manager = ProjectManager(
             gitlab_project=gitlab_project,
             current_user=self._username,
             repo=self._repo)
-        project_keys = (
-            list(self.config.jira.project_mapping.keys())
+        project_keys = set(
+            self.config.jira.project_mapping.keys()
             if self.config.jira.project_mapping
             else self.config.jira.project_keys)
         self._jira = JiraAccessor(
@@ -315,7 +318,7 @@ class Bot(threading.Thread):
             pipeline = self._project_manager.get_pipeline(job.pipeline_location)
             mr_id = pipeline.mr_id
         else:
-            mr_id = event_data.payload["mr_id"]
+            mr_id = cast(GitlabMrRelatedEventData, event_data.payload)["mr_id"]
 
         if not mr_id:
             return None

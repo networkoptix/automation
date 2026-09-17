@@ -28,8 +28,8 @@ class PipelineStatus(enum.Enum):
 
 @dataclass
 class PipelineLocation:
-    pipeline_id: str
-    project_id: str
+    pipeline_id: int
+    project_id: int
 
 
 class RunPipelineReason(enum.Enum):
@@ -99,11 +99,11 @@ class Job:
         return self._allow_failure
 
     @property
-    def pipeline_id(self) -> bool:
+    def pipeline_id(self) -> int:
         return self._pipeline_id
 
     @property
-    def stage(self) -> bool:
+    def stage(self) -> str:
         return self._stage
 
     @property

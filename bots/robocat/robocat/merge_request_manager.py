@@ -91,7 +91,7 @@ class MergeRequestCommitsData:
 class MergeRequestManager:
     _FOLLOWUP_DESCRIPTION_RE = re.compile(r"\(cherry picked from commit (?P<sha>[a-f0-9]{40})\)")
 
-    def __init__(self, mr: MergeRequest, current_user: str = None):
+    def __init__(self, mr: MergeRequest, current_user: str | None = None):
         logger.debug(f"Initialize MR manager for {mr.id}: '{mr.title}'")
         self._mr = mr
         self._current_user = current_user
@@ -138,7 +138,8 @@ class MergeRequestManager:
                 self._mr.award_emoji.create(AwardEmojiManager.UNFINISHED_POST_MERGING_EMOJI)
 
     def is_post_merging_unfinished(self) -> bool:
-        return self._mr.award_emoji.find(AwardEmojiManager.UNFINISHED_POST_MERGING_EMOJI, own=True)
+        return bool(
+            self._mr.award_emoji.find(AwardEmojiManager.UNFINISHED_POST_MERGING_EMOJI, own=True))
 
     def satisfies_approval_requirements(self, requirements: ApprovalRequirements) -> bool:
         result = True
@@ -171,6 +172,10 @@ class MergeRequestManager:
         return mr_approvals_info.approvals_left
 
     def ensure_watching(self) -> bool:
+        # Imported here rather than at module scope: robocat.commands.parser reaches
+        # robocat.commands.commands, which imports this module back.
+        from robocat.commands import parser
+
         if self._mr.award_emoji.find(AwardEmojiManager.WATCH_EMOJI, own=True):
             return False
 
@@ -184,7 +189,7 @@ class MergeRequestManager:
                     "bot_gitlab_username": self._current_user,
                     "bot_revision": automation_tools.bot_info.revision(),
                     "command_list": "\n- ".join(
-                        cls.description() for cls in robocat.commands.parser.command_classes()),
+                        cls.description() for cls in parser.command_classes()),
                 }),
             message_data={"base_sha": base_sha})
 
@@ -242,6 +247,7 @@ class MergeRequestManager:
         # Save the confirmation that the user command was executed.
         user_command_confirmation_comment = find_last_comment(
             notes=self.notes(), message_id=MessageId.CommandRunPipeline, crash_if_not_found=True)
+        assert user_command_confirmation_comment is not None  # crash_if_not_found=True
         comment_data = user_command_confirmation_comment.additional_data
         comment_data["CommandExecuted"] = True
         self.update_comment_data(
@@ -451,9 +457,11 @@ class MergeRequestManager:
     def explain_check_failure(self, reason: CheckFailureReason, *params) -> None:
         logger.info(f"{self}: Add comment explaining check failure: {reason}")
 
-        message_params: dict[str, str] = None
+        message_params: dict[str, str] | None = None
         if reason == CheckFailureReason.failed_pipeline:
             last_pipeline = self._get_last_pipeline()
+            assert last_pipeline is not None, (
+                "A failed-pipeline check failure implies a pipeline exists")
             message_id = MessageId.FailedCheckForSuccessfulPipeline
             message_params = {
                 "last_pipeline_id": str(last_pipeline.id),

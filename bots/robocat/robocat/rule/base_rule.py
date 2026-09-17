@@ -41,6 +41,9 @@ class RuleExecutionResultClass(Enum):
 
 
 class BaseRule(metaclass=ABCMeta):
+    # Defined by every concrete rule.
+    identifier: str
+
     LONG_PROCESSING_THRESHOLD_S = 3
     ExecutionResult = RuleExecutionResultClass.create("RuleExecutionResult", {})
 

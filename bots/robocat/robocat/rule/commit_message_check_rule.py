@@ -2,7 +2,7 @@
 
 import dataclasses
 import logging
-from typing import Set
+from typing import Set, cast
 from dataclasses import asdict
 from enum import Enum
 from automation_tools.jira import JiraAccessor
@@ -65,6 +65,8 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
 
     def __init__(self, config: Config, project_manager: ProjectManager, jira: JiraAccessor):
         super().__init__(config, project_manager, jira)
+        assert config.job_status_check_rule is not None, (
+            "CommitMessageCheckRule requires the \"job_status_check_rule\" configuration section")
         job_status_check_configuration = config.job_status_check_rule.open_source
         approve_ruleset = job_status_check_configuration.approve_ruleset
         checker = getattr(approve_rule_helpers, approve_ruleset.relevance_checker)
@@ -133,7 +135,8 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
             return
 
         for error in errors.new_errors:
-            self._create_commit_message_discussion(mr_manager, error)
+            self._create_commit_message_discussion(
+                mr_manager, cast(CommitMessageError, error))
 
     def _create_commit_message_discussion(
             self, mr_manager: MergeRequestManager, error: CommitMessageError):

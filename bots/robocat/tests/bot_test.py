@@ -339,7 +339,7 @@ class TestBot:
         def mock_refresh(mr_self):
             mr_self._gitlab_mr.detailed_merge_status = "need_rebase"
 
-        mr_module.MergeRequest.refresh = mock_refresh
+        setattr(mr_module.MergeRequest, "refresh", mock_refresh)
         try:
             bot.handle(mr_manager)
             assert mr.state != "merged", \

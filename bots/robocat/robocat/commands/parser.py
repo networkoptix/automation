@@ -1,6 +1,5 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from typing import List
 
 from robocat.commands.commands import (
     BaseCommand,
@@ -11,11 +10,11 @@ from robocat.commands.commands import (
     UnknownCommand)
 
 
-def command_classes() -> List[BaseCommand]:
+def command_classes() -> list[type[BaseCommand]]:
     return [ProcessCommand, RunPipelineCommand, FollowUpCommand, DraftFollowUpCommand]
 
 
-def create_command_from_text(username: str, text: str) -> BaseCommand:
+def create_command_from_text(username: str, text: str) -> BaseCommand | None:
     tokens = text.partition('\n')[0].split()
     if len(tokens) < 2 or tokens[0] != f'@{username}':
         return None

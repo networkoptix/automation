@@ -3,7 +3,7 @@
 from dataclasses import asdict, dataclass, field
 import enum
 import time
-from typing import Optional, TypedDict, Union
+from typing import NotRequired, TypedDict, Union
 
 
 class GitlabEventType(enum.Enum):
@@ -14,7 +14,7 @@ class GitlabEventType(enum.Enum):
 
 
 class MrPreviousData(TypedDict):
-    state: str
+    state: str | None
 
 
 class GitlabMrRelatedEventData(TypedDict):
@@ -23,8 +23,9 @@ class GitlabMrRelatedEventData(TypedDict):
 
 
 class GitlabMrEventData(GitlabMrRelatedEventData):
-    mr_previous_data: Optional[MrPreviousData]
-    code_changed: Optional[bool]
+    # Omitted by the synthetic events the startup scan enqueues.
+    mr_previous_data: NotRequired[MrPreviousData | None]
+    code_changed: NotRequired[bool | None]
 
 
 class GitlabPipelineEventData(GitlabMrRelatedEventData):

@@ -1,5 +1,6 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 import logging
@@ -18,7 +19,15 @@ from robocat.rule.helpers.stateful_checker_helpers import StoredCheckResults
 
 logger = logging.getLogger(__name__)
 
-ProjectIssueBranchInfo = dict[str, dict[str, GitlabBranchDescriptor]]
+
+@dataclass
+class IssueBranchInfo:
+    key: str
+    branches: set[GitlabBranchDescriptor]
+    fixVersions: list[str]
+
+
+ProjectIssueBranchInfo = dict[str, IssueBranchInfo]
 
 
 class WorkflowStoredCheckResults(StoredCheckResults):
@@ -249,15 +258,15 @@ class WorkflowCheckRule(BaseRule):
 
         first_found_issue_data = jira_issue_branches_by_projects.setdefault(
             issue.project,
-            {"key": str(issue), "branches": branches, "fixVersions": issue.fixVersions})
+            IssueBranchInfo(key=str(issue), branches=branches, fixVersions=issue.fixVersions))
 
         # Check that all the Issues belonging to one project have the same "fixVersions".
-        if first_found_issue_data["branches"] != branches:
+        if first_found_issue_data.branches != branches:
             parameters = {
                 "current_issue_key": str(issue),
-                "first_found_issue_key": first_found_issue_data['key'],
+                "first_found_issue_key": first_found_issue_data.key,
                 "current_issue_versions": issue.fixVersions,
-                "first_found_issue_versions": first_found_issue_data['fixVersions'],
+                "first_found_issue_versions": first_found_issue_data.fixVersions,
             }
             result.append(
                 Message(id=MessageId.WorkflowInconsistentFixVersions, params=parameters))
@@ -271,19 +280,19 @@ class WorkflowCheckRule(BaseRule):
             jira_issue_branches_by_projects: ProjectIssueBranchInfo) -> list[Message]:
         result = []
 
-        first_found_issue_data = jira_issue_branches_by_projects.get(issue.project, {})
+        first_found_issue_data = jira_issue_branches_by_projects[issue.project]
 
         # Check that the target branch corresponds to one of the versions from "fixVersions" field
         # once for every Project. If no "fixVersions" are set, the check is skipped.
         target_branch_description = GitlabBranchDescriptor(
             branch_name=mr_manager.data.target_branch, project_path=self.project_manager.data.path)
         if (bool(issue.fixVersions)
-                and first_found_issue_data["key"] == str(issue)
-                and target_branch_description not in first_found_issue_data["branches"]):
+                and first_found_issue_data.key == str(issue)
+                and target_branch_description not in first_found_issue_data.branches):
             logger.debug(
                 f"Target branch is {mr_manager.data.target_branch!r}, branches extracted from "
-                f"fixVerions are {first_found_issue_data['branches']!r}, fixVersions are "
-                f"{first_found_issue_data['fixVersions']!r}")
+                f"fixVerions are {first_found_issue_data.branches!r}, fixVersions are "
+                f"{first_found_issue_data.fixVersions!r}")
             parameters = {"issue_key": str(issue), "target_branch": mr_manager.data.target_branch}
             result.append(
                 Message(id=MessageId.WorkflowBadTargetBranch, params=parameters))

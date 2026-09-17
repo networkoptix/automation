@@ -10,6 +10,8 @@ from git import GitCommandError
 from gitlab import GitlabGetError
 
 import automation_tools
+import automation_tools.bot_info
+import robocat.gitlab
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.merge_request import MergeRequest
 from robocat.merge_request_manager import MergeRequestManager, MergeRequestData

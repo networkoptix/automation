@@ -80,7 +80,7 @@ class CheckChangesMixin(metaclass=ABCMeta):
     def _do_error_check(
             self,
             mr_manager: MergeRequestManager,
-            check_results_class: StoredCheckResults) -> ErrorCheckResult:
+            check_results_class: type[StoredCheckResults]) -> ErrorCheckResult:
         old_errors_info = check_results_class(mr_manager)
         old_errors = set()
         for errors in old_errors_info.get_errors().values():
@@ -98,11 +98,8 @@ class CheckChangesMixin(metaclass=ABCMeta):
         return ErrorCheckResult(old_errors=old_errors, current_errors=current_errors)
 
     @abstractmethod
-    def _find_errors(
-            self,
-            old_errors_info: StoredCheckResults,
-            mr_manager: MergeRequestManager) -> tuple[bool, set[CheckError]]:
-        return (False, {})
+    def _find_errors(self, mr_manager: MergeRequestManager) -> set[CheckError]:
+        ...
 
     @staticmethod
     def _is_diff_complete(mr_manager) -> bool:

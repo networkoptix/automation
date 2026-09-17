@@ -19,7 +19,7 @@ def create_follow_up_merge_requests(
         mr_manager: MergeRequestManager,
         set_draft_flag: bool = False,
         approve_by_robocat: bool = False,
-        default_branch_project_mapping: dict[str, str] = None):
+        default_branch_project_mapping: dict[str, str] | None = None):
     original_target_branch = mr_manager.data.target_branch
     created_follow_up_branches = set()
     for issue in jira.get_issues(mr_manager.data.issue_keys):
@@ -44,7 +44,8 @@ def create_follow_up_merge_requests(
                 if target_branch.project_path is None:
                     target_branch = GitlabBranchDescriptor(
                         branch_name=target_branch.branch_name,
-                        project_path=default_branch_project_mapping.get(issue.project, 'UNKNOWN'))
+                        project_path=(default_branch_project_mapping or {}).get(
+                            issue.project, 'UNKNOWN'))
 
                 if _create_follow_up_merge_request_for_branch(
                         mr_manager=mr_manager,

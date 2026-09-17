@@ -8,7 +8,7 @@ import signal
 import sys
 import traceback
 import threading
-from typing import Awaitable, Callable
+from typing import Any, Callable, Coroutine, cast
 
 from gidgetlab.aiohttp import GitLabBot
 import graypy
@@ -30,7 +30,7 @@ robocat = GitLabBot('Robocat')
 mr_queue = queue.PriorityQueue()
 
 
-AsyncCallback = Callable[..., Awaitable[None]]
+AsyncCallback = Callable[..., Coroutine[Any, Any, None]]
 
 
 MR_STATE_ID_TO_STATE_NAME = {
@@ -42,7 +42,8 @@ MR_STATE_ID_TO_STATE_NAME = {
 
 
 def add_event_hook(
-        event_type: str, object_key: str = None) -> Callable[[AsyncCallback], AsyncCallback]:
+        event_type: str,
+        object_key: str | None = None) -> Callable[[AsyncCallback], AsyncCallback]:
     def decorator(func: AsyncCallback) -> AsyncCallback:
         async def event_processor(event, *_):
             try:
@@ -60,7 +61,8 @@ def add_event_hook(
             except Exception as e:
                 logger.error(f"Crashed while processing {event_type} event: {e!r}")
 
-        return robocat.router.register(f"{event_type} Hook")(event_processor)
+        return cast(
+            AsyncCallback, robocat.router.register(f"{event_type} Hook")(event_processor))
 
     return decorator
 
@@ -150,9 +152,10 @@ async def job_event(event):
 class ServiceNameFilter(logging.Filter):
     @staticmethod
     def filter(record: logging.LogRecord):
-        record.service_name = "Workflow Robocat"
+        service_name = "Workflow Robocat"
         if repo_name := os.getenv("BOT_GIT_REPO"):
-            record.service_name += f" ({repo_name})"
+            service_name += f" ({repo_name})"
+        setattr(record, "service_name", service_name)
         return True
 
 

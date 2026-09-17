@@ -8,6 +8,7 @@ import re
 from typing import List, Dict, Optional
 
 import gitlab
+import gitlab.exceptions
 
 logger = logging.getLogger(__name__)
 

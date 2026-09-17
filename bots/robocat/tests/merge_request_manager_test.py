@@ -4,9 +4,11 @@ import pytest
 
 from automation_tools.tests.gitlab_constants import OPEN_SOURCE_APPROVER_COMMON
 from automation_tools.mr_data_structures import ApprovalRequirements
+import automation_tools.bot_info
 from tests.fixtures import *
 from robocat.note import MessageId
 import robocat.comments
+import robocat.commands.parser
 
 
 class TestMergeRequestManager:

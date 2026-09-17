@@ -8,6 +8,7 @@ import re
 from gitlab.exceptions import GitlabError, GitlabHttpError
 from gitlab.v4.objects import ProjectMergeRequestDiff
 import gitlab
+import gitlab.exceptions
 
 from automation_tools.mr_data_structures import ApprovalsInfo
 from robocat.award_emoji_manager import AwardEmojiManager
@@ -229,7 +230,10 @@ class MergeRequest:
         return MergeResult.MERGED
 
     def create_discussion(
-            self, body: str, position: dict = None, autoresolve: bool = False) -> bool:
+            self,
+            body: str,
+            position: dict | None = None,
+            autoresolve: bool = False) -> bool:
         logger.debug(f'{self}: Creating discussion at {position}. Message: "{body}"')
 
         try:
@@ -249,12 +253,14 @@ class MergeRequest:
                 position is not None and "new_line" in position and "new_path" in position)
             if is_new_position_in_params and e.response_code == 500:
                 # Most likely the discussion is created, so log the error and return True.
+                assert position is not None
                 logger.info(
                     f"{self}: Internal gitlab error while creating a discussion at line number "
                     f"{position['new_line']} for file {position['new_path']}: {e}.")
                 return True
 
             if is_new_position_in_params:
+                assert position is not None
                 logger.info(
                     f"{self}: Cannot create a discussion at line number "
                     f"{position['new_line']} for file {position['new_path']}: {e}.")

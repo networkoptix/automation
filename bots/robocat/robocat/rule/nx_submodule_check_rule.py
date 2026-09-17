@@ -56,6 +56,8 @@ class NxSubmoduleCheckRule(CheckChangesMixin, BaseRule):
 
     def __init__(self, config: Config, project_manager: ProjectManager, jira: JiraAccessor):
         super().__init__(config, project_manager, jira)
+        assert config.nx_submodule_check_rule is not None, (
+            "NxSubmoduleCheckRule requires the \"nx_submodule_check_rule\" configuration section")
         self._submodule_dirs = config.nx_submodule_check_rule.nx_submodule_dirs
 
     def _execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:

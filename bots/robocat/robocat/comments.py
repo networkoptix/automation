@@ -1,7 +1,7 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 from automation_tools.bot_info import revision as robocat_revision
 from robocat.award_emoji_manager import AwardEmojiManager
@@ -11,7 +11,7 @@ from robocat.note import MessageId
 @dataclass(frozen=True)
 class Message:
     id: MessageId
-    params: Optional[dict[str, str]] = None
+    params: dict[str, Any] | None = None
 
     @property
     def text(self) -> str:

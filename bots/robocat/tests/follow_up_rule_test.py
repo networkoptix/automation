@@ -679,7 +679,7 @@ class TestFollowUpRule:
 
         # Set follow-up draft mode.
         payload = GitlabCommentEventData(
-            mr_id=mr.iid, added_comment=f"@{BOT_USERNAME} draft-follow-up")
+            mr_id=mr.iid, mr_state=mr.state, added_comment=f"@{BOT_USERNAME} draft-follow-up")
         event_data = GitlabEventData(
             payload=payload, event_type=GitlabEventType.comment)
         bot.process_event(event_data)

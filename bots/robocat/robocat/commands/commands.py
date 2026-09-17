@@ -1,7 +1,7 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+from collections.abc import Iterable
 import logging
-from typing import Set
 
 from automation_tools.jira import JiraAccessor
 from robocat.config import Config
@@ -16,6 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 class BaseCommand:
+    # Set by the `robocat_command` class decorator.
+    verb: str
+    verb_aliases: set[str]
+    should_handle_mr_after_run: bool
+    _confirmation_message_id: MessageId
+
     def __init__(self, *args):
         self.command = args[0]
         logger.debug(f'Preparing command "{self.verb}" with parameters {args!r}')
@@ -35,9 +41,9 @@ class BaseCommand:
 def robocat_command(
         verb: str,
         confirmation_message_id: MessageId,
-        aliases: Set[str] = None,
+        aliases: Iterable[str] | None = None,
         process_mr: bool = False):
-    def command_class_decorator(cls: BaseCommand) -> BaseCommand:
+    def command_class_decorator(cls: type[BaseCommand]) -> type[BaseCommand]:
         cls.verb = verb
         cls.verb_aliases = {verb}
         if aliases:

@@ -17,18 +17,18 @@ class JiraConfig(BaseModel):
     timeout: int = Field(
         description="Timeout (in seconds) for API requests.", default=10)
     retries: int = Field(description="Number of retries for API requests.", default=3)
-    project_keys: Optional[list[str]] = Field(
+    project_keys: list[str] = Field(
         description=(
             "List of JIRA project keys to work with. Deprecated - use project_mapping instead."),
         default=[])
-    project_mapping: Optional[dict[str, str]] = Field(
+    project_mapping: dict[str, str] = Field(
         description="Default GitLab Projects for supported Jira Projects.", default={})
 
 
 class RepoConfig(BaseModel):
     path: str = Field(description="Path where the repository should be cloned to.")
     url: str = Field(description="Git URL to the repository.")
-    need_code_owner_approval: Optional[bool] = Field(
+    need_code_owner_approval: bool = Field(
         description="If code owner approval is needed for merging.", default=False)
 
 

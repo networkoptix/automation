@@ -1,11 +1,12 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from enum import Enum, auto
 import logging
 import re
 from typing import Any, Optional
 import yaml
+import yaml.scanner
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,11 @@ class NoteDetails:
     _DATA_KEY = "Data"
     _DETAILS_RE = re.compile(r"<details><pre>\s*(?P<details>.+?)\s*</pre></details>", re.DOTALL)
 
-    def __init__(self, message_id: MessageId = None, sha: str = None, data: dict[str, Any] = None):
+    def __init__(
+            self,
+            message_id: MessageId | None = None,
+            sha: str | None = None,
+            data: dict[str, Any] | None = None):
         self.message_id = message_id
         self.sha = sha
         self.data = data
@@ -169,7 +174,7 @@ class Note:
 
 
 def find_first_comment(
-        notes: list[Note],
+        notes: Iterable[Note],
         message_id: MessageId,
         condition: Optional[Callable[[Note], bool]] = None,
         crash_if_not_found: bool = False) -> Optional[Note]:

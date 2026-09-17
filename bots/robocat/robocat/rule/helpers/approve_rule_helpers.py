@@ -127,7 +127,7 @@ def is_file_open_sourced(_: ApproveRule, item: dict[str, str]) -> bool:
 
 
 def does_file_diff_contain_apidoc_changes(_: ApproveRule, item: dict[str, str]) -> bool:
-    return re.search("^\+.+%apidoc", item["diff"], re.MULTILINE)  # noqa W605
+    return bool(re.search(r"^\+.+%apidoc", item["diff"], re.MULTILINE))
 
 
 def match_name_pattern(rule: ApproveRule, item: dict[str, str]) -> bool:

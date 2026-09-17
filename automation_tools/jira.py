@@ -455,7 +455,7 @@ class JiraAccessor:
         except jira.exceptions.JIRAError as error:
             raise JiraError(f"Unable to obtain issue {key}", error) from error
 
-    def get_issues(self, keys: set[str]) -> list[JiraIssue]:
+    def get_issues(self, keys: Iterable[str]) -> set[JiraIssue]:
         return {self.get_issue(k) for k in keys}
 
     @automation_tools.utils.cached(datetime.timedelta(minutes=10))
