@@ -82,6 +82,10 @@ def _create_follow_up_merge_request_for_branch(
         return False
 
     target_branch_name = target_branch.branch_name
+    if target_branch_name is None:
+        raise RuntimeError(
+            f"The target branch for the version {version!r} in Issue {issue} has no name.")
+
     if target_branch_name in (created_follow_up_branches | {original_target_branch}):
         return False
 
