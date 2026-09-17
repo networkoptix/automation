@@ -24,7 +24,7 @@ class NxSubmoduleConfig:
 
 class GetSubrepoError(RuntimeError):
     def __init__(self, error: CheckError):
-        self.__super__(str(CheckError))
+        super().__init__(str(error))
         self.check_error = error
 
 
