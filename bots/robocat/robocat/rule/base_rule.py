@@ -17,6 +17,14 @@ logger = logging.getLogger(__name__)
 
 # Emulate subclassing of non-empty Enum class.
 class RuleExecutionResultClass(Enum):
+    # Members are created by `create()`.
+    rule_not_implemented: "RuleExecutionResultClass"
+    merged: "RuleExecutionResultClass"
+    no_commits: "RuleExecutionResultClass"
+    work_in_progress: "RuleExecutionResultClass"
+    preliminary_check_passed: "RuleExecutionResultClass"
+    filtered_out: "RuleExecutionResultClass"
+
     @staticmethod
     def _common_values():
         return {
@@ -52,7 +60,7 @@ class BaseRule(metaclass=ABCMeta):
         self.project_manager = project_manager
         self.jira = jira
 
-    def execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
+    def execute(self, mr_manager: MergeRequestManager) -> RuleExecutionResultClass:
         time_before_s = time.time()
 
         # TODO: Get rid of ambiguity in the names of the config parameters. All should look like
@@ -87,7 +95,7 @@ class BaseRule(metaclass=ABCMeta):
         return result
 
     @abstractmethod
-    def _execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
+    def _execute(self, mr_manager: MergeRequestManager) -> RuleExecutionResultClass:
         """Checks merge request state and executes necessary actions.
 
         :param mr: MergeRequest object
@@ -95,7 +103,7 @@ class BaseRule(metaclass=ABCMeta):
         """
         return self.ExecutionResult.rule_not_implemented
 
-    def preliminary_check_result(self, mr_data: MergeRequestData) -> ExecutionResult:
+    def preliminary_check_result(self, mr_data: MergeRequestData) -> RuleExecutionResultClass:
         if mr_data.is_merged:
             return self.ExecutionResult.merged
 

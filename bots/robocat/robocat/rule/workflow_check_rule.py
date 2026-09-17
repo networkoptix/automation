@@ -50,6 +50,14 @@ class WorkflowStoredCheckResults(StoredCheckResults):
 
 
 class WorkflowCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
+    # Members are created by `create()`.
+    bad_project_list: "WorkflowCheckRuleExecutionResultClass"
+    rule_execution_successful: "WorkflowCheckRuleExecutionResultClass"
+    jira_issue_problems: "WorkflowCheckRuleExecutionResultClass"
+    heuristic_warnings: "WorkflowCheckRuleExecutionResultClass"
+    inconsistent_descriptions: "WorkflowCheckRuleExecutionResultClass"
+    not_applicable: "WorkflowCheckRuleExecutionResultClass"
+
     def __bool__(self):
         return self in [
             self.rule_execution_successful,
@@ -81,7 +89,7 @@ class WorkflowCheckRule(BaseRule):
             if self.config.jira.project_mapping
             else (self.config.jira.project_keys or []))
 
-    def _execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
+    def _execute(self, mr_manager: MergeRequestManager) -> RuleExecutionResultClass:
         logger.debug(f"Executing Jira Issue check rule with {mr_manager}...")
 
         def _project_from_key(issue_key: str):

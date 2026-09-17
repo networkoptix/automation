@@ -2,6 +2,7 @@
 
 from collections.abc import Iterable
 from enum import Enum
+from typing import Any
 import logging
 
 from automation_tools.jira import (
@@ -18,6 +19,11 @@ logger = logging.getLogger(__name__)
 
 
 class PostProcessingRuleExecutionResultClass(RuleExecutionResultClass, Enum):
+    # Members are created by `create()`.
+    rule_execution_successful: "PostProcessingRuleExecutionResultClass"
+    not_eligible: "PostProcessingRuleExecutionResultClass"
+    rule_execution_failed: "PostProcessingRuleExecutionResultClass"
+
     def __bool__(self):
         return self in [self.rule_execution_successful, self.filtered_out]
 
@@ -40,7 +46,7 @@ class PostProcessingRule(BaseRule):
         self._default_branch_project_mapping = config.jira.project_mapping or {}
         self._project_manager = project_manager
 
-    def _execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
+    def _execute(self, mr_manager: MergeRequestManager) -> RuleExecutionResultClass:
         logger.debug(f"Executing post-processing rule with {mr_manager}...")
 
         mr_data = mr_manager.data

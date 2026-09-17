@@ -24,6 +24,12 @@ logger = logging.getLogger(__name__)
 
 
 class JobStatusCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
+    # Members are created by `create()`.
+    merge_authorized: "JobStatusCheckRuleExecutionResultClass"
+    manual_check_mandatory: "JobStatusCheckRuleExecutionResultClass"
+    checks_passed: "JobStatusCheckRuleExecutionResultClass"
+    in_progress: "JobStatusCheckRuleExecutionResultClass"
+
     def __bool__(self):
         return self in [
             self.merge_authorized,
@@ -129,7 +135,7 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
                 deleted_files_affect_result=deleted_files_affect_result,
                 ruleset=ruleset)
 
-    def _execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
+    def _execute(self, mr_manager: MergeRequestManager) -> RuleExecutionResultClass:
         logger.debug(f"Executing job status check rule on {mr_manager}...")
 
         mr_data = mr_manager.data

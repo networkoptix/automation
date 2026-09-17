@@ -31,6 +31,12 @@ class CommitMessageError(CheckError):
 
 
 class CommitMessageCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
+    # Members are created by `create()`.
+    merge_authorized: "CommitMessageCheckRuleExecutionResultClass"
+    not_applicable: "CommitMessageCheckRuleExecutionResultClass"
+    commit_message_not_ok: "CommitMessageCheckRuleExecutionResultClass"
+    commit_message_is_ok: "CommitMessageCheckRuleExecutionResultClass"
+
     def __bool__(self):
         return self in [
             self.not_applicable,
@@ -79,7 +85,7 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
         logger.info(
             f"Commit message check rule created. Approvers list is {self._approve_rules!r}")
 
-    def _execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
+    def _execute(self, mr_manager: MergeRequestManager) -> RuleExecutionResultClass:
         logger.debug(f"Executing check commit message rule on {mr_manager}...")
 
         mr_data = mr_manager.data

@@ -16,6 +16,17 @@ logger = logging.getLogger(__name__)
 
 
 class EssentialRuleExecutionResultClass(RuleExecutionResultClass, Enum):
+    # Members are created by `create()`.
+    essential_rule_ok: "EssentialRuleExecutionResultClass"
+    has_conflicts: "EssentialRuleExecutionResultClass"
+    not_approved: "EssentialRuleExecutionResultClass"
+    pipeline_started: "EssentialRuleExecutionResultClass"
+    pipeline_running: "EssentialRuleExecutionResultClass"
+    pipeline_failed: "EssentialRuleExecutionResultClass"
+    no_suitable_pipeline: "EssentialRuleExecutionResultClass"
+    rebase_in_progress: "EssentialRuleExecutionResultClass"
+    unresolved_threads: "EssentialRuleExecutionResultClass"
+
     def __bool__(self):
         return self in [self.essential_rule_ok, self.merged, self.filtered_out]
 
@@ -36,7 +47,7 @@ class EssentialRule(BaseRule):
             "unresolved_threads": "Unresolved threads found",
         })
 
-    def _execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
+    def _execute(self, mr_manager: MergeRequestManager) -> RuleExecutionResultClass:
         logger.debug(f"Executing essential rule with {mr_manager}...")
 
         mr_data = mr_manager.data

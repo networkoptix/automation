@@ -25,6 +25,10 @@ logger = logging.getLogger(__name__)
 
 
 class NxSubmoduleRuleExecutionResultClass(RuleExecutionResultClass, Enum):
+    # Members are created by `create()`.
+    nx_submodule_check_rule_ok: "NxSubmoduleRuleExecutionResultClass"
+    invalid_changes: "NxSubmoduleRuleExecutionResultClass"
+
     def __bool__(self):
         return self in [self.nx_submodule_check_rule_ok, self.filtered_out]
 
@@ -60,7 +64,7 @@ class NxSubmoduleCheckRule(CheckChangesMixin, BaseRule):
             "NxSubmoduleCheckRule requires the \"nx_submodule_check_rule\" configuration section")
         self._submodule_dirs = config.nx_submodule_check_rule.nx_submodule_dirs
 
-    def _execute(self, mr_manager: MergeRequestManager) -> ExecutionResult:
+    def _execute(self, mr_manager: MergeRequestManager) -> RuleExecutionResultClass:
         logger.debug(f"Executing Nx Submodule(s) check on {mr_manager}...")
 
         mr_data = mr_manager.data
