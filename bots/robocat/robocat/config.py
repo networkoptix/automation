@@ -1,12 +1,11 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
 # Refer to the Pydantic documentation for information about how to extend and modify the
 # configuration schema: https://docs.pydantic.dev/2.4/.
-# Note that certain fields may not exist in all repo configurations, so use Optional[] where
+# Note that certain fields may not exist in all repo configurations, so use "| None" where
 # appropriate.
 
 
@@ -50,7 +49,7 @@ class ApproveRulesetEntryConfig(BaseModel):
 
 
 class CommonRuleConfig(BaseModel):
-    excluded_issue_title_patterns: Optional[list[str]] = Field(
+    excluded_issue_title_patterns: list[str] | None = Field(
         description="List of regular expressions that are checked against the MR title. When "
         "at least one expression is matching, the rule is skipped.",
         default=None)
@@ -59,9 +58,9 @@ class CommonRuleConfig(BaseModel):
 class JobStatusCheckRuleConfig(CommonRuleConfig):
     open_source: ApproveRulesetEntryConfig = Field(
         description="The approval ruleset for open source.")
-    apidoc: Optional[ApproveRulesetEntryConfig] = Field(
+    apidoc: ApproveRulesetEntryConfig | None = Field(
         description="The approval ruleset for apidoc changes.", default=None)
-    code_owner_approval: Optional[ApproveRulesetEntryConfig] = Field(
+    code_owner_approval: ApproveRulesetEntryConfig | None = Field(
         description="The approval ruleset for checking changes by code owners.", default=None)
 
 
@@ -86,7 +85,7 @@ class NxSubmoduleCheckRuleConfig(CommonRuleConfig):
 
 
 class PipelineConfig(BaseModel):
-    autorun_stage: Optional[str] = Field(
+    autorun_stage: str | None = Field(
         description="Name of the stage that should trigger the pipeline to run automatically.",
         default=None)
 
@@ -110,11 +109,11 @@ class CommitMessageRuleConfig(CommonRuleConfig):
 class Config(BaseModel):
     jira: JiraConfig
     repo: RepoConfig
-    pipeline: Optional[PipelineConfig] = None
-    enabled_rules: Optional[list[str]] = None
-    job_status_check_rule: Optional[JobStatusCheckRuleConfig] = None
-    nx_submodule_check_rule: Optional[NxSubmoduleCheckRuleConfig] = None
-    follow_up_rule: Optional[FollowUpRuleConfig] = None
-    essential_check_rule: Optional[EssentialRuleConfig] = None
-    workflow_check_rule: Optional[WorkflowCheckRuleConfig] = None
-    commit_message_check_rule: Optional[CommitMessageRuleConfig] = None
+    pipeline: PipelineConfig | None = None
+    enabled_rules: list[str] | None = None
+    job_status_check_rule: JobStatusCheckRuleConfig | None = None
+    nx_submodule_check_rule: NxSubmoduleCheckRuleConfig | None = None
+    follow_up_rule: FollowUpRuleConfig | None = None
+    essential_check_rule: EssentialRuleConfig | None = None
+    workflow_check_rule: WorkflowCheckRuleConfig | None = None
+    commit_message_check_rule: CommitMessageRuleConfig | None = None

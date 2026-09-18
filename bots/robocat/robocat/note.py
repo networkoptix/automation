@@ -4,7 +4,7 @@ from collections.abc import Callable, Iterable
 from enum import Enum, auto
 import logging
 import re
-from typing import Any, Optional
+from typing import Any
 import yaml
 import yaml.scanner
 
@@ -176,8 +176,8 @@ class Note:
 def find_first_comment(
         notes: Iterable[Note],
         message_id: MessageId,
-        condition: Optional[Callable[[Note], bool]] = None,
-        crash_if_not_found: bool = False) -> Optional[Note]:
+        condition: Callable[[Note], bool] | None = None,
+        crash_if_not_found: bool = False) -> Note | None:
     if condition is None:
         condition = lambda _: True
     try:
@@ -192,8 +192,8 @@ def find_first_comment(
 def find_last_comment(
         notes: list[Note],
         message_id: MessageId,
-        condition: Optional[Callable[[Note], bool]] = None,
-        crash_if_not_found: bool = False) -> Optional[Note]:
+        condition: Callable[[Note], bool] | None = None,
+        crash_if_not_found: bool = False) -> Note | None:
     return find_first_comment(
         notes=reversed(notes),
         message_id=message_id,

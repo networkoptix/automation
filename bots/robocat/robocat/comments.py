@@ -1,7 +1,7 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from automation_tools.bot_info import revision as robocat_revision
 from robocat.award_emoji_manager import AwardEmojiManager
@@ -29,7 +29,7 @@ class Message:
     def emoji(self) -> str:
         return AwardEmojiManager.EMOJI_BY_MESSAGE_ID.get(self.id, "")
 
-    def format_body(self, data_text: Optional[str] = None) -> str:
+    def format_body(self, data_text: str | None = None) -> str:
         return format_body(
             title=self.title, message=self.text, emoji=self.emoji) + (data_text or "")
 

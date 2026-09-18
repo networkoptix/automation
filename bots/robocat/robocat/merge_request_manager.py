@@ -1,7 +1,7 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 from functools import lru_cache
-from typing import Any, Optional
+from typing import Any
 import dataclasses
 import logging
 import re
@@ -119,7 +119,7 @@ class MergeRequestManager:
             issue_keys=issue_keys
         )
 
-    def get_last_pipeline_status(self) -> Optional[PipelineStatus]:
+    def get_last_pipeline_status(self) -> PipelineStatus | None:
         if pipeline := self._get_last_pipeline():
             return pipeline.status
         return None
@@ -161,7 +161,7 @@ class MergeRequestManager:
         return result
 
     @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
-    def _approvals_left(self) -> Optional[int]:
+    def _approvals_left(self) -> int | None:
         """Returns either the number of approvals required or None. The latter means that the data
         returned by the GitLab API is inconsistent - the value of the approvals_left field is equal
         to zero, but the value of the boolean field `approved` is False. This situation sometimes
@@ -223,7 +223,7 @@ class MergeRequestManager:
     def add_comment(
             self,
             message: robocat.comments.Message,
-            message_data: Optional[dict[str, Any]] = None):
+            message_data: dict[str, Any] | None = None):
         logger.debug(f"{self}: Adding comment with title: {message.title}")
         data_text = str(NoteDetails(
             message_id=message.id, sha=self._mr.sha, data=(message_data or {})))
@@ -267,13 +267,13 @@ class MergeRequestManager:
         logger.debug(f"{self}: Starting the pipeline")
         return self._run_pipeline(RunPipelineReason.no_pipelines_before)
 
-    def _get_last_pipeline(self, include_skipped=False) -> Optional[Pipeline]:
+    def _get_last_pipeline(self, include_skipped=False) -> Pipeline | None:
         status_set = frozenset(
             s for s in PipelineStatus if include_skipped or s != PipelineStatus.skipped)
         return self._get_last_pipeline_by_status(status_set)
 
     @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
-    def _get_last_pipeline_by_status(self, status_set: set[PipelineStatus]) -> Optional[Pipeline]:
+    def _get_last_pipeline_by_status(self, status_set: set[PipelineStatus]) -> Pipeline | None:
         last_pipeline_location, last_pipeline_time = None, ''
         for p in self._mr.raw_pipelines_list():
             if Pipeline.translate_status(p["status"]) not in status_set:
@@ -403,7 +403,7 @@ class MergeRequestManager:
 
         return True
 
-    def _get_project(self, project_id: Optional[int] = None, lazy: bool = True):
+    def _get_project(self, project_id: int | None = None, lazy: bool = True):
         if project_id is None:
             return self._gitlab.get_project(self._mr.project_id, lazy)
         return self._gitlab.get_project(project_id, lazy)
@@ -545,10 +545,10 @@ class MergeRequestManager:
             title: str,
             message: str,
             emoji: str,
-            message_id: Optional[MessageId] = None,
-            message_data: Optional[dict[str, Any]] = None,
-            file: Optional[str] = None,
-            line: Optional[int] = None,
+            message_id: MessageId | None = None,
+            message_data: dict[str, Any] | None = None,
+            file: str | None = None,
+            line: int | None = None,
             autoresolve: bool = False) -> bool:
         if file is not None and line is not None:
             latest_diff = self._mr.latest_diff()
@@ -581,7 +581,7 @@ class MergeRequestManager:
 
         return False
 
-    def get_original_mr_id(self) -> Optional[int]:
+    def get_original_mr_id(self) -> int | None:
         """Returns the original MR ID if this MR is a follow-up MR, otherwise returns None."""
         if not self.is_follow_up():
             return None
@@ -706,7 +706,7 @@ class MergeRequestManager:
             id=MessageId.FollowUpIssueNotMovedToQA, params={"issue_key": issue_key})
         self.add_comment(message)
 
-    def last_pipeline_check_job_status(self, job_name: str) -> Optional[JobStatus]:
+    def last_pipeline_check_job_status(self, job_name: str) -> JobStatus | None:
         if pipeline := self._get_last_pipeline(include_skipped=True):
             if job := pipeline.get_job_by_name(job_name):
                 return job.status

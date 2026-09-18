@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 import logging
 import re
 
@@ -312,7 +311,7 @@ class WorkflowCheckRule(BaseRule):
             self._jira_issue_cache[key] = self.jira.get_issue(key)
         return self._jira_issue_cache[key]
 
-    def _get_mr_description_error(self, mr_manager: MergeRequestManager) -> Optional[Message]:
+    def _get_mr_description_error(self, mr_manager: MergeRequestManager) -> Message | None:
         mr_data = mr_manager.data
         commits_data = mr_manager.get_commits_data()
 

@@ -3,7 +3,7 @@
 from dataclasses import asdict, dataclass, field
 import enum
 import time
-from typing import NotRequired, TypedDict, Union
+from typing import NotRequired, TypedDict
 
 
 class GitlabEventType(enum.Enum):
@@ -49,7 +49,7 @@ class GitlabJobEventData(TypedDict):
 
 @dataclass(order=True)
 class GitlabEventData:
-    payload: Union[GitlabMrRelatedEventData, GitlabJobEventData] = field(compare=False)
+    payload: GitlabMrRelatedEventData | GitlabJobEventData = field(compare=False)
     event_type: GitlabEventType = field(compare=False)
     # Remember the time when the event was received - used for profiling.
     receive_time: float = field(compare=False, default_factory=time.time)

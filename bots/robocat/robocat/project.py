@@ -5,7 +5,7 @@ from functools import lru_cache
 import json
 import logging
 import re
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 import gitlab
 import gitlab.exceptions
@@ -121,7 +121,7 @@ class Project:
             description: str,
             squash: bool,
             assignee_ids: List[int],
-            target_project_id: Optional[int] = None) -> int:
+            target_project_id: int | None = None) -> int:
 
         target_project_id = self.id if target_project_id is None else target_project_id
 

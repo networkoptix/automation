@@ -6,7 +6,6 @@ import re
 import sys
 from dataclasses import dataclass
 from functools import cache, singledispatchmethod
-from typing import Optional
 
 from gitlab import GitlabJobPlayError
 from gitlab.v4.objects import ProjectPipelineJob
@@ -142,7 +141,7 @@ class Pipeline:
         return self._gitlab_pipeline.id
 
     @property
-    def mr_id(self) -> Optional[int]:
+    def mr_id(self) -> int | None:
         ref_match = self._MERGE_REQUEST_REF_RE.match(self._gitlab_pipeline.ref)
         if ref_match:
             return int(ref_match[1])
@@ -217,7 +216,7 @@ class Pipeline:
 
         return result
 
-    def get_job_by_name(self, name: str) -> Optional[Job]:
+    def get_job_by_name(self, name: str) -> Job | None:
         return next(iter(j for j in self.jobs() if j.name == name), None)
 
     def play_job(self, job: Job):

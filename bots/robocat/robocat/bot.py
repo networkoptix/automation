@@ -8,7 +8,7 @@ import threading
 import time
 from datetime import timedelta, datetime
 from pathlib import Path
-from typing import Optional, cast
+from typing import cast
 
 import git
 import gitlab
@@ -312,7 +312,7 @@ class Bot(threading.Thread):
             create_exception_comment(event_data=event_data, exception=e, mr_manager=mr_manager)
 
     def _create_mr_manager_by_event_data(
-            self, event_data: GitlabEventData) -> Optional[MergeRequestManager]:
+            self, event_data: GitlabEventData) -> MergeRequestManager | None:
         if event_data.event_type == GitlabEventType.job:
             job = Job(event_data.payload)
             pipeline = self._project_manager.get_pipeline(job.pipeline_location)
@@ -407,7 +407,7 @@ class Bot(threading.Thread):
             previous_mr_state=(payload.get("mr_previous_data") or {}).get("state") or "",
             mr_manager=mr_manager)
 
-    def get_merge_requests_manager(self, mr_id: Optional[int] = None):
+    def get_merge_requests_manager(self, mr_id: int | None = None):
         if mr_id:
             yield self._project_manager.get_merge_request_manager_by_id(mr_id)
             return
@@ -422,7 +422,7 @@ class Bot(threading.Thread):
             sleep_time = max(0, start_time + MR_POLL_RATE_S - time.time())
             time.sleep(sleep_time)
 
-    def run_poller(self, mr_id: Optional[int] = None):
+    def run_poller(self, mr_id: int | None = None):
         logger.info(
             f"Robocat revision {automation_tools.bot_info.revision()}. Started for project "
             f"[{self._project_manager.data.name}] in polling mode.")
@@ -451,7 +451,7 @@ class Bot(threading.Thread):
 
 def create_exception_comment(
         event_data: GitlabEventData,
-        mr_manager: Optional[MergeRequestManager],
+        mr_manager: MergeRequestManager | None,
         exception: Exception):
     stack_trace_repr, exception_info = automation_tools.utils.get_exception_info(exception)
     logger.warning(f"{exception_info}; Event: {event_data.as_string_dict()}\n{stack_trace_repr}")

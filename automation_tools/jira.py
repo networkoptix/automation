@@ -3,7 +3,6 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Optional
 import datetime
 import logging
 import re
@@ -36,8 +35,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class GitlabBranchDescriptor:
-    branch_name: Optional[str]
-    project_path: Optional[str] = None
+    branch_name: str | None
+    project_path: str | None = None
 
     def __str__(self):
         project_prefix = f"{self.project_path}:" if self.project_path else ""
@@ -93,11 +92,11 @@ class JiraIssue:
     }
 
     @classmethod
-    def _project_status_name(cls, key: str) -> Optional[str]:
+    def _project_status_name(cls, key: str) -> str | None:
         return cls._project_config["statuses"].get(key)
 
     @classmethod
-    def _project_transition_name(cls, key: str) -> Optional[str]:
+    def _project_transition_name(cls, key: str) -> str | None:
         return cls._project_config["transitions"].get(key)
 
     def __init__(
@@ -156,7 +155,7 @@ class JiraIssue:
         return mr_ids
 
     def _extract_mr_id_from_link(
-            self, link: jira.resources.RemoteLink, project_path: Optional[str] = None) -> int:
+            self, link: jira.resources.RemoteLink, project_path: str | None = None) -> int:
         link_match = self._MERGE_REQUEST_LINK_RE.search(link.object.url)
         if not link_match:
             return None
@@ -194,7 +193,7 @@ class JiraIssue:
 
         return result
 
-    def bot_comments(self, message_ids: Optional[Iterable] = None) -> list[JiraComment]:
+    def bot_comments(self, message_ids: Iterable | None = None) -> list[JiraComment]:
         result = []
         current_user = get_current_jira_user(self._jira)
         current_user_comment_texts = (
@@ -225,7 +224,7 @@ class JiraIssue:
         return {v.name: mapping.get(v.name, []) for v in (issue.fields.fixVersions or [])}
 
     @property
-    def status(self) -> Optional[str]:
+    def status(self) -> str | None:
         return next(
             (
                 standard_name
@@ -239,7 +238,7 @@ class JiraIssue:
         return self._raw_issue.fields.status.name
 
     @property
-    def resolution(self) -> Optional[str]:
+    def resolution(self) -> str | None:
         raw_issue = self._raw_issue
         return str(raw_issue.fields.resolution.name) if raw_issue.fields.resolution else None
 
@@ -378,7 +377,7 @@ class JiraIssue:
         self._raw_issue.update(fields={"labels": self._raw_issue.fields.labels})
 
     @property
-    def assignee(self) -> Optional[automation_tools.utils.User]:
+    def assignee(self) -> automation_tools.utils.User | None:
         assignee = self._raw_issue.fields.assignee
         if assignee is None:
             return None

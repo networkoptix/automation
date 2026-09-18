@@ -5,7 +5,7 @@ import logging
 from operator import is_
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Optional
+from typing import List
 
 import git
 from robocat.project_manager import ProjectManager
@@ -55,7 +55,7 @@ class NxSubmoduleChecker:
         self._nx_submodules_repo_dirs = {}
 
     def find_error(
-            self, file_name: str, is_executable: bool, is_deleted: bool) -> Optional[CheckError]:
+            self, file_name: str, is_executable: bool, is_deleted: bool) -> CheckError | None:
         nx_submodule_dir = self._get_nx_submodule_by_file_name(file_name)
         if not nx_submodule_dir:
             return None
@@ -82,12 +82,12 @@ class NxSubmoduleChecker:
             is_executable=is_executable,
             is_deleted=is_deleted)
 
-    def _get_nx_submodule_by_file_name(self, file_name: str) -> Optional[str]:
+    def _get_nx_submodule_by_file_name(self, file_name: str) -> str | None:
         nx_submodule_dirs = [d for d in self._submodule_dirs if file_name.startswith(f"{d}/")]
         return nx_submodule_dirs[0] if nx_submodule_dirs else None
 
     def _load_nx_submodule_config_returning_error(
-            self, nx_submodule_dir: str) -> Optional[CheckError]:
+            self, nx_submodule_dir: str) -> CheckError | None:
         if nx_submodule_dir in self._nx_submodule_configs:
             return None
 
@@ -112,7 +112,7 @@ class NxSubmoduleChecker:
 
         return None
 
-    def _load_subrepo_returning_error(self, nx_submodule_dir: str) -> Optional[CheckError]:
+    def _load_subrepo_returning_error(self, nx_submodule_dir: str) -> CheckError | None:
         nx_submodule_config = self._nx_submodule_configs[nx_submodule_dir]
         subrepo_dir = Path(self._nx_submodules_repo_dirs.setdefault(
             nx_submodule_dir,

@@ -1,7 +1,7 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 from enum import Enum, auto
-from typing import Any, Optional
+from typing import Any
 import logging
 import re
 
@@ -73,7 +73,7 @@ class MergeRequest:
                 result.append(note_copy)
         return sorted(result, key=lambda n: n["created_at"])
 
-    def note_data(self, note_id: int) -> Optional[dict[str, Any]]:
+    def note_data(self, note_id: int) -> dict[str, Any] | None:
         try:
             # TODO: Get rid of using _attrs - better to have an explicit list of the needed fields
             # - most likely the place for this list is in Note class.
