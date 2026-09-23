@@ -3,7 +3,10 @@
 from copy import deepcopy
 
 from automation_tools.tests.mocks.file import (
-    GOOD_README_RAW_DATA, BAD_README_RAW_DATA, BAD_CMAKELISTS_RAW_DATA)
+    BAD_CMAKELISTS_RAW_DATA,
+    BAD_README_RAW_DATA,
+    GOOD_README_RAW_DATA,
+)
 
 BOT_NAME = "Robo Cat"
 BOT_EMAIL = "robocat@foo.bar"

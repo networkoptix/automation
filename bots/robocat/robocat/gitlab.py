@@ -1,14 +1,15 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 from __future__ import annotations
+
 import datetime
 import logging
 
+import automation_tools.utils
 import gitlab
 
-import automation_tools.utils
-from robocat.pipeline import Pipeline, PipelineLocation
 import robocat.project
+from robocat.pipeline import Pipeline, PipelineLocation
 
 logger = logging.getLogger(__name__)
 

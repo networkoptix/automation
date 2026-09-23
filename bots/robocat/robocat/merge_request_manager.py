@@ -1,28 +1,33 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from functools import lru_cache
-from typing import Any
 import dataclasses
 import logging
 import re
 import time
+from functools import lru_cache
+from typing import Any
 
-from gitlab.exceptions import GitlabError, GitlabMRClosedError
-import git
-
-from automation_tools.mr_data_structures import ApprovalRequirements
-from robocat.action_reasons import WaitReason, CheckFailureReason
-from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.gitlab import Gitlab
-from robocat.merge_request import MergeRequest, MergeResult
-from robocat.note import find_first_comment, find_last_comment, MessageId, Note, NoteDetails
-from robocat.pipeline import (
-    Pipeline, PipelineLocation, PipelineStatus, RunPipelineReason, JobStatus)
-from robocat.project import MergeRequestDiffData
 import automation_tools.bot_info
 import automation_tools.git
 import automation_tools.utils
+import git
+from automation_tools.mr_data_structures import ApprovalRequirements
+from gitlab.exceptions import GitlabError, GitlabMRClosedError
+
 import robocat.comments
+from robocat.action_reasons import CheckFailureReason, WaitReason
+from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.gitlab import Gitlab
+from robocat.merge_request import MergeRequest, MergeResult
+from robocat.note import MessageId, Note, NoteDetails, find_first_comment, find_last_comment
+from robocat.pipeline import (
+    JobStatus,
+    Pipeline,
+    PipelineLocation,
+    PipelineStatus,
+    RunPipelineReason,
+)
+from robocat.project import MergeRequestDiffData
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +165,11 @@ class MergeRequestManager:
         logger.debug(f"{self}: Approval requirements check {'passed' if result else 'failed'}")
         return result
 
-    @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
+    # The cache belongs to the class rather than to the instance, so every object it has seen
+    # stays alive for the lifetime of the process. Suppressed rather than restructured here:
+    # changing the caching strategy is a behavioural change and needs its own change.
+    # Short term cache. New data is obtained for every bot "handle" call.
+    @lru_cache(maxsize=16)  # noqa: B019
     def _approvals_left(self) -> int | None:
         """Returns either the number of approvals required or None. The latter means that the data
         returned by the GitLab API is inconsistent - the value of the approvals_left field is equal
@@ -272,7 +281,8 @@ class MergeRequestManager:
             s for s in PipelineStatus if include_skipped or s != PipelineStatus.skipped)
         return self._get_last_pipeline_by_status(status_set)
 
-    @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
+    # Short term cache. New data is obtained for every bot "handle" call.
+    @lru_cache(maxsize=16)  # noqa: B019
     def _get_last_pipeline_by_status(self, status_set: set[PipelineStatus]) -> Pipeline | None:
         last_pipeline_location, last_pipeline_time = None, ''
         for p in self._mr.raw_pipelines_list():

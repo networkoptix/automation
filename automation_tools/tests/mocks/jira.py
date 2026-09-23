@@ -4,11 +4,17 @@ import os
 from typing import Optional
 
 import jira.exceptions
-
 from automation_tools.tests.gitlab_constants import DEFAULT_USER
 from automation_tools.tests.mocks.issue import JiraIssue
 from automation_tools.tests.mocks.resources import (
-    Version, RemoteLink, Status, IssueType, Comment, Resolution, User)
+    Comment,
+    IssueType,
+    RemoteLink,
+    Resolution,
+    Status,
+    User,
+    Version,
+)
 
 
 class Jira:
@@ -19,8 +25,8 @@ class Jira:
     def issue(self, key):
         try:
             return self._issues[key]
-        except KeyError:
-            raise jira.exceptions.JIRAError
+        except KeyError as exc:
+            raise jira.exceptions.JIRAError from exc
 
     def enhanced_search_issues(self, issue_filter, **__):
         issues = []

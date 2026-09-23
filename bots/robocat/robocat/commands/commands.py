@@ -1,16 +1,15 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from collections.abc import Iterable
 import logging
+from collections.abc import Iterable
 
+import robocat.comments
+import robocat.merge_request_actions.follow_up_actions
 from automation_tools.jira import JiraAccessor
 from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
 from robocat.project_manager import ProjectManager
-import robocat.comments
-import robocat.merge_request_actions.follow_up_actions
-
 
 logger = logging.getLogger(__name__)
 

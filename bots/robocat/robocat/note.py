@@ -1,10 +1,11 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from collections.abc import Callable, Iterable
-from enum import Enum, auto
 import logging
 import re
+from collections.abc import Callable, Iterable
+from enum import Enum, auto
 from typing import Any
+
 import yaml
 import yaml.scanner
 

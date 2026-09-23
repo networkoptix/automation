@@ -2,9 +2,9 @@
 
 import logging
 
-from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import find_last_comment, MessageId
 import robocat.comments
+from robocat.merge_request_manager import MergeRequestManager
+from robocat.note import MessageId, find_last_comment
 
 logger = logging.getLogger(__name__)
 

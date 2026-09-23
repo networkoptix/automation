@@ -1,28 +1,29 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-import os
 import argparse
 import logging
+import os
 import queue
 import signal
 import sys
-import traceback
 import threading
+import traceback
 from typing import Any, Callable, Coroutine, cast
 
-from gidgetlab.aiohttp import GitLabBot
-import graypy
-
 import automation_tools.utils
+import graypy
+from gidgetlab.aiohttp import GitLabBot
+
 from robocat.bot import Bot
 from robocat.gitlab_events import (
+    GitlabCommentEventData,
+    GitlabEventData,
     GitlabEventType,
+    GitlabJobEventData,
     GitlabMrEventData,
     GitlabPipelineEventData,
-    GitlabCommentEventData,
-    GitlabJobEventData,
-    GitlabEventData,
-    MrPreviousData)
+    MrPreviousData,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +156,7 @@ class ServiceNameFilter(logging.Filter):
         service_name = "Workflow Robocat"
         if repo_name := os.getenv("BOT_GIT_REPO"):
             service_name += f" ({repo_name})"
-        setattr(record, "service_name", service_name)
+        record.service_name = service_name
         return True
 
 

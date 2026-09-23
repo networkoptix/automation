@@ -3,16 +3,17 @@
 import logging
 from enum import Enum
 
+import automation_tools.utils
 from automation_tools.jira import JiraAccessor
 from automation_tools.jira_comments import JiraComment, JiraMessageId
-from robocat.config import Config
-from robocat.merge_request_manager import MergeRequestManager
-from robocat.project_manager import ProjectManager
-from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
-from robocat.note import find_last_comment, MessageId
-import automation_tools.utils
+
 import robocat.comments
 import robocat.merge_request_actions.follow_up_actions
+from robocat.config import Config
+from robocat.merge_request_manager import MergeRequestManager
+from robocat.note import MessageId, find_last_comment
+from robocat.project_manager import ProjectManager
+from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 
 logger = logging.getLogger(__name__)
 

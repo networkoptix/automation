@@ -8,8 +8,9 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 
 from automation_tools.jira import JiraAccessor
+
 from robocat.config import Config
-from robocat.merge_request_manager import MergeRequestManager, MergeRequestData
+from robocat.merge_request_manager import MergeRequestData, MergeRequestManager
 from robocat.project_manager import ProjectManager
 
 logger = logging.getLogger(__name__)

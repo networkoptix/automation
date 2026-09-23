@@ -1,10 +1,10 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+import logging
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
-import logging
 from pathlib import Path
-import re
 from typing import Generator, TypedDict
 
 import source_file_compliance

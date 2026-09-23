@@ -2,13 +2,13 @@
 
 import logging
 
-from automation_tools.jira import JiraAccessor, JiraIssue, GitlabBranchDescriptor
+import robocat.comments
+from automation_tools.jira import GitlabBranchDescriptor, JiraAccessor, JiraIssue
 from automation_tools.jira_comments import JiraComment, JiraMessageId
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
-from robocat.project_manager import EmptyFollowUpError, ProjectManager
 from robocat.project import MergeRequestAlreadyExistsError
-import robocat.comments
+from robocat.project_manager import EmptyFollowUpError, ProjectManager
 
 logger = logging.getLogger(__name__)
 

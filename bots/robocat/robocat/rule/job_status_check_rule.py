@@ -1,11 +1,14 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
-import logging
 from typing import Set
+
 from automation_tools.jira import JiraAccessor
 
+import robocat.comments
+import robocat.rule.helpers.approve_rule_helpers as approve_rule_helpers
 from robocat.config import ApproveRulesetEntryConfig, Config
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
@@ -13,12 +16,11 @@ from robocat.pipeline import JobStatus
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.rule.helpers.stateful_checker_helpers import (
-    CheckError,
     CheckChangesMixin,
+    CheckError,
     ErrorCheckResult,
-    StoredCheckResults)
-import robocat.comments
-import robocat.rule.helpers.approve_rule_helpers as approve_rule_helpers
+    StoredCheckResults,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +131,7 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
                     relevance_checker=relevance_checker)
                 for rule in config.approve_ruleset.rules])
 
-        for i_name, ruleset in zip(issue_names, rulesets):
+        for i_name, ruleset in zip(issue_names, rulesets, strict=True):
             self._possible_issues[i_name] = IssueDescriptor(
                 job_name=job_name,
                 deleted_files_affect_result=deleted_files_affect_result,

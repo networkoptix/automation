@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from automation_tools.bot_info import revision as robocat_revision
+
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.note import MessageId
 

@@ -2,7 +2,6 @@
 
 import dataclasses
 import logging
-from operator import is_
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List

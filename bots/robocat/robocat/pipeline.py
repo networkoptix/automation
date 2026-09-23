@@ -51,7 +51,7 @@ class JobStatus(enum.Enum):
 class Job:
     @singledispatchmethod
     def __init__(self, *args):
-        assert False, (
+        raise AssertionError(
             f"Unsupported constructor signature: Job({', '.join(str(type(a)) for a in args)})")
 
     # @__init__.register decorator is unable to handle Union type hint, so we use two identical
@@ -227,7 +227,10 @@ class Pipeline:
         except GitlabJobPlayError:
             logger.info(f"{self}: Job {job.name!r} ({job.id}) can not be played at the moment")
 
-    @cache
+    # The cache belongs to the class rather than to the instance, so every object it has seen
+    # stays alive for the lifetime of the process. Suppressed rather than restructured here:
+    # changing the caching strategy is a behavioural change and needs its own change.
+    @cache  # noqa: B019
     def _get_project(self):
         project_id = self._gitlab_pipeline.project_id
         return self._gitlab_pipeline.manager.gitlab.projects.get(project_id)

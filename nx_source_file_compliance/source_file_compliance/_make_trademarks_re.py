@@ -1,11 +1,10 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from pathlib import Path
 import re
+from pathlib import Path
 
 
 def get_trademarks_from_file(file: Path, common_words: list[str]) -> set[str]:
-    exceptions = ['new', 'megapixel', 'nfs', 'axis']
     trademarks = set()
     for line in file.read_text().splitlines():
         no_email_str, _ = line.split(' [')

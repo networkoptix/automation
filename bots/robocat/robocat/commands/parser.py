@@ -3,11 +3,12 @@
 
 from robocat.commands.commands import (
     BaseCommand,
+    DraftFollowUpCommand,
+    FollowUpCommand,
     ProcessCommand,
     RunPipelineCommand,
-    FollowUpCommand,
-    DraftFollowUpCommand,
-    UnknownCommand)
+    UnknownCommand,
+)
 
 
 def command_classes() -> list[type[BaseCommand]]:

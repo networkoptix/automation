@@ -1,26 +1,49 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 import re
-import pytest
 
-from automation_tools.tests.mocks.git_mocks import BranchMock, CommitMock
-from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.bot import GitlabEventData, GitlabCommentEventData, GitlabEventType
-from robocat.note import MessageId
+import pytest
+from automation_tools.tests.fixtures import jira, repo_accessor, repo_versions
 from automation_tools.tests.gitlab_constants import (
+    BOT_USERNAME,
+    CONFLICTING_COMMIT_SHA,
     DEFAULT_COMMIT,
+    DEFAULT_JIRA_ISSUE_KEY,
     DEFAULT_NXLIB_COMMIT,
     DEFAULT_PROJECT_ID,
     FORK_PROJECT_ID,
-    DEFAULT_JIRA_ISSUE_KEY,
-    NXLIB_JIRA_ISSUE_KEY,
-    CONFLICTING_COMMIT_SHA,
-    MERGED_TO_MASTER_MERGE_REQUESTS,
-    MERGED_TO_5_1_MERGE_REQUESTS,
     MERGED_TO_4_2_MERGE_REQUESTS,
-    BOT_USERNAME)
-from tests.fixtures import *
-from automation_tools.tests.fixtures import repo_versions
+    MERGED_TO_5_1_MERGE_REQUESTS,
+    MERGED_TO_MASTER_MERGE_REQUESTS,
+    NXLIB_JIRA_ISSUE_KEY,
+)
+from automation_tools.tests.mocks.git_mocks import BranchMock, CommitMock
+from automation_tools.tests.mocks.merge_request import MergeRequestMock
+from automation_tools.tests.mocks.project import ProjectMock
+from robocat.app import Bot
+from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.bot import GitlabCommentEventData, GitlabEventData, GitlabEventType
+from robocat.note import MessageId
+
+from tests.fixtures import (
+    apidoc_approve_ruleset,
+    bot,
+    bot_config,
+    code_owner_approve_ruleset,
+    commit_message_rule,
+    essential_rule,
+    follow_up_rule,
+    job_status_rule,
+    mr,
+    mr_manager,
+    mr_state,
+    nx_submodule_check_rule,
+    open_source_approve_ruleset,
+    post_processing_rule,
+    project,
+    project_manager,
+    workflow_rule,
+)
 
 
 class TestFollowUpRule:

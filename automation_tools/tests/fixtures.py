@@ -2,20 +2,20 @@
 
 from pathlib import Path
 
-import pytest
-
-from automation_tools.jira_helpers import (
-    JIRA_STATUS_REVIEW,
-    JIRA_STATUS_PROGRESS,
-    JIRA_STATUS_CLOSED,
-    JIRA_STATUS_OPEN,
-    JIRA_TRANSITION_WORKFLOW_FAILURE)
-from automation_tools.tests.gitlab_constants import BOT_EMAIL, BOT_NAME, BOT_USERNAME
-from automation_tools.tests.mocks.git_mocks import RepoMock, RemoteMock
 import automation_tools.git
 import automation_tools.jira
 import automation_tools.tests.mocks.jira
 import automation_tools.utils
+import pytest
+from automation_tools.jira_helpers import (
+    JIRA_STATUS_CLOSED,
+    JIRA_STATUS_OPEN,
+    JIRA_STATUS_PROGRESS,
+    JIRA_STATUS_REVIEW,
+    JIRA_TRANSITION_WORKFLOW_FAILURE,
+)
+from automation_tools.tests.gitlab_constants import BOT_EMAIL, BOT_NAME, BOT_USERNAME
+from automation_tools.tests.mocks.git_mocks import RemoteMock, RepoMock
 
 
 @pytest.fixture

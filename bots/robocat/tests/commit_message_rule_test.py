@@ -1,22 +1,33 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 import pytest
-
-from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.note import NoteDetails, MessageId
+from automation_tools.tests.fixtures import repo_accessor
 from automation_tools.tests.gitlab_constants import (
-    GOOD_README_COMMIT_CHANGED_FILE,
-    GOOD_README_COMMIT_NEW_FILE,
-    GOOD_README_COMMIT_DELETED_FILE,
+    BAD_OPENSOURCE_COMMIT,
+    BAD_README_RAW_DATA,
     DEFAULT_JIRA_ISSUE_KEY,
+    DEFAULT_USER,
     FILE_COMMITS_SHA,
+    GOOD_README_COMMIT_CHANGED_FILE,
+    GOOD_README_COMMIT_DELETED_FILE,
+    GOOD_README_COMMIT_NEW_FILE,
+    OPEN_SOURCE_APPROVER_CLIENT,
     OPEN_SOURCE_APPROVER_COMMON,
     OPEN_SOURCE_APPROVER_COMMON_2,
-    OPEN_SOURCE_APPROVER_CLIENT,
-    BAD_README_RAW_DATA,
-    BAD_OPENSOURCE_COMMIT,
-    DEFAULT_USER)
-from tests.fixtures import *
+)
+from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.note import MessageId, NoteDetails
+from robocat.rule.commit_message_check_rule import CommitMessageCheckRule
+
+from tests.fixtures import (
+    bot_config,
+    commit_message_rule,
+    mr,
+    mr_manager,
+    mr_state,
+    project,
+    project_manager,
+)
 
 
 class TestCommitMessageRule:

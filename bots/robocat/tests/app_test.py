@@ -5,7 +5,6 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
-
 import robocat.app as app_module
 
 

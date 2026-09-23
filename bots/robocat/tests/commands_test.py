@@ -1,33 +1,53 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-import pytest
 from typing import Any, cast
 
+import pytest
+import robocat.commands.parser
 from automation_tools.git import Repo
+from automation_tools.tests.fixtures import jira, repo_accessor, repo_versions
 from automation_tools.tests.gitlab_constants import (
+    BOT_USERNAME,
     DEFAULT_COMMIT,
-    GOOD_README_COMMIT_NEW_FILE,
-    FILE_COMMITS_SHA,
     DEFAULT_JIRA_ISSUE_KEY,
+    FILE_COMMITS_SHA,
     FORK_PROJECT_ID,
+    GOOD_README_COMMIT_NEW_FILE,
     MERGED_TO_MASTER_MERGE_REQUESTS,
-    BOT_USERNAME)
+)
+from automation_tools.tests.mocks.merge_request import MergeRequestMock
+from automation_tools.tests.mocks.project import ProjectMock
 from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.bot import (
-    Bot,
-    GitlabEventData,
-    GitlabCommentEventData,
-    GitlabEventType)
+from robocat.bot import Bot, GitlabCommentEventData, GitlabEventData, GitlabEventType
 from robocat.commands.commands import (
     BaseCommand,
+    FollowUpCommand,
     ProcessCommand,
     RunPipelineCommand,
-    FollowUpCommand,
-    UnknownCommand)
-import robocat.commands.parser
+    UnknownCommand,
+)
+from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
-from tests.fixtures import *
-from automation_tools.tests.fixtures import repo_versions
+
+from tests.fixtures import (
+    apidoc_approve_ruleset,
+    bot,
+    bot_config,
+    code_owner_approve_ruleset,
+    commit_message_rule,
+    essential_rule,
+    follow_up_rule,
+    job_status_rule,
+    mr,
+    mr_manager,
+    mr_state,
+    nx_submodule_check_rule,
+    open_source_approve_ruleset,
+    post_processing_rule,
+    project,
+    project_manager,
+    workflow_rule,
+)
 
 
 class TestRobocatCommands:

@@ -1,11 +1,11 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from dataclasses import dataclass
-from functools import lru_cache
 import json
 import logging
 import re
-from typing import List, Dict
+from dataclasses import dataclass
+from functools import lru_cache
+from typing import Dict, List
 
 import gitlab
 import gitlab.exceptions
@@ -39,7 +39,10 @@ class Project:
     def __hash__(self):
         return int(self._gitlab_project.id)
 
-    @lru_cache(maxsize=64)
+    # The cache belongs to the class rather than to the instance, so every object it has seen
+    # stays alive for the lifetime of the process. Suppressed rather than restructured here:
+    # changing the caching strategy is a behavioural change and needs its own change.
+    @lru_cache(maxsize=64)  # noqa: B019
     def get_file_content(self, ref: str, file: str) -> str:
         logger.debug(f"Getting file content: {ref}, {file}")
         file_handler = self._gitlab_project.files.get(file_path=file, ref=ref)
@@ -51,7 +54,7 @@ class Project:
         except UnicodeDecodeError:
             return file_handler.decode().decode('latin1')
 
-    @lru_cache(maxsize=64)
+    @lru_cache(maxsize=64)  # noqa: B019
     def get_mr_commit_changes(
             self, mr_id: int,
             mr_target_branch: str, sha: str) -> MergeRequestDiffData:
@@ -60,11 +63,11 @@ class Project:
         overflow = str(changes["changes_count"]).endswith("+")
         return MergeRequestDiffData(changes=changes["changes"], overflow=overflow)
 
-    @lru_cache(maxsize=512)
+    @lru_cache(maxsize=512)  # noqa: B019
     def get_commit_message(self, sha):
         return self._gitlab_project.commits.get(sha).message
 
-    @lru_cache(maxsize=512)
+    @lru_cache(maxsize=512)  # noqa: B019
     def get_commit_diff_hash(self, sha: str, include_line_numbers: bool = True) -> int:
         diff = self._gitlab_project.commits.get(sha).diff()
         if not include_line_numbers:
@@ -72,7 +75,7 @@ class Project:
                 d["diff"] = re.sub(self.DIFF_LINE_NUMBER_REMOVER_RE, "", d["diff"])
         return hash(json.dumps(diff, sort_keys=True))
 
-    @lru_cache(maxsize=512)
+    @lru_cache(maxsize=512)  # noqa: B019
     def get_user_ids(self, username: str) -> List[int]:
         user_ids = [user.id for user in self._gitlab_project.users.list(search=username)]
         if not user_ids:
@@ -137,7 +140,8 @@ class Project:
                 "assignee_ids": list(set(assignee_ids))})
         except gitlab.exceptions.GitlabCreateError as e:
             if e.response_code == self.RESOURCE_CREATION_CONFLICT_CODE:
-                raise MergeRequestAlreadyExistsError(source=source_branch, target=target_branch)
+                raise MergeRequestAlreadyExistsError(
+                    source=source_branch, target=target_branch) from e
             raise e
 
         return raw_mr.iid

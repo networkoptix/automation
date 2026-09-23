@@ -3,9 +3,13 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from automation_tools.tests.mocks.user import UserMock
 from automation_tools.tests.gitlab_constants import (
-    BOT_USERID, DEFAULT_PROJECT_ID, BOT_EMAIL, BOT_USERNAME)
+    BOT_EMAIL,
+    BOT_USERID,
+    BOT_USERNAME,
+    DEFAULT_PROJECT_ID,
+)
+from automation_tools.tests.mocks.user import UserMock
 
 
 @dataclass

@@ -1,25 +1,23 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-import logging
 import dataclasses
 import logging
 import re
 from typing import Generator
 
+import automation_tools
+import automation_tools.bot_info
 from git import GitCommandError
 from gitlab import GitlabGetError
 
-import automation_tools
-import automation_tools.bot_info
+import robocat.comments
 import robocat.gitlab
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.merge_request import MergeRequest
-from robocat.merge_request_manager import MergeRequestManager, MergeRequestData
-from robocat.note import MessageId, Note, NoteDetails
+from robocat.merge_request_manager import MergeRequestData, MergeRequestManager
+from robocat.note import MessageId, NoteDetails
 from robocat.pipeline import Pipeline, PipelineLocation
-from robocat.project import Project, MergeRequestAlreadyExistsError
-from robocat.award_emoji_manager import AwardEmojiManager
-import robocat.comments
+from robocat.project import MergeRequestAlreadyExistsError, Project
 
 logger = logging.getLogger(__name__)
 

@@ -1,13 +1,13 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from collections.abc import Iterable
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
 import datetime
 import json
 import sys
 import traceback
+from collections.abc import Iterable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 import yaml
 

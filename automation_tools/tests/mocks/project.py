@@ -1,17 +1,17 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from dataclasses import dataclass, field
 import time
+from dataclasses import dataclass, field
 from typing import Any, Dict, Set
-from gitlab import GitlabCreateError
 
-from automation_tools.tests.mocks.gitlab import GitlabManagerMock
-from automation_tools.tests.mocks.pipeline import PipelineManagerMock, JobsManagerMock
-from automation_tools.tests.mocks.commit import CommitsManagerMock, CommitMock
-from automation_tools.tests.mocks.file import FileManagerMock
-from automation_tools.tests.mocks.merge_request import MergeRequestMock
-from automation_tools.tests.mocks.user import UserManagerMock
 from automation_tools.tests.gitlab_constants import DEFAULT_PROJECT_ID
+from automation_tools.tests.mocks.commit import CommitMock, CommitsManagerMock
+from automation_tools.tests.mocks.file import FileManagerMock
+from automation_tools.tests.mocks.gitlab import GitlabManagerMock
+from automation_tools.tests.mocks.merge_request import MergeRequestMock
+from automation_tools.tests.mocks.pipeline import JobsManagerMock, PipelineManagerMock
+from automation_tools.tests.mocks.user import UserManagerMock
+from gitlab import GitlabCreateError
 
 
 @dataclass

@@ -1,9 +1,9 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 import enum
+import logging
 from pathlib import Path
 from typing import List, Optional
-import logging
 
 import git
 

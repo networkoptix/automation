@@ -1,17 +1,26 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 import pytest
-
+from automation_tools.tests.fixtures import jira, repo_accessor, repo_versions
 from automation_tools.tests.gitlab_constants import (
+    DEFAULT_CLOUD_ISSUE_KEY,
     DEFAULT_COMMIT,
     DEFAULT_JIRA_ISSUE_KEY,
-    DEFAULT_CLOUD_ISSUE_KEY,
+    MR_MERGED_COMMENT_TEMPLATE,
     MR_MERGED_COMMENT_TEMPLATE_LEGACY,
-    MR_MERGED_COMMENT_TEMPLATE)
+)
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.rule.post_processing_rule import PostProcessingRule
-from tests.fixtures import *
-from automation_tools.tests.fixtures import repo_versions
+
+from tests.fixtures import (
+    bot_config,
+    mr,
+    mr_manager,
+    mr_state,
+    post_processing_rule,
+    project,
+    project_manager,
+)
 
 
 class TestPostProcessingRule:
@@ -33,7 +42,7 @@ class TestPostProcessingRule:
             "state": "In Review"
         }], {
             "state": "merged",
-            "title": f"Test mr",
+            "title": "Test mr",
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
         }),
     ])

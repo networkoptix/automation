@@ -1,14 +1,14 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-import pytest
-
-from automation_tools.tests.gitlab_constants import OPEN_SOURCE_APPROVER_COMMON
-from automation_tools.mr_data_structures import ApprovalRequirements
 import automation_tools.bot_info
-from tests.fixtures import *
-from robocat.note import MessageId
-import robocat.comments
+import pytest
 import robocat.commands.parser
+import robocat.comments
+from automation_tools.mr_data_structures import ApprovalRequirements
+from automation_tools.tests.gitlab_constants import OPEN_SOURCE_APPROVER_COMMON
+from robocat.note import MessageId
+
+from tests.fixtures import mr_manager, mr_state, project
 
 
 class TestMergeRequestManager:

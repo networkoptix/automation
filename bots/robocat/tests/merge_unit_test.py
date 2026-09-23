@@ -3,19 +3,17 @@
 from unittest.mock import MagicMock
 
 import pytest
-from gitlab.exceptions import GitlabError, GitlabHttpError, GitlabMRClosedError
-
 from automation_tools.tests.gitlab_constants import (
     BOT_USERNAME,
     GOOD_README_COMMIT_NEW_FILE,
     OPEN_SOURCE_APPROVER_COMMON,
 )
-from automation_tools.tests.fixtures import repo_versions  # noqa: F401
+from gitlab.exceptions import GitlabError, GitlabHttpError, GitlabMRClosedError
 from robocat.merge_request import MergeRequest, MergeResult
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
-from tests.fixtures import *  # noqa: F401,F403
 
+from tests.fixtures import mr, mr_state, project
 
 _BASE_MR_STATE = {
     "title": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[0],

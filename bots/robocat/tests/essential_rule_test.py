@@ -1,13 +1,22 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 import pytest
-
+from automation_tools.tests.fixtures import repo_accessor
+from automation_tools.tests.gitlab_constants import BOT_USERNAME, DEFAULT_COMMIT
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.merge_request import MergeRequest
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.rule.essential_rule import EssentialRule
-from automation_tools.tests.gitlab_constants import BOT_USERNAME, DEFAULT_COMMIT
-from tests.fixtures import *
+
+from tests.fixtures import (
+    bot_config,
+    essential_rule,
+    mr,
+    mr_manager,
+    mr_state,
+    project,
+    project_manager,
+)
 
 
 class TestEssentialRule:
@@ -428,7 +437,7 @@ class TestEssentialRule:
         },
         # Good MR linked to one good and one bad Jira Project.
         {
-            "title": f"NXLIB-666, UNKNOWN-666: Test mr",
+            "title": "NXLIB-666, UNKNOWN-666: Test mr",
             "emojis_list": [AwardEmojiManager.WATCH_EMOJI],
             "needed_approvers_number": 2,
             "approvers_list": ["user1", "user2"],

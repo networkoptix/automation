@@ -3,39 +3,40 @@
 import logging
 import os
 import queue
-import requests
 import threading
 import time
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import cast
 
+import automation_tools.bot_info
+import automation_tools.git
+import automation_tools.utils
 import git
 import gitlab
 import gitlab.exceptions
-
-import automation_tools.utils
-import automation_tools.bot_info
-from automation_tools.utils import merge_dicts
+import requests
 from automation_tools.jira import GitlabBranchDescriptor, JiraAccessor, JiraError
 from automation_tools.jira_comments import JiraComment, JiraCommentDataKey, JiraMessageId
-import automation_tools.git
+from automation_tools.utils import merge_dicts
+
 import robocat.commands.parser
 import robocat.comments
-from robocat.gitlab_events import (
-    GitlabEventType,
-    GitlabMrEventData,
-    GitlabPipelineEventData,
-    GitlabCommentEventData,
-    GitlabJobEventData,
-    GitlabMrRelatedEventData,
-    GitlabEventData)
 from robocat.config import Config
-from robocat.project_manager import ProjectManager
+from robocat.gitlab_events import (
+    GitlabCommentEventData,
+    GitlabEventData,
+    GitlabEventType,
+    GitlabJobEventData,
+    GitlabMrEventData,
+    GitlabMrRelatedEventData,
+    GitlabPipelineEventData,
+)
 from robocat.merge_request_actions.notify_user_actions import add_failed_pipeline_comment_if_needed
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import find_last_comment, MessageId
-from robocat.pipeline import Job, JobStatus, PlayPipelineError, Pipeline, PipelineStatus
+from robocat.note import MessageId, find_last_comment
+from robocat.pipeline import Job, JobStatus, Pipeline, PipelineStatus, PlayPipelineError
+from robocat.project_manager import ProjectManager
 from robocat.rule import ALL_RULES
 
 # Per-repo config lives in the proprietary section (bots/robocat/robocat_config) and is baked

@@ -1,24 +1,28 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from pathlib import Path
-import pytest
 import queue
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Set, cast
 
+import automation_tools.checkers.config
+import pytest
+import robocat.gitlab
+from automation_tools.checkers.config import AllowedVersionSet
 from automation_tools.jira import JiraAccessor
 from automation_tools.tests.fixtures import jira, repo_accessor
 from automation_tools.tests.gitlab_constants import (
-    DEFAULT_APPROVE_RULESET,
+    BOT_USERNAME,
     DEFAULT_APIDOC_APPROVE_RULESET,
+    DEFAULT_APPROVE_RULESET,
     DEFAULT_CODEOWNER_APPROVE_RULESET,
-    BOT_USERNAME)
-from automation_tools.tests.mocks.project import ProjectMock
+)
 from automation_tools.tests.mocks.merge_request import MergeRequestMock
 from automation_tools.tests.mocks.pipeline import PipelineMock
+from automation_tools.tests.mocks.project import ProjectMock
 from automation_tools.utils import parse_config_file
 from robocat.app import Bot
-from robocat.config import Config, ApproveRulesetConfig
+from robocat.config import ApproveRulesetConfig, Config
 from robocat.merge_request import MergeRequest
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.project_manager import ProjectManager
@@ -29,9 +33,6 @@ from robocat.rule.job_status_check_rule import JobStatusCheckRule
 from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
 from robocat.rule.post_processing_rule import PostProcessingRule
 from robocat.rule.workflow_check_rule import WorkflowCheckRule
-import automation_tools.checkers.config
-from automation_tools.checkers.config import AllowedVersionSet
-import robocat.gitlab
 
 
 @pytest.fixture

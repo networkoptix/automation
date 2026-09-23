@@ -1,8 +1,8 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from dataclasses import asdict, dataclass, field
 import enum
 import time
+from dataclasses import asdict, dataclass, field
 from typing import NotRequired, TypedDict
 
 

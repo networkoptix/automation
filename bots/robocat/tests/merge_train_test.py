@@ -3,15 +3,32 @@
 from unittest.mock import MagicMock
 
 import pytest
-
+from automation_tools.tests.fixtures import jira, repo_accessor, repo_versions
 from automation_tools.tests.gitlab_constants import (
     DEFAULT_JIRA_ISSUE_KEY,
     GOOD_README_COMMIT_NEW_FILE,
     OPEN_SOURCE_APPROVER_COMMON,
 )
-from automation_tools.tests.fixtures import repo_versions  # noqa: F401
-from tests.fixtures import *  # noqa: F401,F403
 
+from tests.fixtures import (
+    apidoc_approve_ruleset,
+    bot,
+    bot_config,
+    code_owner_approve_ruleset,
+    commit_message_rule,
+    essential_rule,
+    follow_up_rule,
+    job_status_rule,
+    mr,
+    mr_manager,
+    mr_state,
+    nx_submodule_check_rule,
+    open_source_approve_ruleset,
+    post_processing_rule,
+    project,
+    project_manager,
+    workflow_rule,
+)
 
 _MERGEABLE_MR_STATE = {
     "title": GOOD_README_COMMIT_NEW_FILE["message"].partition("\n\n")[0],

@@ -1,8 +1,9 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+import re
 from enum import Enum, auto
 from typing import Optional, Union
-import re
+
 import yaml
 
 import automation_tools.bot_info
@@ -93,16 +94,17 @@ class JiraComment:
         try:
             details = yaml.safe_load(details_text)
         except yaml.scanner.ScannerError as exc:
-            raise JiraCommentError(f"Malformed comment data {details_text!r}: {exc}.")
+            raise JiraCommentError(f"Malformed comment data {details_text!r}: {exc}.") from exc
 
         try:
             message_id = JiraMessageId(details[cls._ID_KEY])
-        except KeyError:
-            raise JiraCommentError(f"Malformed comment data {details_text!r}: No {cls._ID_KEY!r}.")
-        except ValueError:
+        except KeyError as exc:
+            raise JiraCommentError(
+                f"Malformed comment data {details_text!r}: No {cls._ID_KEY!r}.") from exc
+        except ValueError as exc:
             raise JiraCommentError(
                 f"Bad message id {details[cls._ID_KEY]!r} in comment {text!r}; skipping "
-                f"additional data for this note.")
+                f"additional data for this note.") from exc
 
         return cls(message_id=message_id, data=details.get(cls._DATA_KEY, None), params=text)
 

@@ -1,16 +1,24 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-import pytest
 import re
 
-from robocat.rule.workflow_check_rule import WorkflowCheckRule
-from robocat.award_emoji_manager import AwardEmojiManager
-from tests.fixtures import *
-from automation_tools.tests.gitlab_constants import DEFAULT_JIRA_ISSUE_KEY, DEFAULT_COMMIT, USERS
-
 import automation_tools.checkers.config
-from automation_tools.tests.fixtures import jira, repo_versions
+import pytest
+from automation_tools.tests.fixtures import jira, repo_accessor, repo_versions
+from automation_tools.tests.gitlab_constants import DEFAULT_COMMIT, DEFAULT_JIRA_ISSUE_KEY, USERS
 from automation_tools.tests.mocks.resources import Version
+from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.rule.workflow_check_rule import WorkflowCheckRule
+
+from tests.fixtures import (
+    bot_config,
+    mr,
+    mr_manager,
+    mr_state,
+    project,
+    project_manager,
+    workflow_rule,
+)
 
 
 class TestWorkflowCheckRule:
@@ -67,7 +75,7 @@ class TestWorkflowCheckRule:
         ([{
             "key": "INFRA-1", "branches": [], "state": "In progress",
         }], {
-            "title": f"INFRA-1: Merge request attached to Jira Issue"
+            "title": "INFRA-1: Merge request attached to Jira Issue"
         }),
         # Merge Request in "Draft" state is attached to one good Jira Issue.
         ([{
@@ -312,10 +320,10 @@ class TestWorkflowCheckRule:
             assert not any(e for e in emojis if e.name == AwardEmojiManager.SUSPICIOUS_ISSUE_EMOJI)
 
             comments = mr.mock_comments()
-            assert len(comments) == error_count, f"Wrong comment count"
+            assert len(comments) == error_count, "Wrong comment count"
 
             for error in errors:
-                assert any(error in comment for comment in comments), f"Error string is not found"
+                assert any(error in comment for comment in comments), "Error string is not found"
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Merge request is initially attached to bad Jira Issue.
@@ -461,7 +469,7 @@ class TestWorkflowCheckRule:
         ([{
             "key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.1_patch"]
         }], {
-            "title": f"(master->vms_5.0) Merge request title",
+            "title": "(master->vms_5.0) Merge request title",
             "commits_list": [{
                 "sha": DEFAULT_COMMIT["sha"],
                 "message": f"{DEFAULT_JIRA_ISSUE_KEY}: commit title\n",

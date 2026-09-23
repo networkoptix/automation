@@ -1,12 +1,11 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from abc import ABC, abstractmethod
-from typing import Optional, Dict
 import logging
+from abc import ABC, abstractmethod
+from typing import Dict, Optional
 
-from automation_tools.jira import JiraIssue
 from automation_tools.checkers.config import DONE_EXTERNALLY_LABEL, IGNORE_LABEL
-
+from automation_tools.jira import JiraIssue
 
 logger = logging.getLogger(__name__)
 

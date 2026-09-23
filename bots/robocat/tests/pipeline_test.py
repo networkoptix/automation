@@ -1,10 +1,10 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 import pytest
-
 from automation_tools.tests.gitlab_constants import DEFAULT_COMMIT
 from robocat.pipeline import JobStatus, Pipeline, PipelineStatus
-from tests.fixtures import *
+
+from tests.fixtures import mr_manager, mr_state, project
 
 
 class TestTranslateStatus:

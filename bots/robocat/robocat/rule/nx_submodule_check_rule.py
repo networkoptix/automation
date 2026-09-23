@@ -1,25 +1,26 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 import logging
-import re
-from typing import List, Set, Tuple
 from dataclasses import asdict
 from enum import Enum
+from typing import Set
+
 from automation_tools.jira import JiraAccessor
 
+import robocat.comments
+from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.project_manager import ProjectManager
 from robocat.note import MessageId
+from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.rule.helpers.nx_submodule_checker import NxSubmoduleChecker
 from robocat.rule.helpers.stateful_checker_helpers import (
-    CheckError,
     CheckChangesMixin,
+    CheckError,
     ErrorCheckResult,
-    StoredCheckResults)
-from robocat.award_emoji_manager import AwardEmojiManager
-import robocat.comments
+    StoredCheckResults,
+)
 
 logger = logging.getLogger(__name__)
 

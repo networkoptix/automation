@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import tempfile
-import string
-import random
 import dataclasses
-from pathlib import Path
+import random
 import shutil
+import string
+import tempfile
+from pathlib import Path
 
 import git
 
@@ -56,8 +56,9 @@ class RepoMock:
         soruce_path = Path(__file__).parent / "data" / url
         try:
             shutil.copytree(soruce_path, to_path, dirs_exist_ok=True)
-        except FileNotFoundError:
-            raise git.exc.GitCommandError(status=f"Bad repo url", command=f"git clone {url}")
+        except FileNotFoundError as exc:
+            raise git.exc.GitCommandError(
+                status="Bad repo url", command=f"git clone {url}") from exc
 
         result = cls()
         if (soruce_path / ".gitmock" / "unknown_commits").is_file():

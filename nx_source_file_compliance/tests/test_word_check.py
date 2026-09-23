@@ -4,10 +4,10 @@ import unittest
 
 from source_file_compliance._make_trademarks_re import get_trademarks_from_file
 from source_file_compliance._source_file_compliance import (
+    _find_disclosure_words,
+    _find_license_words,
     _find_offensive_words,
     _find_trademarks,
-    _find_license_words,
-    _find_disclosure_words,
     _get_config_path,
 )
 

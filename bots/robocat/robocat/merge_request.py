@@ -1,18 +1,18 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from enum import Enum, auto
-from typing import Any
 import logging
 import re
+from enum import Enum, auto
+from typing import Any
 
-from gitlab.exceptions import GitlabError, GitlabHttpError
-from gitlab.v4.objects import ProjectMergeRequestDiff
+import automation_tools.utils
 import gitlab
 import gitlab.exceptions
-
 from automation_tools.mr_data_structures import ApprovalsInfo
+from gitlab.exceptions import GitlabError, GitlabHttpError
+from gitlab.v4.objects import ProjectMergeRequestDiff
+
 from robocat.award_emoji_manager import AwardEmojiManager
-import automation_tools.utils
 
 logger = logging.getLogger(__name__)
 

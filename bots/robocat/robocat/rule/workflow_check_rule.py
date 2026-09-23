@@ -1,13 +1,14 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from dataclasses import dataclass
-from enum import Enum
 import logging
 import re
+from dataclasses import dataclass
+from enum import Enum
 
-from automation_tools.jira import JiraAccessor, JiraIssue, GitlabBranchDescriptor
-from automation_tools.jira_helpers import JIRA_STATUS_PROGRESS, JIRA_STATUS_REVIEW
 import automation_tools.checkers.config as automation_config
+from automation_tools.jira import GitlabBranchDescriptor, JiraAccessor, JiraIssue
+from automation_tools.jira_helpers import JIRA_STATUS_PROGRESS, JIRA_STATUS_REVIEW
+
 from robocat.comments import Message
 from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager

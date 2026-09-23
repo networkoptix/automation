@@ -1,19 +1,23 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+import logging
 from collections.abc import Iterable
 from enum import Enum
-from typing import Any
-import logging
 
 from automation_tools.jira import (
-    GitlabBranchDescriptor, JiraAccessor, JiraIssue, JiraStatusChangeError)
+    GitlabBranchDescriptor,
+    JiraAccessor,
+    JiraIssue,
+    JiraStatusChangeError,
+)
 from automation_tools.jira_comments import JiraComment, JiraMessageId
+
+import robocat.comments
 from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
-import robocat.comments
 
 logger = logging.getLogger(__name__)
 

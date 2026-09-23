@@ -2,25 +2,27 @@
 
 import dataclasses
 import logging
-from typing import Set, cast
 from dataclasses import asdict
 from enum import Enum
+from typing import Set, cast
+
+import source_file_compliance
 from automation_tools.jira import JiraAccessor
 
+import robocat.comments
+import robocat.rule.helpers.approve_rule_helpers as approve_rule_helpers
+from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import MessageId
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
-import robocat.rule.helpers.approve_rule_helpers as approve_rule_helpers
 from robocat.rule.helpers.stateful_checker_helpers import (
     CheckChangesMixin,
     CheckError,
     ErrorCheckResult,
-    StoredCheckResults)
-from robocat.award_emoji_manager import AwardEmojiManager
-import robocat.comments
-import source_file_compliance
+    StoredCheckResults,
+)
 
 logger = logging.getLogger(__name__)
 

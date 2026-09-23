@@ -3,9 +3,8 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from jira.resources import dict2resource
-
 from automation_tools.tests.gitlab_constants import DEFAULT_USER
+from jira.resources import dict2resource
 
 
 @dataclass

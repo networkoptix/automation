@@ -1,10 +1,10 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+import importlib.resources
 import os
 import re
-import importlib.resources
 from pathlib import Path
-from typing import Collection, List, NamedTuple, Union, Optional
+from typing import Collection, List, NamedTuple, Optional, Union
 from urllib.parse import urlparse
 
 from ._make_trademarks_re import make_trademarks_re

@@ -1,19 +1,30 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-import pytest
 import re
 import uuid
 
-from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.note import NoteDetails, MessageId
+import pytest
+from automation_tools.tests.fixtures import repo_accessor
 from automation_tools.tests.gitlab_constants import FILE_COMMITS_SHA
 from automation_tools.tests.mocks.file import (
-    NX_SUBMODULE_GOOD_RAW_DATA,
+    BAD_README_RAW_DATA,
     NX_SUBMODULE_BAD_RAW_DATA_1,
     NX_SUBMODULE_BAD_RAW_DATA_2,
     NX_SUBMODULE_BAD_RAW_DATA_3,
-    BAD_README_RAW_DATA)
-from tests.fixtures import *
+    NX_SUBMODULE_GOOD_RAW_DATA,
+)
+from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.note import MessageId, NoteDetails
+
+from tests.fixtures import (
+    bot_config,
+    mr,
+    mr_manager,
+    mr_state,
+    nx_submodule_check_rule,
+    project,
+    project_manager,
+)
 
 
 class TestNxSubmoduleCheckRule:

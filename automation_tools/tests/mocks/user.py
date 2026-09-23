@@ -4,7 +4,12 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from automation_tools.tests.gitlab_constants import (
-    USERS, BOT_USERID, BOT_USERNAME, BOT_NAME, BOT_EMAIL)
+    BOT_EMAIL,
+    BOT_NAME,
+    BOT_USERID,
+    BOT_USERNAME,
+    USERS,
+)
 
 
 @dataclass

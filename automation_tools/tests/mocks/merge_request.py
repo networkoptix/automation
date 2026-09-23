@@ -1,26 +1,28 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+import time
+import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from functools import namedtuple
 from typing import Any, Optional
-import time
-import uuid
 
-from automation_tools.tests.mocks.gitlab import GitlabManagerMock
-from automation_tools.tests.mocks.pipeline import PipelineMock, JobMock
-from automation_tools.tests.mocks.commit import CommitMock
-from automation_tools.tests.gitlab_constants import (
-    DEFAULT_COMMIT,
-    DEFAULT_PROJECT_ID,
-    USERS,
-    DEFAULT_REQUIRED_APPROVALS_COUNT,
-    DEFAULT_JIRA_ISSUE_KEY,
-    BOT_USERNAME)
 from automation_tools.mr_data_structures import ApprovalsInfo
+from automation_tools.tests.gitlab_constants import (
+    BOT_USERNAME,
+    DEFAULT_COMMIT,
+    DEFAULT_JIRA_ISSUE_KEY,
+    DEFAULT_PROJECT_ID,
+    DEFAULT_REQUIRED_APPROVALS_COUNT,
+    USERS,
+)
+from automation_tools.tests.mocks.commit import CommitMock
+from automation_tools.tests.mocks.gitlab import GitlabManagerMock
+from automation_tools.tests.mocks.pipeline import JobMock, PipelineMock
+
 try:
-    from robocat.note import MessageId, NoteDetails
     import robocat.comments
+    from robocat.note import MessageId, NoteDetails
 except ImportError:
     # For testing Workflow Police we don't need Robocat, but need some functionality from this
     # module. So if we can't import Robocat modules, we assume that we are testing the Workflow

@@ -5,7 +5,7 @@
 
 import pytest
 
-from tests.fixtures import *
+from tests.fixtures import mr, mr_manager, mr_state, project
 
 
 class TestParsingFunctions:

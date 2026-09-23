@@ -6,31 +6,54 @@ from unittest.mock import MagicMock
 
 import gitlab
 import pytest
-
-from automation_tools.tests.mocks.git_mocks import CommitMock, BranchMock
-from automation_tools.tests.mocks.project import ProjectMock
-from automation_tools.utils import parse_config_file, merge_dicts
 import robocat.bot
-from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.bot import (
-    Bot, GitlabEventData, GitlabJobEventData, GitlabEventType,
-    GitlabMrEventData, GitlabPipelineEventData)
-from robocat.config import Config
+from automation_tools.tests.fixtures import jira, repo_accessor, repo_versions
 from automation_tools.tests.gitlab_constants import (
     BAD_OPENSOURCE_COMMIT,
-    DEFAULT_COMMIT,
-    GOOD_README_COMMIT_NEW_FILE,
-    FILE_COMMITS_SHA,
-    FORK_PROJECT_ID,
-    MERGED_TO_MASTER_MERGE_REQUESTS,
-    OPEN_SOURCE_APPROVER_COMMON,
-    DEFAULT_JIRA_ISSUE_KEY,
-    USERS,
     BOT_EMAIL,
     BOT_NAME,
+    DEFAULT_COMMIT,
+    DEFAULT_JIRA_ISSUE_KEY,
+    FILE_COMMITS_SHA,
+    FORK_PROJECT_ID,
+    GOOD_README_COMMIT_NEW_FILE,
+    MERGED_TO_MASTER_MERGE_REQUESTS,
+    OPEN_SOURCE_APPROVER_COMMON,
+    USERS,
 )
-from tests.fixtures import *
-from automation_tools.tests.fixtures import repo_versions
+from automation_tools.tests.mocks.git_mocks import BranchMock, CommitMock
+from automation_tools.tests.mocks.project import ProjectMock
+from automation_tools.utils import merge_dicts, parse_config_file
+from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.bot import (
+    Bot,
+    GitlabEventData,
+    GitlabEventType,
+    GitlabJobEventData,
+    GitlabMrEventData,
+    GitlabPipelineEventData,
+)
+from robocat.config import Config
+
+from tests.fixtures import (
+    apidoc_approve_ruleset,
+    bot,
+    bot_config,
+    code_owner_approve_ruleset,
+    commit_message_rule,
+    essential_rule,
+    follow_up_rule,
+    job_status_rule,
+    mr,
+    mr_manager,
+    mr_state,
+    nx_submodule_check_rule,
+    open_source_approve_ruleset,
+    post_processing_rule,
+    project,
+    project_manager,
+    workflow_rule,
+)
 
 _CONFIG_TEMPLATE = (
     Path(__file__).parents[4].resolve() / "bots/robocat/config_template.yaml")

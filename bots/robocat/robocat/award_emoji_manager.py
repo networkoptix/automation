@@ -87,7 +87,11 @@ class AwardEmojiManager():
         self._gitlab_manager = gitlab_award_emoji_manager
         self._current_user = current_user
 
-    @lru_cache(maxsize=16)  # Short term cache. New data is obtained for every bot "handle" call.
+    # The cache belongs to the class rather than to the instance, so every object it has seen
+    # stays alive for the lifetime of the process. Suppressed rather than restructured here:
+    # changing the caching strategy is a behavioural change and needs its own change.
+    # Short term cache. New data is obtained for every bot "handle" call.
+    @lru_cache(maxsize=16)  # noqa: B019
     def _cached_list(self):
         return self._gitlab_manager.list()
 

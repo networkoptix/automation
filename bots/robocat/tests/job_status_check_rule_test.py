@@ -1,34 +1,50 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 import pytest
-
-from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.note import NoteDetails, MessageId
+from automation_tools.tests.fixtures import repo_accessor
 from automation_tools.tests.gitlab_constants import (
-    BAD_OPENSOURCE_COMMIT,
-    BAD_OPENCANDIDATE_COMMIT,
-    GOOD_README_COMMIT_CHANGED_FILE,
-    GOOD_README_COMMIT_NEW_FILE,
-    DEFAULT_COMMIT,
-    FILE_COMMITS_SHA,
-    OPEN_SOURCE_APPROVER_COMMON,
-    OPEN_SOURCE_APPROVER_COMMON_2,
-    OPEN_SOURCE_APPROVER_CLIENT,
     APIDOC_APPROVER,
+    APIDOC_INFO_CHANGED_COMMIT,
+    BAD_OPENCANDIDATE_COMMIT,
+    BAD_OPENSOURCE_COMMIT,
     CODE_OWNER_1,
     CODE_OWNER_2,
     CODE_OWNER_3,
-    UNIVERSAL_APPROVER,
+    DEFAULT_COMMIT,
     DEFAULT_REQUIRED_APPROVALS_COUNT,
+    DEFAULT_USER,
+    FILE_COMMITS_SHA,
+    GOOD_README_COMMIT_CHANGED_FILE,
+    GOOD_README_COMMIT_NEW_FILE,
     MULTIPLE_KEEPERS_COMMIT_1,
     MULTIPLE_KEEPERS_COMMIT_2,
     MULTIPLE_KEEPERS_COMMIT_3,
-    APIDOC_INFO_CHANGED_COMMIT,
-    DEFAULT_USER)
+    OPEN_SOURCE_APPROVER_CLIENT,
+    OPEN_SOURCE_APPROVER_COMMON,
+    OPEN_SOURCE_APPROVER_COMMON_2,
+    UNIVERSAL_APPROVER,
+)
 from automation_tools.tests.mocks.file import (
-    GOOD_README_RAW_DATA, BAD_README_RAW_DATA_2, GOOD_CPP_RAW_DATA)
+    BAD_README_RAW_DATA_2,
+    GOOD_CPP_RAW_DATA,
+    GOOD_README_RAW_DATA,
+)
 from automation_tools.tests.mocks.git_mocks import random_sha
-from tests.fixtures import *
+from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.note import MessageId, NoteDetails
+
+from tests.fixtures import (
+    apidoc_approve_ruleset,
+    bot_config,
+    code_owner_approve_ruleset,
+    job_status_rule,
+    mr,
+    mr_manager,
+    mr_state,
+    open_source_approve_ruleset,
+    project,
+    project_manager,
+)
 
 
 class TestJobStatusCheckRule:
@@ -187,7 +203,7 @@ class TestJobStatusCheckRule:
             "commits_list": [
                 {
                     "sha": random_sha(),
-                    "message": f"VMS-1: some title\nsome msg",
+                    "message": "VMS-1: some title\nsome msg",
                     "files": {
                         "dir1/somefile.cpp": {
                             "is_new": False, "is_deleted": False, "raw_data": "",
@@ -205,7 +221,7 @@ class TestJobStatusCheckRule:
             "commits_list": [
                 {
                     "sha": random_sha(),
-                    "message": f"VMS-1: some title\nsome msg",
+                    "message": "VMS-1: some title\nsome msg",
                     "files": {
                         "dir1/somefile.cpp": {
                             "is_new": True, "is_deleted": False, "raw_data": "",
@@ -223,7 +239,7 @@ class TestJobStatusCheckRule:
             "commits_list": [
                 {
                     "sha": random_sha(),
-                    "message": f"VMS-1: some title\nsome msg",
+                    "message": "VMS-1: some title\nsome msg",
                     "files": {
                         "dir1/somefile.cpp": {
                             "is_new": False, "is_deleted": True, "raw_data": "",
@@ -241,7 +257,7 @@ class TestJobStatusCheckRule:
             "commits_list": [
                 {
                     "sha": random_sha(),
-                    "message": f"VMS-1: some title\nsome msg",
+                    "message": "VMS-1: some title\nsome msg",
                     "files": {
                         "dir2/somefile.cpp": {
                             "is_new": False, "is_deleted": False, "raw_data": "",
@@ -259,7 +275,7 @@ class TestJobStatusCheckRule:
             "commits_list": [
                 {
                     "sha": random_sha(),
-                    "message": f"VMS-1: some title\nsome msg",
+                    "message": "VMS-1: some title\nsome msg",
                     "files": {
                         "dir2/somefile.cpp": {
                             "is_new": False, "is_deleted": False, "raw_data": "",
@@ -280,7 +296,7 @@ class TestJobStatusCheckRule:
             "commits_list": [
                 {
                     "sha": random_sha(),
-                    "message": f"VMS-1: some title\nsome msg",
+                    "message": "VMS-1: some title\nsome msg",
                     "files": {
                         "dir1/somefile.cpp": {
                             "is_new": False, "is_deleted": False, "raw_data": "",
@@ -301,7 +317,7 @@ class TestJobStatusCheckRule:
             "commits_list": [
                 {
                     "sha": random_sha(),
-                    "message": f"VMS-1: some title\nsome msg",
+                    "message": "VMS-1: some title\nsome msg",
                     "files": {
                         "dir2/somefile.cpp": {
                             "is_new": False, "is_deleted": False, "raw_data": "",
@@ -557,7 +573,7 @@ class TestJobStatusCheckRule:
             assert is_manual_check_emoji_in_comment and is_message_id_right, (
                 f"First comment is: {comments[0]}")
 
-            assert f"Update assignee list" in comments[1], (f"Last comment is: {comments[1]}")
+            assert "Update assignee list" in comments[1], (f"Last comment is: {comments[1]}")
 
             mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
 
@@ -675,7 +691,7 @@ class TestJobStatusCheckRule:
             message_details = (
                 f"{NoteDetails._ID_KEY}: {MessageId.JobStatusCheckNeedsApproval.value}")
             assert message_details in comments[0], f"First comment is: {comments[0]}"
-            assert f"Update assignee list" in comments[1], f"Last comment is: {comments[1]}"
+            assert "Update assignee list" in comments[1], f"Last comment is: {comments[1]}"
 
             mr_manager._mr.load_discussions()  # Update notes in the MergeRequest object.
 

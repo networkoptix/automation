@@ -3,14 +3,12 @@
 import logging
 from enum import Enum
 
-from automation_tools.jira import JiraAccessor
 from automation_tools.mr_data_structures import ApprovalRequirements
+
+from robocat.action_reasons import CheckFailureReason, WaitReason
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.project_manager import ProjectManager
-from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
-from robocat.action_reasons import WaitReason, CheckFailureReason
 from robocat.pipeline import PipelineStatus
-from robocat.config import Config
+from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 
 logger = logging.getLogger(__name__)
 

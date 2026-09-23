@@ -1,34 +1,38 @@
 ## Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-from collections.abc import Iterable
-from dataclasses import dataclass
-from functools import lru_cache
 import datetime
 import logging
 import re
+from collections.abc import Iterable
+from dataclasses import dataclass
+from functools import lru_cache
 
 import jira
 import jira.exceptions
 import jira.resources
 
-from automation_tools.jira_comments import (
-    JiraComment, JiraCommentDataKey, JiraCommentError, JiraMessageId)
-from automation_tools.jira_helpers import (
-    JiraError,
-    JiraStatusChangeError,
-    JiraProjectConfig,
-    JIRA_STATUS_REVIEW,
-    JIRA_STATUS_PROGRESS,
-    JIRA_STATUS_CLOSED,
-    JIRA_STATUS_QA,
-    JIRA_STATUS_READY_TO_MERGE,
-    JIRA_STATUS_OPEN,
-    JIRA_STATUS_INQA,
-    JIRA_STATUS_VERIFICATION,
-    JIRA_TRANSITION_WORKFLOW_FAILURE)
 import automation_tools.bot_info
 import automation_tools.utils
-import automation_tools.jira_comments as jira_messages
+from automation_tools.jira_comments import (
+    JiraComment,
+    JiraCommentDataKey,
+    JiraCommentError,
+    JiraMessageId,
+)
+from automation_tools.jira_helpers import (
+    JIRA_STATUS_CLOSED,
+    JIRA_STATUS_INQA,
+    JIRA_STATUS_OPEN,
+    JIRA_STATUS_PROGRESS,
+    JIRA_STATUS_QA,
+    JIRA_STATUS_READY_TO_MERGE,
+    JIRA_STATUS_REVIEW,
+    JIRA_STATUS_VERIFICATION,
+    JIRA_TRANSITION_WORKFLOW_FAILURE,
+    JiraError,
+    JiraProjectConfig,
+    JiraStatusChangeError,
+)
 
 logger = logging.getLogger(__name__)
 
