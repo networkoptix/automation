@@ -40,16 +40,19 @@ class Repo:
 
     def update_repository(self, remote: str = "origin", flags: FetchFlags = FetchFlags.EMPTY):
         logger.debug(f"Fetching {remote}...")
-        additional_args = []
+        # Options must be passed as keyword arguments. The first positional parameter of
+        # "fetch()" is the refspec, and since GitPython 3.1.30 it is placed after a "--"
+        # separator, which makes git read it as a ref name rather than as an option.
+        additional_args = {}
         if flags & FetchFlags.NO_TAGS:
-            additional_args.append("--no-tags")
+            additional_args["no_tags"] = True
         try:
-            self.repo.remotes[remote].fetch(*additional_args)
+            self.repo.remotes[remote].fetch(**additional_args)
         except git.exc.BadName as e:
             # Workaround for https://github.com/gitpython-developers/GitPython/issues/768.
             logger.debug(f"'BadName' exception while fetching remote: {e}. Retrying...")
             self.repo.git.gc("--auto")
-            self.repo.remotes[remote].fetch(*additional_args)
+            self.repo.remotes[remote].fetch(**additional_args)
 
     def add_remote(self, remote: str, url: str):
         try:

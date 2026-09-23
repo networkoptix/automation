@@ -264,7 +264,8 @@ class TestBot:
         assert len(local_git_actions) == 7, f"Local git actions: {local_git_actions}"
         assert local_git_actions[0].startswith(f"add remote '{project.namespace['full_path']}'"), (
             f"Local git action 1: {local_git_actions[0]}")
-        assert local_git_actions[2].startswith(f"fetch '{project.namespace['full_path']}'"), (
+        fetch_test_string = f"fetch '{project.namespace['full_path']}' --no-tags"
+        assert local_git_actions[2].startswith(fetch_test_string), (
             f"Local git actions: {local_git_actions[2]}")
         hard_reset_test_string = (
             f"hard reset '{mr.source_branch}' to "
