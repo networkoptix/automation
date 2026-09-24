@@ -39,12 +39,14 @@ class JiraComment:
     _TECHNICAL_DETAILS_WRAPPER_END = "{noformat}"
     _ID_KEY = "Message Id"
     _DATA_KEY = "Data"
-    # TODO: Remove "|{{noformat}}" from the regex after some weeks - it is here for the
-    # compatibility wtih the previous format.
     _DETAILS_RE = re.compile(
-        rf"(?:{_TECHNICAL_DETAILS_WRAPPER_START}|{{noformat}})\s*(?P<details>.+?)\s*"
+        rf"{_TECHNICAL_DETAILS_WRAPPER_START}\s*(?P<details>.+?)\s*"
         f"{_TECHNICAL_DETAILS_WRAPPER_END}",
         re.DOTALL)
+    # Comments of the previous format have no title in the details block. Only used as a
+    # fallback, because the message text can contain untitled "{noformat}" blocks as well.
+    _LEGACY_DETAILS_RE = re.compile(
+        rf"{{noformat}}\s*(?P<details>.+?)\s*{_TECHNICAL_DETAILS_WRAPPER_END}", re.DOTALL)
 
     def __init__(
             self,
@@ -86,7 +88,8 @@ class JiraComment:
 
     @classmethod
     def from_string(cls, text: str) -> Optional["JiraComment"]:
-        details_text_match = cls._DETAILS_RE.search(text)
+        details_text_match = (
+            cls._DETAILS_RE.search(text) or cls._LEGACY_DETAILS_RE.search(text))
         if not details_text_match:
             return None
 
@@ -139,7 +142,7 @@ for the following branches:
     JiraMessageId.FollowUpError: """An error occurred while trying to execute follow-up actions for
 merge request [{mr_name}|{mr_url}]:
 
-{{panel}}{error}{{panel}}
+{{noformat}}{error}{{noformat}}
 
 Please, investigate the problem - check this merge request and all related Jira issues.""",
     JiraMessageId.IssueAlreadyFinalized: """The Issue is already in "{status}" status. This
