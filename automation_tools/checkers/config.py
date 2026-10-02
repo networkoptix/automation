@@ -85,6 +85,12 @@ ALLOWED_VERSIONS_SETS = {
             "Postponed for the future releases"
         )
     ],
+    "DOCDB": [
+        AllowedVersionSet(
+            {'master (1.0)'},
+            "Ongoing release development"
+        )
+    ],
 }
 
 IGNORE_LABEL = "hide_from_police"
