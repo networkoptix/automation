@@ -63,11 +63,7 @@ ALLOWED_VERSIONS_SETS = {
     ],
     "VMSDB": [
         AllowedVersionSet(
-            {'master (26.2)'},
-            "Next release development"
-        ),
-        AllowedVersionSet(
-            {'master (26.2)', '26.1'},
+            {'master (1.0)'},
             "Ongoing release development"
         )
     ],
