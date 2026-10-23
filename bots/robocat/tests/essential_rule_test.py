@@ -186,13 +186,13 @@ class TestEssentialRule:
         },
     ])
     def test_run_pipeline(self, essential_rule, mr, mr_manager):
-        if current_sha_pipelines := [p for p in mr.pipelines() if p["sha"] == mr.sha]:
+        if current_sha_pipelines := [p for p in mr.mock_pipelines() if p["sha"] == mr.sha]:
             last_pipeline_status = current_sha_pipelines[0]["status"]
         else:
             last_pipeline_status = None
         is_pipeline_creation_requested = any(
             e for e in mr.emojis_list if e == AwardEmojiManager.PIPELINE_EMOJI)
-        initial_pipelines_number = len(mr.pipelines())
+        initial_pipelines_number = len(mr.mock_pipelines())
         expected_comments_count = 2 if mr.blocking_discussions_resolved else 3
 
         for _ in range(2):  # State must not change after any number of rule executions.
@@ -205,7 +205,7 @@ class TestEssentialRule:
             assert f":{AwardEmojiManager.PIPELINE_EMOJI}:" in comments[-1], (
                 f"Last comment: {comments[-1]}.")
 
-            pipelines = mr.pipelines()
+            pipelines = mr.mock_pipelines()
             if is_pipeline_creation_requested:
                 if last_pipeline_status == "manual":
                     assert len(pipelines) == initial_pipelines_number, (
@@ -335,14 +335,15 @@ class TestEssentialRule:
         },
     ])
     def test_norun_pipeline(self, essential_rule, mr, mr_manager):
-        initial_pipelines_number = len(mr.pipelines())
+        initial_pipelines_number = len(mr.mock_pipelines())
         if mr.sha:
-            last_pipeline_status = next(p for p in mr.pipelines() if p["sha"] == mr.sha)["status"]
+            last_pipeline_status = next(
+                p for p in mr.mock_pipelines() if p["sha"] == mr.sha)["status"]
 
         for _ in range(2):  # State must not change after any number of rule executions.
             essential_rule.execute(mr_manager)
 
-            pipelines = mr.pipelines()
+            pipelines = mr.mock_pipelines()
             assert len(pipelines) == initial_pipelines_number
             if mr.sha and last_pipeline_status != "running":
                 assert pipelines[0]["status"] != "running", f"Got pipelines: {pipelines}"

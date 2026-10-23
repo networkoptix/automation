@@ -183,7 +183,8 @@ class MergeRequest:
         return set(issue_keys)
 
     def raw_pipelines_list(self) -> list[dict]:
-        return self._gitlab_mr.pipelines()
+        pipelines = self._gitlab_mr.pipelines.list(get_all=False)  # First page only, as before.
+        return [pipeline.asdict() for pipeline in pipelines]
 
     def refresh(self):
         """Re-fetch MR data from GitLab to get current detailed_merge_status."""

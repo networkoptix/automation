@@ -86,7 +86,7 @@ class TestRobocatCommands:
         assert f":{AwardEmojiManager.PIPELINE_EMOJI}:" in comments[-1], (
             f"Last comment: {comments[-1]}.")
 
-        pipelines = mr.pipelines()
+        pipelines = mr.mock_pipelines()
         assert len(pipelines) == 2, "No new pipeline created"
         assert pipelines[0]["status"] == "running", f"Got pipelines: {pipelines}"
 
@@ -104,7 +104,7 @@ class TestRobocatCommands:
         assert f":{AwardEmojiManager.NO_PIPELINE_EMOJI}:" in comments[-1], (
             f"Last comment: {comments[-1]}.")
 
-        pipelines = mr.pipelines()
+        pipelines = mr.mock_pipelines()
         assert len(pipelines) == 1, "New pipeline created"
         assert pipelines[0]["status"] == "failed", f"Got pipelines: {pipelines}"
 

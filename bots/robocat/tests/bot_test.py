@@ -148,7 +148,7 @@ class TestBot:
 
         # Nothing changes after the third handler run.
         comments_before = mr.mock_comments()
-        pipelines_before = mr.pipelines()
+        pipelines_before = mr.mock_pipelines()
         emojis_before = [e.name for e in mr.awardemojis.list()]
 
         bot.handle(mr_manager)
@@ -157,7 +157,7 @@ class TestBot:
         assert mr.blocking_discussions_resolved
 
         comments_after = mr.mock_comments()
-        pipelines_after = mr.pipelines()
+        pipelines_after = mr.mock_pipelines()
         emojis_after = [e.name for e in mr.awardemojis.list()]
         assert comments_before == comments_after
         assert pipelines_before == pipelines_after

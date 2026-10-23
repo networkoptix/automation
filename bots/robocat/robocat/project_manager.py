@@ -230,7 +230,7 @@ class ProjectManager:
             my_reaction_emoji=AwardEmojiManager.UNFINISHED_POST_MERGING_EMOJI)
 
     def _get_next_merge_request(self, **kwargs) -> Generator[MergeRequest, None, None]:
-        mrs = self._project.get_raw_mrs(as_list=False, **kwargs)
+        mrs = self._project.get_raw_mrs(iterator=True, **kwargs)
         for raw_mr in mrs:
             if self._current_user in (assignee["username"] for assignee in raw_mr.assignees):
                 yield MergeRequest(raw_mr, self._current_user)

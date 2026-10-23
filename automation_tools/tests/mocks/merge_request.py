@@ -228,6 +228,27 @@ class DiscussionsManagerMock:
 
 
 @dataclass
+class MergeRequestPipelineMock:
+    """One pipeline in the pipeline list of a Merge Request."""
+    data: dict
+
+    def asdict(self) -> dict:
+        """The pipeline attributes, like python-gitlab's RESTObject.asdict()."""
+        return dict(self.data)
+
+
+@dataclass
+class MergeRequestPipelinesManagerMock:
+    """The pipelines manager of a Merge Request."""
+    merge_request: Any  # MergeRequestMock
+
+    def list(self, **_) -> list[MergeRequestPipelineMock]:
+        """The pipelines, the newest first."""
+        pipelines = self.merge_request.mock_pipelines()
+        return [MergeRequestPipelineMock(data=data) for data in pipelines]
+
+
+@dataclass
 class MergeRequestMock:
     project: Any  # ProjectMock
 
@@ -276,6 +297,7 @@ class MergeRequestMock:
     discussions: DiscussionsManagerMock = field(default=None, init=False)
     manager: GitlabManagerMock = field(default_factory=GitlabManagerMock, init=False)
     diffs: VersionsManagerMock = field(default=None, init=False)
+    pipelines: MergeRequestPipelinesManagerMock = field(default=None, init=False)
 
     def __post_init__(self):
         # Bind to "self.project".
@@ -295,6 +317,9 @@ class MergeRequestMock:
 
         # Create versions ("diff" in gitlab library terminology) manager and bind it to itself.
         self.diffs = VersionsManagerMock(merge_request=self)
+
+        # Create pipelines manager and bind it to itself.
+        self.pipelines = MergeRequestPipelinesManagerMock(merge_request=self)
 
         # Initialize other fields.
         for name in self.emojis_list:
@@ -395,7 +420,7 @@ class MergeRequestMock:
     def project_id(self):
         return self.project.id
 
-    def pipelines(self):
+    def mock_pipelines(self):
         result = []
         for pipeline in sorted(self.project.pipelines.list(), key=lambda p: p.id):
             result.append({

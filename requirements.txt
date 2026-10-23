@@ -1,7 +1,7 @@
 cryptography==3.3.2 # Version 3.4 does not build in the given environment.
 jira==3.10.5
 pytest==8.4.2
-python-gitlab==2.5.0
+python-gitlab==8.6.0
 graypy==2.1.0
 pyaml==20.4.0
 gitpython==3.1.62
