@@ -23,6 +23,7 @@ from automation_tools.utils import merge_dicts
 import robocat.commands.parser
 import robocat.comments
 from robocat.config import Config
+from robocat.gitlab import logged_in_user
 from robocat.gitlab_events import (
     GitlabCommentEventData,
     GitlabEventData,
@@ -79,7 +80,7 @@ class Bot(threading.Thread):
 
         raw_gitlab = raw_gitlab or gitlab.Gitlab.from_config("nx_gitlab")
         raw_gitlab.auth()
-        gitlab_user_info = raw_gitlab.users.get(raw_gitlab.user.id)
+        gitlab_user_info = raw_gitlab.users.get(logged_in_user(raw_gitlab).id)
         self._username = gitlab_user_info.username
         committer = automation_tools.utils.User(
             email=gitlab_user_info.email, name=gitlab_user_info.name,

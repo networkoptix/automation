@@ -7,11 +7,19 @@ import logging
 
 import automation_tools.utils
 import gitlab
+from gitlab.v4.objects import CurrentUser
 
 import robocat.project
 from robocat.pipeline import Pipeline, PipelineLocation
 
 logger = logging.getLogger(__name__)
+
+
+def logged_in_user(raw_gitlab: gitlab.Gitlab) -> CurrentUser:
+    """The token owner of a raw GitLab object; python-gitlab sets it in auth()."""
+    if raw_gitlab.user is None:
+        raise RuntimeError(f"GitLab {raw_gitlab.url}: no logged-in user, auth() was not called")
+    return raw_gitlab.user
 
 
 class Gitlab:
@@ -53,7 +61,7 @@ class Gitlab:
 
     @property
     def user_id(self):
-        return self._raw_gitlab_object.user.id
+        return logged_in_user(self._raw_gitlab_object).id
 
     def get_git_user_info_by_username(self, user_name: str) -> automation_tools.utils.User:
         user_info = self._get_user_info_by_username(user_name)
