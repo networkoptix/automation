@@ -4,6 +4,7 @@ import pytest
 from automation_tools.tests.fixtures import repo_accessor
 from automation_tools.tests.gitlab_constants import BOT_USERNAME, DEFAULT_COMMIT
 from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.comments import Emoji
 from robocat.merge_request import MergeRequest
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.rule.essential_rule import EssentialRule
@@ -25,12 +26,12 @@ class TestEssentialRule:
             assert not essential_rule.execute(mr_manager)
 
             emojis = mr.awardemojis.list()
-            assert any(e for e in emojis if e.name == AwardEmojiManager.WATCH_EMOJI), (
+            assert any(e for e in emojis if e.name == Emoji.WATCHING), (
                 "Has watch emoji.")
 
             comments = mr.mock_comments()
             assert len(comments) == 2, f"Got comments: {comments}"
-            assert any(c for c in comments if f":{AwardEmojiManager.INITIAL_EMOJI}:" in c), (
+            assert any(c for c in comments if f":{Emoji.INITIAL}:" in c), (
                 f"Last comment: {mr.mock_comments()[0]}.")
 
     @pytest.mark.parametrize("mr_state", [
@@ -41,7 +42,7 @@ class TestEssentialRule:
             assert not essential_rule.execute(mr_manager)
 
             emojis = mr.awardemojis.list()
-            assert any(e for e in emojis if e.name == AwardEmojiManager.WAIT_EMOJI), (
+            assert any(e for e in emojis if e.name == Emoji.WAIT), (
                 "Has wait emoji.")
 
             comments = mr.mock_comments()
@@ -60,7 +61,7 @@ class TestEssentialRule:
             assert not essential_rule.execute(mr_manager)
 
             emojis = mr.awardemojis.list()
-            assert any(e for e in emojis if e.name == AwardEmojiManager.WAIT_EMOJI), (
+            assert any(e for e in emojis if e.name == Emoji.WAIT), (
                 "Has wait emoji.")
 
             comments = mr.mock_comments()
@@ -79,7 +80,7 @@ class TestEssentialRule:
             assert not essential_rule.execute(mr_manager)
 
             emojis = mr.awardemojis.list()
-            assert any(e for e in emojis if e.name == AwardEmojiManager.WAIT_EMOJI), (
+            assert any(e for e in emojis if e.name == Emoji.WAIT), (
                 "Has wait emoji.")
 
             comments = mr.mock_comments()
@@ -191,7 +192,7 @@ class TestEssentialRule:
         else:
             last_pipeline_status = None
         is_pipeline_creation_requested = any(
-            e for e in mr.emojis_list if e == AwardEmojiManager.PIPELINE_EMOJI)
+            e for e in mr.emojis_list if e == Emoji.PIPELINE)
         initial_pipelines_number = len(mr.mock_pipelines())
         expected_comments_count = 2 if mr.blocking_discussions_resolved else 3
 
@@ -202,7 +203,7 @@ class TestEssentialRule:
 
             comments = mr.mock_comments()
             assert len(comments) == expected_comments_count, f"Got comments: {comments}"
-            assert f":{AwardEmojiManager.PIPELINE_EMOJI}:" in comments[-1], (
+            assert f":{Emoji.PIPELINE}:" in comments[-1], (
                 f"Last comment: {comments[-1]}.")
 
             pipelines = mr.mock_pipelines()
@@ -216,7 +217,7 @@ class TestEssentialRule:
             assert pipelines[0]["status"] == "running", f"Got pipelines: {pipelines}"
 
             emojis = mr.awardemojis.list()
-            assert not any(e for e in emojis if e.name == AwardEmojiManager.PIPELINE_EMOJI), (
+            assert not any(e for e in emojis if e.name == Emoji.PIPELINE), (
                 "No pipeline start emoji.")
 
     @pytest.mark.parametrize("mr_state", [
@@ -299,7 +300,7 @@ class TestEssentialRule:
         },
         # User-requested pipeline not started if previous pipeline ran for the same sha
         {
-            "emojis_list": [AwardEmojiManager.PIPELINE_EMOJI],
+            "emojis_list": [Emoji.PIPELINE],
             "pipelines_list": [(DEFAULT_COMMIT["sha"], "failed")]
         },
         # Only line numbers changed in the diff.
@@ -350,7 +351,7 @@ class TestEssentialRule:
 
             comments = mr.mock_comments()
             assert not any(
-                c for c in comments if f"# :{AwardEmojiManager.PIPELINE_EMOJI}:" in c), (
+                c for c in comments if f"# :{Emoji.PIPELINE}:" in c), (
                 f"Got comments: {comments}")
 
     @pytest.mark.parametrize(("mr_state", "expected_result", "expected_comment"), [
@@ -386,7 +387,7 @@ class TestEssentialRule:
 
         comments = mr.mock_comments()
         assert comments[-1].startswith(
-            f"### :{AwardEmojiManager.CHECK_FAIL_EXPLANATION_EMOJI}:"), f"Got comments: {comments}"
+            f"### :{Emoji.CHECK_FAIL_EXPLANATION}:"), f"Got comments: {comments}"
         assert expected_comment in comments[-1], f"Got comment: {comments[-1]}"
 
         assert essential_rule.execute(mr_manager) in [
@@ -412,7 +413,7 @@ class TestEssentialRule:
         assert not essential_rule.execute(mr_manager)
 
         emojis = mr.awardemojis.list()
-        assert any(e for e in emojis if e.name == AwardEmojiManager.WAIT_EMOJI)
+        assert any(e for e in emojis if e.name == Emoji.WAIT)
 
         comments = mr.mock_comments()
         assert any("Waiting for pipeline" in c for c in comments)
@@ -431,7 +432,7 @@ class TestEssentialRule:
     @pytest.mark.parametrize("mr_state", [
         # Good MR linked to a good Jira Project.
         {
-            "emojis_list": [AwardEmojiManager.WATCH_EMOJI],
+            "emojis_list": [Emoji.WATCHING],
             "needed_approvers_number": 2,
             "approvers_list": ["user1", "user2"],
             "pipelines_list": [(DEFAULT_COMMIT["sha"], "success")],
@@ -439,7 +440,7 @@ class TestEssentialRule:
         # Good MR linked to one good and one bad Jira Project.
         {
             "title": "NXLIB-666, UNKNOWN-666: Test mr",
-            "emojis_list": [AwardEmojiManager.WATCH_EMOJI],
+            "emojis_list": [Emoji.WATCHING],
             "needed_approvers_number": 2,
             "approvers_list": ["user1", "user2"],
             "pipelines_list": [(DEFAULT_COMMIT["sha"], "success")],

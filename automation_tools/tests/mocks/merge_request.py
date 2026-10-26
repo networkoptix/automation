@@ -22,7 +22,8 @@ from automation_tools.tests.mocks.pipeline import JobMock, PipelineMock
 
 try:
     import robocat.comments
-    from robocat.note import MessageId, NoteDetails
+    from robocat.comments import Comment
+    from robocat.note import NoteDetails
 except ImportError:
     # For testing Workflow Police we don't need Robocat, but need some functionality from this
     # module. So if we can't import Robocat modules, we assume that we are testing the Workflow
@@ -362,7 +363,7 @@ class MergeRequestMock:
 
         if self.mock_original_mr_id:
             message = robocat.comments.Message(
-                id=MessageId.FollowUpInitialMessage,
+                id=Comment.FollowUpInitialMessage,
                 params={"branch": self.target_branch, "original_mr_url": self.web_url})
             data_text = str(NoteDetails(
                 message_id=message.id,

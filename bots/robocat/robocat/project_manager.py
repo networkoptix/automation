@@ -5,17 +5,15 @@ import logging
 import re
 from typing import Generator
 
-import automation_tools
-import automation_tools.bot_info
 from git import GitCommandError
 from gitlab import GitlabGetError
 
 import robocat.comments
 import robocat.gitlab
-from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.comments import Comment, Emoji
 from robocat.merge_request import MergeRequest
 from robocat.merge_request_manager import MergeRequestData, MergeRequestManager
-from robocat.note import MessageId, NoteDetails
+from robocat.note import NoteDetails
 from robocat.pipeline import Pipeline, PipelineLocation
 from robocat.project import MergeRequestAlreadyExistsError, Project
 
@@ -98,7 +96,7 @@ class ProjectManager:
         except MergeRequestAlreadyExistsError as e:
             logger.info(f"Failed to create follow-up merge request: {e}")
             original_mr_manager.add_comment(robocat.comments.Message(
-                id=MessageId.FollowUpExistsForTheBranch,
+                id=Comment.FollowUpExistsForTheBranch,
                 params={"source_branch": e.source_branch, "target_branch": e.target_branch}))
             raise
 
@@ -184,9 +182,9 @@ class ProjectManager:
 
         mr = MergeRequest(raw_mr, self._current_user)
         mr.set_approvers_count(0)
-        mr.award_emoji.create(AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI)
+        mr.award_emoji.create(Emoji.FOLLOWUP_MERGE_REQUEST)
         message = robocat.comments.Message(
-            id=MessageId.FollowUpInitialMessage,
+            id=Comment.FollowUpInitialMessage,
             params={"branch": target_branch, "original_mr_url": original_mr_data.url})
         data_text = str(NoteDetails(
             message_id=message.id, sha=mr.sha, data={"original_mr_id": original_mr_data.id}))
@@ -194,20 +192,14 @@ class ProjectManager:
 
         if cherry_picked_commit_count < len(commits):
             manual_resolution_required_message = robocat.comments.Message(
-                id=MessageId.ManualResolutionRequired,
+                id=Comment.ManualResolutionRequired,
                 params={
                     "branch": source_branch,
                     "commits": " ".join(commits[cherry_picked_commit_count:]),
                 })
-            manual_resolution_required_message_body = robocat.comments.template.format(
-                title=manual_resolution_required_message.title,
-                message=manual_resolution_required_message.text,
-                emoji=AwardEmojiManager.EMOJI_BY_MESSAGE_ID.get(
-                    MessageId.ManualResolutionRequired),
-                revision=automation_tools.bot_info.revision())
-
-            manual_resolution_required_message_body += str(
-                NoteDetails(message_id=MessageId.ManualResolutionRequired, sha=mr.sha))
+            manual_resolution_required_message_body = (
+                manual_resolution_required_message.format_body(str(
+                    NoteDetails(message_id=Comment.ManualResolutionRequired, sha=mr.sha))))
             # Create a comment thread if there are conflicts with the target branch. If no commits
             # were cherry-picked, resolve them automatically, otherwise leave them unresolved to
             # avoid merging a partially-ready MR.
@@ -227,7 +219,7 @@ class ProjectManager:
 
     def get_next_unfinished_merge_request(self) -> Generator[MergeRequest, None, None]:
         return self._get_next_merge_request(
-            my_reaction_emoji=AwardEmojiManager.UNFINISHED_POST_MERGING_EMOJI)
+            my_reaction_emoji=Emoji.UNFINISHED_POST_MERGING)
 
     def _get_next_merge_request(self, **kwargs) -> Generator[MergeRequest, None, None]:
         mrs = self._project.get_raw_mrs(iterator=True, **kwargs)

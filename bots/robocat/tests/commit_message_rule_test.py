@@ -16,7 +16,8 @@ from automation_tools.tests.gitlab_constants import (
     OPEN_SOURCE_APPROVER_COMMON_2,
 )
 from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.note import MessageId, NoteDetails
+from robocat.comments import Comment, Emoji
+from robocat.note import NoteDetails
 from robocat.rule.commit_message_check_rule import CommitMessageCheckRule
 
 from tests.fixtures import (
@@ -96,10 +97,10 @@ class TestCommitMessageRule:
 
             comments = mr.mock_comments()
             assert len(comments) == 1, f"Got comments: {comments}"
-            assert f":{AwardEmojiManager.AUTOCHECK_OK_EMOJI}:" in comments[0], (
+            assert f":{Emoji.AUTOCHECK_OK}:" in comments[0], (
                 f"Comment is: {comments[0]}")
             message_details = (
-                f"<details><pre>{NoteDetails._ID_KEY}: {MessageId.CommitMessageIsOk.value}")
+                f"<details><pre>{NoteDetails._ID_KEY}: {Comment.CommitMessageIsOk.name}")
             assert message_details in comments[0], f"Comment is: {comments[0]}"
 
             mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
@@ -122,7 +123,7 @@ class TestCommitMessageRule:
                 )],
             },
             CommitMessageCheckRule.ExecutionResult.commit_message_not_ok,
-            MessageId.BadCommitMessage,
+            Comment.BadCommitMessage,
         ),
         # Same as the previous but the author is an open source keeper.
         (
@@ -142,7 +143,7 @@ class TestCommitMessageRule:
                 )],
             },
             CommitMessageCheckRule.ExecutionResult.merge_authorized,
-            MessageId.BadCommitMessageByKeeper,
+            Comment.BadCommitMessageByKeeper,
         ),
         # Same as the first case but some of the reviewers are open source keepers.
         (
@@ -162,7 +163,7 @@ class TestCommitMessageRule:
                 )],
             },
             CommitMessageCheckRule.ExecutionResult.commit_message_not_ok,
-            MessageId.BadCommitMessage,
+            Comment.BadCommitMessage,
         ),
     ])
     def test_commit_message_is_not_ok(
@@ -192,9 +193,9 @@ class TestCommitMessageRule:
             comments = mr.mock_comments()
             assert len(comments) == (3 if approvers_was_set else 2), f"Got comments: {comments}"
             for comment in comments[0:1]:
-                assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comment, (
+                assert f":{Emoji.AUTOCHECK_FAILED}:" in comment, (
                     f"Comment is: {comment}")
-                message_details = f"\n{NoteDetails._ID_KEY}: {expected_message_id.value}\n"
+                message_details = f"\n{NoteDetails._ID_KEY}: {expected_message_id.name}\n"
                 assert message_details in comment, f"Comment is: {comment}"
 
             mr_manager._mr.load_discussions()  # Update notes in MergeRequest object.
@@ -226,7 +227,7 @@ class TestCommitMessageRule:
         comments = mr.mock_comments()
         assigned_details = (
             f"{NoteDetails._ID_KEY}: "
-            f"{MessageId.CommitMessageAuthorizedApproversAssigned.value}\n")
+            f"{Comment.CommitMessageAuthorizedApproversAssigned.name}\n")
         assigned_comments = [c for c in comments if assigned_details in c]
         assert len(assigned_comments) == 1, f"Got comments: {comments}"
 

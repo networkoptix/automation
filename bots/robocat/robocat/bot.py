@@ -22,6 +22,7 @@ from automation_tools.utils import merge_dicts
 
 import robocat.commands.parser
 import robocat.comments
+from robocat.comments import Comment
 from robocat.config import Config
 from robocat.gitlab import logged_in_user
 from robocat.gitlab_events import (
@@ -35,7 +36,7 @@ from robocat.gitlab_events import (
 )
 from robocat.merge_request_actions.notify_user_actions import add_failed_pipeline_comment_if_needed
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import MessageId, find_last_comment
+from robocat.note import find_last_comment
 from robocat.pipeline import Job, JobStatus, Pipeline, PipelineStatus, PlayPipelineError
 from robocat.project_manager import ProjectManager
 from robocat.rule import ALL_RULES
@@ -159,7 +160,7 @@ class Bot(threading.Thread):
 
         # Check if we have un-run pipeline requested by user.
         if command_run_pipeline := find_last_comment(
-                notes=mr_manager.notes(), message_id=MessageId.CommandRunPipeline):
+                notes=mr_manager.notes(), message_id=Comment.CommandRunPipeline):
             if not command_run_pipeline.additional_data.get("CommandExecuted", False):
                 mr_manager.run_user_requested_pipeline()
 
@@ -237,7 +238,7 @@ class Bot(threading.Thread):
                 logger.error(f'{mr_manager}: Failed to add "MR merged" comment to Jira Issue: {e}')
                 mr_manager.add_comment(
                     robocat.comments.Message(
-                        id=MessageId.FailedMrMergedJiraComment,
+                        id=Comment.FailedMrMergedJiraComment,
                         params={"error": str(e), "issue_key": issue_key}))
 
     def _execute_post_merge_rules(self, mr_manager: MergeRequestManager):
@@ -463,9 +464,9 @@ def create_exception_comment(
 
     previous_exception_comment = find_last_comment(
         notes=mr_manager.notes(),
-        message_id=MessageId.ExceptionOccurred,
+        message_id=Comment.ExceptionOccurred,
         condition=lambda n: (
-            n.message_id == MessageId.ExceptionOccurred
+            n.message_id == Comment.ExceptionOccurred
             and n.sha == mr_manager.data.sha
             and n.additional_data.get("exception_info") == exception_info
             and n.additional_data.get("stack_trace") == stack_trace_repr))
@@ -484,5 +485,5 @@ def create_exception_comment(
             "repetitions": 1,
         }
         mr_manager.add_comment(
-            message=robocat.comments.Message(id=MessageId.ExceptionOccurred),
+            message=robocat.comments.Message(id=Comment.ExceptionOccurred),
             message_data=comment_data)

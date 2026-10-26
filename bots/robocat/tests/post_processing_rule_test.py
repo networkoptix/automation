@@ -10,6 +10,7 @@ from automation_tools.tests.gitlab_constants import (
     MR_MERGED_COMMENT_TEMPLATE_LEGACY,
 )
 from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.comments import Emoji
 from robocat.rule.post_processing_rule import PostProcessingRule
 
 from tests.fixtures import (
@@ -63,7 +64,7 @@ class TestPostProcessingRule:
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
         }, 3),
         # Same, but the Issue has "In progress" status.
@@ -78,7 +79,7 @@ class TestPostProcessingRule:
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
         }, 2),
         # Issue is "In Review" status, but merged only to one branch.
@@ -90,7 +91,7 @@ class TestPostProcessingRule:
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
         }, 1),
         # Issue is "In Review" status, but merged to the wrong branches.
@@ -105,7 +106,7 @@ class TestPostProcessingRule:
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
         }, 2),
         # Issue is "In Review" status, merged branches have the right names, but one of them has
@@ -121,7 +122,7 @@ class TestPostProcessingRule:
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
         }, 2),
         # Merged to all issue branches, Issue has "In Review" status, Issue type is "Internal", but
@@ -138,7 +139,7 @@ class TestPostProcessingRule:
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "mock_original_mr_id": 321,
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
         }, 2),
@@ -219,7 +220,7 @@ class TestPostProcessingRule:
             }], {
                 "state": "merged",
                 "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
-                "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+                "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
                 "squash_commit_sha": DEFAULT_COMMIT["sha"],
                 "target_branch": "vms_5.2",
             }, 3, "Waiting for QA"),
@@ -270,7 +271,7 @@ class TestPostProcessingRule:
                 "state": "merged",
                 "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
                 "squash_commit_sha": DEFAULT_COMMIT["sha"],
-                "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+                "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
                 "mock_original_mr_id": 123,
             }, 3, "Closed"),
 
@@ -312,7 +313,7 @@ class TestPostProcessingRule:
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}, {DEFAULT_JIRA_ISSUE_KEY}1: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
         }, {DEFAULT_JIRA_ISSUE_KEY: 3, f"{DEFAULT_JIRA_ISSUE_KEY}1": 3}),
         # Issues from different projects with legacy "merged to branch" comments.
@@ -335,7 +336,7 @@ class TestPostProcessingRule:
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}, {DEFAULT_CLOUD_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
         }, {DEFAULT_JIRA_ISSUE_KEY: 3, DEFAULT_CLOUD_ISSUE_KEY: 3}),
         # Issues from different projects.
@@ -363,7 +364,7 @@ class TestPostProcessingRule:
             "iid": 123,
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}, {DEFAULT_CLOUD_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
         }, {DEFAULT_JIRA_ISSUE_KEY: 3, DEFAULT_CLOUD_ISSUE_KEY: 3}),
     ])

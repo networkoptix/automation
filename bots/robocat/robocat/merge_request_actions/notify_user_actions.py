@@ -3,8 +3,9 @@
 import logging
 
 import robocat.comments
+from robocat.comments import Comment
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import MessageId, find_last_comment
+from robocat.note import find_last_comment
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 def add_failed_pipeline_comment_if_needed(mr_manager: MergeRequestManager, job_name: str):
     failed_job_comment = find_last_comment(
         notes=mr_manager.notes(),
-        message_id=MessageId.FailedJobNotification,
+        message_id=Comment.FailedJobNotification,
         condition=lambda n: n.sha == mr_manager.data.sha)
 
     if failed_job_comment:
@@ -22,4 +23,4 @@ def add_failed_pipeline_comment_if_needed(mr_manager: MergeRequestManager, job_n
         return
 
     mr_manager.add_comment(robocat.comments.Message(
-        id=MessageId.FailedJobNotification, params={"job_name": job_name}))
+        id=Comment.FailedJobNotification, params={"job_name": job_name}))

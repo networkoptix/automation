@@ -33,6 +33,7 @@ from robocat.bot import (
     GitlabMrEventData,
     GitlabPipelineEventData,
 )
+from robocat.comments import Emoji
 from robocat.config import Config
 
 from tests.fixtures import (
@@ -241,7 +242,7 @@ class TestBot:
 
         emojis = mr.awardemojis.list()
         assert not any(
-            e for e in emojis if e.name == AwardEmojiManager.UNFINISHED_POST_MERGING_EMOJI), (
+            e for e in emojis if e.name == Emoji.UNFINISHED_POST_MERGING), (
             "Hasn't unfinished processing flag.")
 
         issue = jira._jira.issue(jira_issues[0]["key"])
@@ -316,7 +317,7 @@ class TestBot:
 
         emojis = mr.awardemojis.list()
         assert not any(
-            e for e in emojis if e.name == AwardEmojiManager.UNFINISHED_POST_MERGING_EMOJI), (
+            e for e in emojis if e.name == Emoji.UNFINISHED_POST_MERGING), (
             "The Unfinished Processing flag should not be set.")
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
@@ -336,7 +337,7 @@ class TestBot:
 
         emojis = mr.awardemojis.list()
         assert not any(
-            e for e in emojis if e.name == AwardEmojiManager.UNFINISHED_POST_MERGING_EMOJI), (
+            e for e in emojis if e.name == Emoji.UNFINISHED_POST_MERGING), (
             'Hasn\'t unfinished processing flag.')
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
@@ -446,7 +447,7 @@ class TestBot:
         bot.process_event(event_data)
 
         emojis = mr.awardemojis.list()
-        has_emoji_set_by_bot = any(e for e in emojis if e.name == AwardEmojiManager.WATCH_EMOJI)
+        has_emoji_set_by_bot = any(e for e in emojis if e.name == Emoji.WATCHING)
         assert should_trigger_processing == has_emoji_set_by_bot, (
             'MR was not processed.')
 
@@ -468,7 +469,7 @@ class TestBot:
 
         emojis = mr.awardemojis.list()
         assert not any(
-            e for e in emojis if e.name == AwardEmojiManager.UNFINISHED_POST_MERGING_EMOJI), (
+            e for e in emojis if e.name == Emoji.UNFINISHED_POST_MERGING), (
             "The Unfinished Processing flag should not be set.")
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [

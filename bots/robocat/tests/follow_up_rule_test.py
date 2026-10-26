@@ -23,7 +23,7 @@ from automation_tools.tests.mocks.project import ProjectMock
 from robocat.app import Bot
 from robocat.award_emoji_manager import AwardEmojiManager
 from robocat.bot import GitlabCommentEventData, GitlabEventData, GitlabEventType
-from robocat.note import MessageId
+from robocat.comments import Comment, Emoji
 
 from tests.fixtures import (
     apidoc_approve_ruleset,
@@ -56,7 +56,7 @@ class TestFollowUpRule:
         ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master", "vms_5.1"]}], {
             "state": "merged",
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI]
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST]
         }),
     ])
     def test_dont_create_follow_up(
@@ -83,7 +83,7 @@ class TestFollowUpRule:
             if mr_manager.data.is_merged:
                 assert len(mr.mock_comments()) == repetition + 1, (
                     f"Got merge request comments: {mr.mock_comments()}")
-                assert MessageId.FollowUpNotNeeded.value in mr.mock_comments()[-1], (
+                assert Comment.FollowUpNotNeeded.name in mr.mock_comments()[-1], (
                     f"Last comment is: {mr.mock_comments()[-1]}")
             else:
                 assert len(mr.mock_comments()) == 0, (
@@ -91,7 +91,7 @@ class TestFollowUpRule:
 
             emojis = mr.awardemojis.list()
             assert not any(
-                e for e in emojis if e.name == AwardEmojiManager.FOLLOWUP_CREATED_EMOJI), (
+                e for e in emojis if e.name == Emoji.FOLLOWUP_CREATED), (
                 'Hasn\'t "follow-up created" emoji.')
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
@@ -141,12 +141,12 @@ class TestFollowUpRule:
         comments = mr.mock_comments()
         assert len(comments) == 1
         assert comments[0].startswith(
-            f"### :{AwardEmojiManager.CHECK_FAIL_EXPLANATION_EMOJI}: "
+            f"### :{Emoji.CHECK_FAIL_EXPLANATION}: "
             "Follow-up Merge Request already exists")
 
         emojis = mr.awardemojis.list()
         assert not any(
-            e for e in emojis if e.name == AwardEmojiManager.FOLLOWUP_CREATED_EMOJI), (
+            e for e in emojis if e.name == Emoji.FOLLOWUP_CREATED), (
             'Hasn\'t "follow-up created" emoji.')
 
         assert repo_accessor.repo.branches["feature_vms_5.1"].commits == commits_before, (
@@ -268,7 +268,7 @@ class TestFollowUpRule:
 
         assert len(mr.mock_comments()) == len(issue.fields.fixVersions) - 1
         follow_up_created_comment_token = (
-            f":{AwardEmojiManager.FOLLOWUP_CREATED_EMOJI}: Follow-up merge request added")
+            f":{Emoji.FOLLOWUP_CREATED}: Follow-up merge request added")
         assert follow_up_created_comment_token in mr.mock_comments()[0]
 
         source_project_branches = [b.name for b in source_project.branches.list()]
@@ -291,7 +291,7 @@ class TestFollowUpRule:
 
         emojis = new_mr.awardemojis.list()
         assert any(
-            e for e in emojis if e.name == AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI), (
+            e for e in emojis if e.name == Emoji.FOLLOWUP_MERGE_REQUEST), (
             'Is follow-up merge request')
 
         new_comments = new_mr.mock_comments()
@@ -301,7 +301,7 @@ class TestFollowUpRule:
         assert not new_mr.work_in_progress, "New MR is in Draft state."
         assert new_mr.blocking_discussions_resolved, "Unresolved thread found"
         assert new_comments[0].startswith(
-            f"### :{AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI}: Follow-up merge request")
+            f"### :{Emoji.FOLLOWUP_MERGE_REQUEST}: Follow-up merge request")
 
         if robocat_approval:
             new_mr_approved_by = new_mr.approvals.get().approved_by
@@ -352,7 +352,7 @@ class TestFollowUpRule:
         assert len(mr.mock_comments()) == len(issue.fields.fixVersions) - 1
 
         follow_up_created_comment_token = (
-            f":{AwardEmojiManager.FOLLOWUP_CREATED_EMOJI}: Follow-up merge request added")
+            f":{Emoji.FOLLOWUP_CREATED}: Follow-up merge request added")
         assert follow_up_created_comment_token in mr.mock_comments()[0]
         assert creation_failed_message_fragment in mr.mock_comments()[1]
 
@@ -420,9 +420,9 @@ class TestFollowUpRule:
         new_comments = new_mr.mock_comments()
         assert len(new_comments) == 2
         assert new_comments[0].startswith(
-            f"### :{AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI}: Follow-up merge request")
+            f"### :{Emoji.FOLLOWUP_MERGE_REQUEST}: Follow-up merge request")
         assert new_comments[1].startswith(
-            f"### :{AwardEmojiManager.CHERRY_PICK_EMOJI}: Manual conflict resolution required")
+            f"### :{Emoji.CHERRY_PICK}: Manual conflict resolution required")
 
         assert new_mr.blocking_discussions_resolved == is_ready_to_merge, (
             f"Should{'' if is_ready_to_merge else ' not'} be ready for merge")
@@ -476,7 +476,7 @@ class TestFollowUpRule:
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "master",
         }),
@@ -493,7 +493,7 @@ class TestFollowUpRule:
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "master",
         })
@@ -510,7 +510,7 @@ class TestFollowUpRule:
 
         assert follow_up_rule.execute(mr_manager)
         assert len(mr.mock_comments()) == 1
-        assert MessageId.FollowUpNotNeeded.value in mr.mock_comments()[-1], (
+        assert Comment.FollowUpNotNeeded.name in mr.mock_comments()[-1], (
             f"Last comment is: {mr.mock_comments()[-1]}")
         assert len(project.mergerequests.list()) == mr_count_before
 
@@ -529,7 +529,7 @@ class TestFollowUpRule:
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "vms_5.1",
         }),
@@ -546,7 +546,7 @@ class TestFollowUpRule:
 
         assert follow_up_rule.execute(mr_manager)
         assert len(mr.mock_comments()) == 1
-        assert MessageId.FollowUpNotNeeded.value in mr.mock_comments()[-1], (
+        assert Comment.FollowUpNotNeeded.name in mr.mock_comments()[-1], (
             f"Last comment is: {mr.mock_comments()[-1]}")
         assert len(project.mergerequests.list()) == mr_count_before
 
@@ -565,7 +565,7 @@ class TestFollowUpRule:
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "vms_5.1",
         }),
@@ -578,7 +578,7 @@ class TestFollowUpRule:
         }], {
             "state": "merged",
             "title": f"{NXLIB_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_NXLIB_COMMIT["sha"],
             "target_branch": "vms_5.1",
         }),
@@ -599,7 +599,7 @@ class TestFollowUpRule:
         assert len(project.mergerequests.list()) == mr_count_before
         comments = mr.mock_comments()
         assert len(comments) == 1
-        assert MessageId.FollowUpNotNeeded.value in comments[0], (
+        assert Comment.FollowUpNotNeeded.name in comments[0], (
             f"First comment is: {comments[0]}")
 
         issue = jira._jira.issue(jira_issues[0]["key"])
@@ -617,7 +617,7 @@ class TestFollowUpRule:
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "vms_5.1",
         }),
@@ -630,7 +630,7 @@ class TestFollowUpRule:
         }], {
             "state": "merged",
             "title": f"{DEFAULT_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_COMMIT["sha"],
             "target_branch": "vms_5.1",
         }),
@@ -643,7 +643,7 @@ class TestFollowUpRule:
         }], {
             "state": "merged",
             "title": f"{NXLIB_JIRA_ISSUE_KEY}: Test mr",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash_commit_sha": DEFAULT_NXLIB_COMMIT["sha"],
             "target_branch": "vms_5.1",
         }),
@@ -663,7 +663,7 @@ class TestFollowUpRule:
         assert follow_up_rule.execute(mr_manager)
         assert len(project.mergerequests.list()) == mr_count_before
         assert len(mr.mock_comments()) == 1
-        assert MessageId.FollowUpNotNeeded.value in mr.mock_comments()[0], (
+        assert Comment.FollowUpNotNeeded.name in mr.mock_comments()[0], (
             f"First comment is: {mr.mock_comments()[0]}")
 
         issue = jira._jira.issue(jira_issues[0]["key"])

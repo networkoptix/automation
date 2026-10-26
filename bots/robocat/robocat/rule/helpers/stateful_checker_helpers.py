@@ -4,8 +4,9 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
 
+from robocat.comments import Comment
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import MessageId, Note
+from robocat.note import Note
 
 
 @dataclass(frozen=True)
@@ -55,7 +56,7 @@ class StoredCheckResults:
     def is_current_revision_checked(self) -> bool:
         return self._current_revision_sha == self._last_checked_revision_sha
 
-    def get_errors(self, unresolved_only: bool = False) -> dict[MessageId, set[CheckErrorClass]]:
+    def get_errors(self, unresolved_only: bool = False) -> dict[Comment, set[CheckErrorClass]]:
         result = {}
         for n in self._issue_notes:
             if unresolved_only and n.resolved_by:
@@ -69,7 +70,7 @@ class StoredCheckResults:
     def has_errors(self) -> bool:
         return bool(self._issue_notes)
 
-    def has_reported_problem(self, message_id: MessageId) -> bool:
+    def has_reported_problem(self, message_id: Comment) -> bool:
         return any(n.message_id == message_id for n in self._issue_notes)
 
     def was_never_checked(self) -> bool:

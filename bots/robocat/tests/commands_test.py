@@ -26,8 +26,8 @@ from robocat.commands.commands import (
     RunPipelineCommand,
     UnknownCommand,
 )
+from robocat.comments import Comment, Emoji
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import MessageId
 
 from tests.fixtures import (
     apidoc_approve_ruleset,
@@ -83,7 +83,7 @@ class TestRobocatCommands:
 
         comments = mr.mock_comments()
         assert len(comments) == 2, f"Got comments: {comments}"
-        assert f":{AwardEmojiManager.PIPELINE_EMOJI}:" in comments[-1], (
+        assert f":{Emoji.PIPELINE}:" in comments[-1], (
             f"Last comment: {comments[-1]}.")
 
         pipelines = mr.mock_pipelines()
@@ -101,7 +101,7 @@ class TestRobocatCommands:
 
         comments = mr.mock_comments()
         assert len(comments) == 2, f"Got comments: {comments}"
-        assert f":{AwardEmojiManager.NO_PIPELINE_EMOJI}:" in comments[-1], (
+        assert f":{Emoji.NO_PIPELINE}:" in comments[-1], (
             f"Last comment: {comments[-1]}.")
 
         pipelines = mr.mock_pipelines()
@@ -125,7 +125,7 @@ class TestRobocatCommands:
         event_data = GitlabEventData(payload=payload, event_type=GitlabEventType.comment)
         bot.process_event(event_data)
         comments = mr.mock_comments()
-        assert f":{AwardEmojiManager.COMMAND_NOT_EXECUTED}:" in comments[-1], (
+        assert f":{Emoji.COMMAND_NOT_EXECUTED}:" in comments[-1], (
             f"Last comment: {comments}.")
 
         payload = GitlabCommentEventData(
@@ -207,7 +207,7 @@ class TestRobocatCommands:
 
         comments = mr.mock_comments()
         assert len(comments) == 2, f"Got comments: {comments}"
-        assert f":{AwardEmojiManager.NOTIFICATION_EMOJI}:" in comments[0], (
+        assert f":{Emoji.NOTIFICATION}:" in comments[0], (
             f"First comment: {comments[0]}.")
 
         # Regardless of the command used, the missing follow-up to "vms_5.1" (e.g. a fixVersion
@@ -231,5 +231,5 @@ class TestRobocatCommands:
 
         mr_manager._mr.load_discussions()
         notes = mr_manager.notes()
-        assert notes[0].message_id == MessageId.CommandSetDraftFollowUpMode, (
+        assert notes[0].message_id == Comment.CommandSetDraftFollowUpMode, (
             f"Draft follow-up mode marker is not found in notes: {[n.message_id for n in notes]}")

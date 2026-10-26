@@ -8,6 +8,7 @@ from automation_tools.tests.fixtures import jira, repo_accessor, repo_versions
 from automation_tools.tests.gitlab_constants import DEFAULT_COMMIT, DEFAULT_JIRA_ISSUE_KEY, USERS
 from automation_tools.tests.mocks.resources import Version
 from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.comments import Emoji
 from robocat.rule.workflow_check_rule import WorkflowCheckRule
 
 from tests.fixtures import (
@@ -246,7 +247,7 @@ class TestWorkflowCheckRule:
                 "message": f"{DEFAULT_JIRA_ISSUE_KEY}: commit 1 title\n",
                 "files": {},
             }],
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash": False,
         }),
         # One of the commit messages doesn't commit Jira Issue reference in squashed MR.
@@ -275,7 +276,7 @@ class TestWorkflowCheckRule:
                               WorkflowCheckRule.ExecutionResult.not_applicable)
 
             emojis = mr.awardemojis.list()
-            assert not any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
+            assert not any(e for e in emojis if e.name == Emoji.BAD_ISSUE)
 
             comments = mr.mock_comments()
             assert len(comments) == 0, f"Got comments: {comments}"
@@ -317,7 +318,7 @@ class TestWorkflowCheckRule:
             assert result == WorkflowCheckRule.ExecutionResult.heuristic_warnings
 
             emojis = mr.awardemojis.list()
-            assert not any(e for e in emojis if e.name == AwardEmojiManager.SUSPICIOUS_ISSUE_EMOJI)
+            assert not any(e for e in emojis if e.name == Emoji.SUSPICIOUS_ISSUE)
 
             comments = mr.mock_comments()
             assert len(comments) == error_count, "Wrong comment count"
@@ -354,7 +355,7 @@ class TestWorkflowCheckRule:
         assert not workflow_rule.execute(mr_manager)
 
         emojis = mr.awardemojis.list()
-        assert any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
+        assert any(e for e in emojis if e.name == Emoji.BAD_ISSUE)
 
         issue = jira._jira.issue(DEFAULT_JIRA_ISSUE_KEY)
         issue.fields.fixVersions = [
@@ -364,7 +365,7 @@ class TestWorkflowCheckRule:
         assert execution_result == WorkflowCheckRule.ExecutionResult.rule_execution_successful
 
         emojis = mr.awardemojis.list()
-        assert not any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
+        assert not any(e for e in emojis if e.name == Emoji.BAD_ISSUE)
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Merge request is attached to bad Jira Issue.
@@ -395,7 +396,7 @@ class TestWorkflowCheckRule:
             assert not workflow_rule.execute(mr_manager)
 
             emojis = mr.awardemojis.list()
-            assert any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
+            assert any(e for e in emojis if e.name == Emoji.BAD_ISSUE)
 
             if initial_comments_number is None:
                 initial_comments_number = len(mr.mock_comments())
@@ -405,7 +406,7 @@ class TestWorkflowCheckRule:
                     f"Got comments: {mr.mock_comments()}")
             for comment in mr.mock_comments():
                 has_bad_jira_issue_token = (
-                    f':{AwardEmojiManager.BAD_ISSUE_EMOJI}: Jira workflow check failed')
+                    f':{Emoji.BAD_ISSUE}: Jira workflow check failed')
                 assert has_bad_jira_issue_token in comment
                 condition = (
                     re.search(r"VMS-66[6|7|8]: `fixVersions` is inconsistent", comment)
@@ -463,7 +464,7 @@ class TestWorkflowCheckRule:
                 "message": f"{DEFAULT_JIRA_ISSUE_KEY}: commit title\n",
                 "files": {},
             }],
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash": True,
         }),
         ([{
@@ -476,7 +477,7 @@ class TestWorkflowCheckRule:
                 "files": {},
             }],
             "description": f"Closes {DEFAULT_JIRA_ISSUE_KEY}",
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "squash": True,
         }),
         # One of the commit messages doesn't commit Jira Issue reference in non-squashed MR.
@@ -501,13 +502,13 @@ class TestWorkflowCheckRule:
             assert not workflow_rule.execute(mr_manager)
 
             emojis = mr.awardemojis.list()
-            assert any(e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
+            assert any(e for e in emojis if e.name == Emoji.BAD_ISSUE)
 
             comments = mr.mock_comments()
             assert len(comments) == 1, f"Got comments: {comments}"
 
             expected_title = (
-                f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: "
+                f"### :{Emoji.BAD_ISSUE}: "
                 "Merge request title/description does not comply with the rules")
             assert comments[0].startswith(expected_title), f"Unexpected comment: {comments[0]!r}"
 
@@ -544,7 +545,7 @@ class TestWorkflowCheckRule:
 
             emojis = mr.awardemojis.list()
             has_bad_issue_emoji = any(
-                e for e in emojis if e.name == AwardEmojiManager.BAD_ISSUE_EMOJI)
+                e for e in emojis if e.name == Emoji.BAD_ISSUE)
             assert successfull != has_bad_issue_emoji
 
             comments_after_fix = mr.mock_comments()
@@ -553,7 +554,7 @@ class TestWorkflowCheckRule:
                 f"Unexpected comment: {comments_after_fix[-1]!r}")
 
         expected_comment_title = (
-            f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: "
+            f"### :{Emoji.BAD_ISSUE}: "
             "Merge request title/description does not comply with the rules")
         _check_mr(
             successfull=False,
@@ -562,7 +563,7 @@ class TestWorkflowCheckRule:
 
         # Fix the error - the emoji must be unset, new comment "good to go" is added.
         expected_comment_title = (
-            f"### :{AwardEmojiManager.AUTOCHECK_OK_EMOJI}: Workflow check passed")
+            f"### :{Emoji.AUTOCHECK_OK}: Workflow check passed")
         _check_mr(
             successfull=True,
             comments_count=2,
@@ -571,7 +572,7 @@ class TestWorkflowCheckRule:
 
         # Add the same error - the emoji must be set, new comment added.
         expected_comment_title = (
-            f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: "
+            f"### :{Emoji.BAD_ISSUE}: "
             "Merge request title/description does not comply with the rules")
         _check_mr(
             successfull=False,
@@ -581,7 +582,7 @@ class TestWorkflowCheckRule:
 
         # Add a new error - the emoji must be set, another comment added.
         expected_comment_title = (
-            f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: "
+            f"### :{Emoji.BAD_ISSUE}: "
             "Jira workflow check failed\n\nWorkflow violation detected:\n\nBad `fixVersions`")
         _check_mr(
             successfull=False,
@@ -604,7 +605,7 @@ class TestWorkflowCheckRule:
 
         comments = mr.mock_comments()
         assert comments[-1].startswith(
-            f"### :{AwardEmojiManager.BAD_ISSUE_EMOJI}: No supported project found"), (
+            f"### :{Emoji.BAD_ISSUE}: No supported project found"), (
                 f"Got comments: {comments}")
         assert expected_comment in comments[-1], f"Got comment: {comments[-1]}"
 

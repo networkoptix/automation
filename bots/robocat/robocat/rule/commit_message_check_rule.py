@@ -11,10 +11,9 @@ from automation_tools.jira import JiraAccessor
 
 import robocat.comments
 import robocat.rule.helpers.approve_rule_helpers as approve_rule_helpers
-from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.comments import Comment
 from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import MessageId
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.rule.helpers.stateful_checker_helpers import (
@@ -53,11 +52,11 @@ class CommitMessageStoredCheckResults(StoredCheckResults):
     CheckErrorClass = CommitMessageError
 
     MESSAGE_IDS = {
-        MessageId.CommitMessageIsOk,
-        MessageId.BadCommitMessageByKeeper,
-        MessageId.BadCommitMessage,
+        Comment.CommitMessageIsOk,
+        Comment.BadCommitMessageByKeeper,
+        Comment.BadCommitMessage,
     }
-    OK_MESSAGE_IDS = {MessageId.CommitMessageIsOk}
+    OK_MESSAGE_IDS = {Comment.CommitMessageIsOk}
 
 
 class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
@@ -112,7 +111,7 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
                 approve_rules=self._approve_rules, mr_manager=mr_manager, for_affected_files=True)
             if mr_manager.ensure_authorized_approvers(
                     [preferred_approvers],
-                    message_id=MessageId.CommitMessageAuthorizedApproversAssigned):
+                    message_id=Comment.CommitMessageAuthorizedApproversAssigned):
                 logger.debug(f"{mr_manager}: Preferred approvers assigned to MR.")
             return self.ExecutionResult.commit_message_not_ok
 
@@ -148,26 +147,18 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
 
     def _create_commit_message_discussion(
             self, mr_manager: MergeRequestManager, error: CommitMessageError):
-        title = "Commit message auto-check failed"
-
         if approve_rule_helpers.is_mr_author_keeper(self._approve_rules, mr_manager):
-            message = robocat.comments.bad_commit_message_from_authorized_approver.format(
-                error_message=error.raw_text)
-            message_id = MessageId.BadCommitMessageByKeeper
+            message = robocat.comments.Message(
+                Comment.BadCommitMessageByKeeper, {"error_message": error.raw_text})
         else:
             keepers = approve_rule_helpers.get_keepers(
                 approve_rules=self._approve_rules, mr_manager=mr_manager, for_affected_files=True)
-            message = robocat.comments.bad_commit_message.format(
-                error_message=error.raw_text,
-                approvers=", @".join(keepers))
-            message_id = MessageId.BadCommitMessage
+            message = robocat.comments.Message(Comment.BadCommitMessage, {
+                "error_message": error.raw_text,
+                "approvers": ", @".join(keepers),
+            })
 
-        mr_manager.create_thread(
-            title=title,
-            message=message,
-            message_id=message_id,
-            message_data=asdict(error),
-            emoji=AwardEmojiManager.AUTOCHECK_FAILED_EMOJI)
+        mr_manager.create_thread(message, message_data=asdict(error))
 
     def _ensure_problems_not_found_comment(
             self, mr_manager: MergeRequestManager, errors: ErrorCheckResult):
@@ -175,8 +166,4 @@ class CommitMessageCheckRule(CheckChangesMixin, BaseRule):
             return
 
         mr_manager.create_thread(
-            title="Commit auto-check passed",
-            message=robocat.comments.commit_message_is_ok,
-            message_id=MessageId.CommitMessageIsOk,
-            emoji=AwardEmojiManager.AUTOCHECK_OK_EMOJI,
-            autoresolve=True)
+            robocat.comments.Message(Comment.CommitMessageIsOk), autoresolve=True)

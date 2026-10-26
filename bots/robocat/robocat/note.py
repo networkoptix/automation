@@ -3,77 +3,14 @@
 import logging
 import re
 from collections.abc import Callable, Iterable
-from enum import Enum, auto
 from typing import Any
 
 import yaml
 import yaml.scanner
 
+from robocat.comments import Comment
+
 logger = logging.getLogger(__name__)
-
-
-class MessageId(Enum):
-    def _generate_next_value_(name, *_):
-        return name
-
-    InitialMessage = auto()
-    JobStatusCheckNeedsApproval = auto()
-    JobStatusChecksPassed = auto()
-    InconsistentNxSubmoduleChange = auto()
-    NxSubmoduleConfigDeleted = auto()
-    NxSubmoduleConfigMalformed = auto()
-    NxSubmoduleConfigBadGitData = auto()
-    NxSubmoduleCheckUnknownError = auto()
-    NxSubmoduleCheckHugeDiffUncheckable = auto()
-    NxSubmoduleCheckPassed = auto()
-    WorkflowBadFixVersions = auto()
-    WorkflowDifferentCommitMessage = auto()
-    WorkflowDifferentJiraIssueSets = auto()
-    WorkflowInconsistentFixVersions = auto()
-    WorkflowBadTargetBranch = auto()
-    WorkflowNoJiraIssueInCommitMessage = auto()
-    WorkflowNoJiraIssueInMr = auto()
-    WorkflowOk = auto()
-    WorkflowParenthesesNotAllowed = auto()
-    InconsistentAssigneesInJiraAndGitlab = auto()
-    UnassignedJiraIssue = auto()
-    SuspiciousJiraIssueStatus = auto()
-    FollowUpNotNeeded = auto()
-    FollowUpIssueNotMovedToQA = auto()
-    BadCommitMessage = auto()
-    BadCommitMessageByKeeper = auto()
-    CommitMessageIsOk = auto()
-    CommandProcess = auto()
-    CommandRunPipeline = auto()
-    CommandFollowUp = auto()
-    CommandSetDraftFollowUpMode = auto()
-    CommandNotExecuted = auto()
-    CommandUnknown = auto()
-    FailedCheckForSuccessfulPipeline = auto()
-    FailedCheckForConflictsWithTargetBranch = auto()
-    FailedCheckForUnresolvedThreads = auto()
-    FailedCheckForNoSupportedProject = auto()
-    FailedJobNotification = auto()
-    ExceptionOccurred = auto()
-    CannotApproveAsUser = auto()
-    FollowUpExistsForTheBranch = auto()
-    UnknownBranchWhenCreatingFollowUp = auto()
-    ManualResolutionRequired = auto()
-    FailedMrMergedJiraComment = auto()
-    UnknownProjectWhenClosingIssue = auto()
-    RefuseRunPipelineMessage = auto()
-    AuthorizedApproversAssigned = auto()
-    CommitMessageAuthorizedApproversAssigned = auto()
-    RunPipelineMessage = auto()
-    WaitingForCommits = auto()
-    WaitingForApproval = auto()
-    WaitingForPipeline = auto()
-    MrMerged = auto()
-    FollowUpCreationSuccessful = auto()
-    FollowUpCreationFailed = auto()
-    CannotSquashLocally = auto()
-    CannotRestoreApprovals = auto()
-    FollowUpInitialMessage = auto()
 
 
 class NoteDetails:
@@ -84,7 +21,7 @@ class NoteDetails:
 
     def __init__(
             self,
-            message_id: MessageId | None = None,
+            message_id: Comment | None = None,
             sha: str | None = None,
             data: dict[str, Any] | None = None):
         self.message_id = message_id
@@ -92,8 +29,8 @@ class NoteDetails:
         self.data = data
 
     def __str__(self):
-        payload = {
-            self._ID_KEY: self.message_id.value if self.message_id is not None else None,
+        payload: dict[str, Any] = {
+            self._ID_KEY: self.message_id.name if self.message_id is not None else None,
             self._SHA_KEY: self.sha}
         if self.data:
             payload[self._DATA_KEY] = self.data
@@ -112,9 +49,10 @@ class NoteDetails:
             logger.error(f"Malformed Robocat data {details_text!r}: {exc}.")
             return cls()
 
+        stored_id = details[cls._ID_KEY]
         try:
-            message_id = MessageId(details[cls._ID_KEY])
-        except ValueError:
+            message_id = Comment[stored_id]
+        except KeyError:
             logger.warning(
                 f"Bad message id {details[cls._ID_KEY]!r} in note {text!r}; skipping additional "
                 "data for this note.")
@@ -176,7 +114,7 @@ class Note:
 
 def find_first_comment(
         notes: Iterable[Note],
-        message_id: MessageId,
+        message_id: Comment,
         condition: Callable[[Note], bool] | None = None,
         crash_if_not_found: bool = False) -> Note | None:
     if condition is None:
@@ -192,7 +130,7 @@ def find_first_comment(
 
 def find_last_comment(
         notes: list[Note],
-        message_id: MessageId,
+        message_id: Comment,
         condition: Callable[[Note], bool] | None = None,
         crash_if_not_found: bool = False) -> Note | None:
     return find_first_comment(

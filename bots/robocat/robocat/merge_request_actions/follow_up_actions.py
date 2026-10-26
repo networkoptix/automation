@@ -5,8 +5,8 @@ import logging
 import robocat.comments
 from automation_tools.jira import GitlabBranchDescriptor, JiraAccessor, JiraIssue
 from automation_tools.jira_comments import JiraComment, JiraMessageId
+from robocat.comments import Comment
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import MessageId
 from robocat.project import MergeRequestAlreadyExistsError
 from robocat.project_manager import EmptyFollowUpError, ProjectManager
 
@@ -34,7 +34,7 @@ def create_follow_up_merge_requests(
                     f"{mr_manager}: The target branch for the version {version!r} in Issue "
                     f"{issue} is unknown. Skipping the follow-up MR creation.")
                 mr_manager.add_comment(robocat.comments.Message(
-                    id=MessageId.UnknownBranchWhenCreatingFollowUp,
+                    id=Comment.UnknownBranchWhenCreatingFollowUp,
                     params={'version': version}))
                 continue
 
@@ -132,7 +132,7 @@ def create_follow_up_merge_request(
         needs_manual_resolution = any(
             n
             for n in new_mr_manager.notes()
-            if n.message_id == MessageId.ManualResolutionRequired)
+            if n.message_id == Comment.ManualResolutionRequired)
         if not needs_manual_resolution:
             new_mr_manager.add_robocat_approval()
 

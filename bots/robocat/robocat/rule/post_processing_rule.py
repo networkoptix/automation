@@ -13,9 +13,9 @@ from automation_tools.jira import (
 from automation_tools.jira_comments import JiraComment, JiraMessageId
 
 import robocat.comments
+from robocat.comments import Comment
 from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import MessageId
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 
@@ -126,7 +126,7 @@ class PostProcessingRule(BaseRule):
                 f"{mr_manager}: The branch {branch} belongs to the unknown project - can't check "
                 f"if it is merged. Skipping the Issue {issue} post-processing.")
             mr_manager.add_comment(robocat.comments.Message(
-                id=MessageId.UnknownProjectWhenClosingIssue,
+                id=Comment.UnknownProjectWhenClosingIssue,
                 params={"project": issue.project, "branch": str(branch), "issue": str(issue)}))
             return False
 

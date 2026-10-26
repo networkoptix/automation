@@ -9,9 +9,9 @@ from automation_tools.tests.gitlab_constants import (
     OPEN_SOURCE_APPROVER_COMMON,
 )
 from gitlab.exceptions import GitlabError, GitlabHttpError, GitlabMRClosedError
+from robocat.comments import Comment
 from robocat.merge_request import MergeRequest, MergeResult
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import MessageId
 
 from tests.fixtures import mr, mr_state, project
 
@@ -130,7 +130,7 @@ class TestMergeRequestManagerMerge:
         assert result is True
         mock_mr.create_note.assert_called_once()
         body = mock_mr.create_note.call_args.args[0]
-        assert MessageId.MrMerged.value in body
+        assert Comment.MrMerged.name in body
         assert mock_mr.target_branch in body
 
     def test_added_to_train_result_skips_comment_and_returns_false(

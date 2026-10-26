@@ -9,9 +9,9 @@ from automation_tools.jira import JiraAccessor
 
 import robocat.comments
 import robocat.rule.helpers.approve_rule_helpers as approve_rule_helpers
+from robocat.comments import Comment
 from robocat.config import ApproveRulesetEntryConfig, Config
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import MessageId
 from robocat.pipeline import JobStatus
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
@@ -43,10 +43,10 @@ class JobStatusCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
 
 class JobStatusStoredCheckResults(StoredCheckResults):
     MESSAGE_IDS = {
-        MessageId.JobStatusChecksPassed,
-        MessageId.JobStatusCheckNeedsApproval,
+        Comment.JobStatusChecksPassed,
+        Comment.JobStatusCheckNeedsApproval,
     }
-    OK_MESSAGE_IDS = {MessageId.JobStatusChecksPassed}
+    OK_MESSAGE_IDS = {Comment.JobStatusChecksPassed}
 
 
 @dataclass
@@ -248,7 +248,7 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
             return
 
         if not errors.current_errors:
-            mr_manager.add_comment(robocat.comments.Message(MessageId.JobStatusChecksPassed))
+            mr_manager.add_comment(robocat.comments.Message(Comment.JobStatusChecksPassed))
             return
 
         for error in errors.new_errors:
@@ -264,7 +264,7 @@ class JobStatusCheckRule(CheckChangesMixin, BaseRule):
                     for_affected_files=issue_descriptor.deleted_files_affect_result)
                 mr_manager.add_comment(
                     message=robocat.comments.Message(
-                        id=MessageId.JobStatusCheckNeedsApproval,
+                        id=Comment.JobStatusCheckNeedsApproval,
                         params={
                             "approvers": ", @".join(keepers),
                             "job_name": issue_descriptor.job_name,

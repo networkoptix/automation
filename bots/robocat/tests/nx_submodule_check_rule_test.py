@@ -14,7 +14,8 @@ from automation_tools.tests.mocks.file import (
     NX_SUBMODULE_GOOD_RAW_DATA,
 )
 from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.note import MessageId, NoteDetails
+from robocat.comments import Comment, Emoji
+from robocat.note import NoteDetails
 
 from tests.fixtures import (
     bot_config,
@@ -37,7 +38,7 @@ class TestNxSubmoduleCheckRule:
                 "diffs": [],
                 "files": {"dontreadme.md": {"is_new": True, "raw_data": BAD_README_RAW_DATA}},
             }]
-        }, MessageId.NxSubmoduleCheckPassed.value, True),
+        }, Comment.NxSubmoduleCheckPassed.name, True),
         # MR with valid changes in submodules.
         ({
             "commits_list": [{
@@ -49,7 +50,7 @@ class TestNxSubmoduleCheckRule:
                     "conan_profiles/_nx_submodule": {"raw_data": NX_SUBMODULE_GOOD_RAW_DATA},
                 },
             }],
-        }, MessageId.NxSubmoduleCheckPassed.value, True),
+        }, Comment.NxSubmoduleCheckPassed.name, True),
         # MR with deleted file which is not present in the submodule.
         ({
             "blocking_discussions_resolved": True,
@@ -62,7 +63,7 @@ class TestNxSubmoduleCheckRule:
                     "conan_profiles/_nx_submodule": {"raw_data": NX_SUBMODULE_GOOD_RAW_DATA},
                 },
             }],
-        }, MessageId.NxSubmoduleCheckPassed.value, True),
+        }, Comment.NxSubmoduleCheckPassed.name, True),
         # MR with huge changes that can't be checked.
         ({
             "blocking_discussions_resolved": True,
@@ -75,7 +76,7 @@ class TestNxSubmoduleCheckRule:
                 },
             }],
             "mock_huge_mr": True,
-        }, MessageId.NxSubmoduleCheckHugeDiffUncheckable.value, False),
+        }, Comment.NxSubmoduleCheckHugeDiffUncheckable.name, False),
     ])
     def test_changes_are_valid(
             self, nx_submodule_check_rule, mr, mr_manager, message_id, is_resolved):
@@ -87,9 +88,9 @@ class TestNxSubmoduleCheckRule:
             assert len(comments) == 1, f"Got comments: {comments}"
 
             if is_resolved:
-                emoji = AwardEmojiManager.AUTOCHECK_OK_EMOJI
+                emoji = Emoji.AUTOCHECK_OK
             else:
-                emoji = AwardEmojiManager.AUTOCHECK_IMPOSSIBLE_EMOJI
+                emoji = Emoji.AUTOCHECK_IMPOSSIBLE
             assert f":{emoji}:" in comments[0], f"Comment is: {comments[0]}"
             message_details_re = re.compile(
                 rf"<details><pre>.*{NoteDetails._ID_KEY}: {message_id}",
@@ -112,7 +113,7 @@ class TestNxSubmoduleCheckRule:
                     },
                 },
             }],
-        }, MessageId.NxSubmoduleConfigDeleted.value, "config file was deleted"),
+        }, Comment.NxSubmoduleConfigDeleted.name, "config file was deleted"),
         # MR with malformed _nx_submodule.
         ({
             "commits_list": [{
@@ -126,7 +127,7 @@ class TestNxSubmoduleCheckRule:
                     },
                 },
             }],
-        }, MessageId.NxSubmoduleConfigMalformed.value, "has wrong format"),
+        }, Comment.NxSubmoduleConfigMalformed.name, "has wrong format"),
         # MR with bad git url in _nx_submodule.
         ({
             "commits_list": [{
@@ -137,7 +138,7 @@ class TestNxSubmoduleCheckRule:
                     "conan_profiles/_nx_submodule": {"raw_data": NX_SUBMODULE_BAD_RAW_DATA_1},
                 },
             }],
-        }, MessageId.NxSubmoduleConfigBadGitData.value, "'Bad repo url"),
+        }, Comment.NxSubmoduleConfigBadGitData.name, "'Bad repo url"),
         # MR with bad git commit sha in _nx_submodule.
         ({
             "commits_list": [{
@@ -148,7 +149,7 @@ class TestNxSubmoduleCheckRule:
                     "conan_profiles/_nx_submodule": {"raw_data": NX_SUBMODULE_BAD_RAW_DATA_2},
                 },
             }],
-        }, MessageId.NxSubmoduleConfigBadGitData.value, "Unknown commit"),
+        }, Comment.NxSubmoduleConfigBadGitData.name, "Unknown commit"),
         # MR with bad subrepo directory in _nx_submodule.
         (
             {
@@ -161,7 +162,7 @@ class TestNxSubmoduleCheckRule:
                     },
                 }],
             },
-            MessageId.NxSubmoduleConfigBadGitData.value,
+            Comment.NxSubmoduleConfigBadGitData.name,
             "explanation: No such directory"
         ),
         # MR with file that is not present in the subrepo.
@@ -177,7 +178,7 @@ class TestNxSubmoduleCheckRule:
                     },
                 }],
             },
-            MessageId.InconsistentNxSubmoduleChange.value,
+            Comment.InconsistentNxSubmoduleChange.name,
             "explanation: File 'nonexistent.txt' is not found in subrepo"
         ),
         # MR with deleted file that is present in the subrepo.
@@ -193,7 +194,7 @@ class TestNxSubmoduleCheckRule:
                     },
                 }],
             },
-            MessageId.InconsistentNxSubmoduleChange.value,
+            Comment.InconsistentNxSubmoduleChange.name,
             "explanation: File '1.txt' is deleted by found in subrepo"
         ),
         # MR with the executable flag set for the file that is not executable in the submodule.
@@ -209,7 +210,7 @@ class TestNxSubmoduleCheckRule:
                     },
                 }],
             },
-            MessageId.InconsistentNxSubmoduleChange.value,
+            Comment.InconsistentNxSubmoduleChange.name,
             "explanation: File '1.txt' has wrong executable flag 'True'"
         ),
         # MR with the executable flag unset for the file that is executable in the submodule.
@@ -225,7 +226,7 @@ class TestNxSubmoduleCheckRule:
                     },
                 }],
             },
-            MessageId.InconsistentNxSubmoduleChange.value,
+            Comment.InconsistentNxSubmoduleChange.name,
             "explanation: File '2.sh' has wrong executable flag"
         ),
         # MR with the different file content.
@@ -241,7 +242,7 @@ class TestNxSubmoduleCheckRule:
                     },
                 }],
             },
-            MessageId.InconsistentNxSubmoduleChange.value,
+            Comment.InconsistentNxSubmoduleChange.name,
             "explanation: File '1.txt' differs from its counterpart"
         ),
     ])
@@ -253,7 +254,7 @@ class TestNxSubmoduleCheckRule:
 
             comments = mr.mock_comments()
             assert len(comments) == 1, f"Got comments: {comments}"
-            assert f":{AwardEmojiManager.AUTOCHECK_FAILED_EMOJI}:" in comments[0], (
+            assert f":{Emoji.AUTOCHECK_FAILED}:" in comments[0], (
                 f"Last comment is: {comments[0]}")
             message_details_re = re.compile(
                 rf"<details><pre>.*{NoteDetails._ID_KEY}: {fail_message_id}",
@@ -272,12 +273,12 @@ class TestNxSubmoduleCheckRule:
                     "conan_profiles/_nx_submodule": {"raw_data": NX_SUBMODULE_GOOD_RAW_DATA},
                 },
                 "check_result": False,
-                "result_message_id": MessageId.InconsistentNxSubmoduleChange.value,
+                "result_message_id": Comment.InconsistentNxSubmoduleChange.name,
                 "explanation": "File '1.txt' differs from its counterpart",
             }, {
                 "files": {"conan_profiles/2.sh": {"raw_data": "file 2\n"}},
                 "check_result": False,
-                "result_message_id": MessageId.InconsistentNxSubmoduleChange.value,
+                "result_message_id": Comment.InconsistentNxSubmoduleChange.name,
                 "explanation": "File '2.sh' has wrong executable flag",
             }, {
                 "files": {
@@ -285,12 +286,12 @@ class TestNxSubmoduleCheckRule:
                     "conan_profiles/2.sh": {"raw_data": "file 2\n", "mode": "100755"},
                 },
                 "check_result": True,
-                "result_message_id": MessageId.NxSubmoduleCheckPassed.value,
+                "result_message_id": Comment.NxSubmoduleCheckPassed.name,
             }, {
                 # Re-introduce problem.
                 "files": {"conan_profiles/2.sh": {"raw_data": "file 2\n"}},
                 "check_result": False,
-                "result_message_id": MessageId.InconsistentNxSubmoduleChange.value,
+                "result_message_id": Comment.InconsistentNxSubmoduleChange.name,
                 "explanation": "File '2.sh' has wrong executable flag",
             },
         ]
@@ -312,9 +313,9 @@ class TestNxSubmoduleCheckRule:
             assert len(comments) == i + 1, f"Got comments: {comments}"
 
             if description["check_result"]:
-                emoji = AwardEmojiManager.AUTOCHECK_OK_EMOJI
+                emoji = Emoji.AUTOCHECK_OK
             else:
-                emoji = AwardEmojiManager.AUTOCHECK_FAILED_EMOJI
+                emoji = Emoji.AUTOCHECK_FAILED
             assert f":{emoji}:" in comments[-1], f"Comment is: {comments[-1]}"
 
             message_details_re = re.compile(

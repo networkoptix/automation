@@ -6,9 +6,9 @@ from collections.abc import Iterable
 import robocat.comments
 import robocat.merge_request_actions.follow_up_actions
 from automation_tools.jira import JiraAccessor
+from robocat.comments import Comment
 from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import MessageId
 from robocat.project_manager import ProjectManager
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class BaseCommand:
     verb: str
     verb_aliases: set[str]
     should_handle_mr_after_run: bool
-    _confirmation_message_id: MessageId
+    _confirmation_message_id: Comment
 
     def __init__(self, *args):
         self.command = args[0]
@@ -39,7 +39,7 @@ class BaseCommand:
 
 def robocat_command(
         verb: str,
-        confirmation_message_id: MessageId,
+        confirmation_message_id: Comment,
         aliases: Iterable[str] | None = None,
         process_mr: bool = False):
     def command_class_decorator(cls: type[BaseCommand]) -> type[BaseCommand]:
@@ -54,14 +54,14 @@ def robocat_command(
     return command_class_decorator
 
 
-@robocat_command(verb='process', confirmation_message_id=MessageId.CommandProcess, process_mr=True)
+@robocat_command(verb='process', confirmation_message_id=Comment.CommandProcess, process_mr=True)
 class ProcessCommand(BaseCommand):
     """Manually initiate processing of the related Merge Request."""
 
 
 @robocat_command(
     verb='run-pipeline',
-    confirmation_message_id=MessageId.CommandRunPipeline,
+    confirmation_message_id=Comment.CommandRunPipeline,
     aliases=['run_pipeline'])
 class RunPipelineCommand(BaseCommand):
     """Manually run the pipeline for the related Merge Request."""
@@ -73,7 +73,7 @@ class RunPipelineCommand(BaseCommand):
 
 @robocat_command(
     verb='follow-up',
-    confirmation_message_id=MessageId.CommandFollowUp,
+    confirmation_message_id=Comment.CommandFollowUp,
     aliases=['follow_up'])
 class FollowUpCommand(BaseCommand):
     """Execute follow-up actions for the related Merge Request."""
@@ -95,7 +95,7 @@ class FollowUpCommand(BaseCommand):
                 default_branch_project_mapping=config.jira.project_mapping)
         else:
             mr_manager.add_comment(robocat.comments.Message(
-                id=MessageId.CommandNotExecuted,
+                id=Comment.CommandNotExecuted,
                 params={
                     'command': self.command,
                     'explanation': (
@@ -105,7 +105,7 @@ class FollowUpCommand(BaseCommand):
 
 @robocat_command(
     verb='draft-follow-up',
-    confirmation_message_id=MessageId.CommandSetDraftFollowUpMode,
+    confirmation_message_id=Comment.CommandSetDraftFollowUpMode,
     aliases=['draft_follow_up'])
 class DraftFollowUpCommand(BaseCommand):
     '''Set the follow-up creation mode to "Draft".'''
@@ -125,7 +125,7 @@ class DraftFollowUpCommand(BaseCommand):
             return
 
         # If the Merge Request is already merged, create the follow-up Merge Requests.
-        mr_manager.add_comment(robocat.comments.Message(id=MessageId.CommandFollowUp))
+        mr_manager.add_comment(robocat.comments.Message(id=Comment.CommandFollowUp))
         robocat.merge_request_actions.follow_up_actions.create_follow_up_merge_requests(
             jira=jira,
             project_manager=project_manager,
@@ -135,7 +135,7 @@ class DraftFollowUpCommand(BaseCommand):
             default_branch_project_mapping=config.jira.project_mapping)
 
 
-@robocat_command(verb='__unknown__', confirmation_message_id=MessageId.CommandUnknown)
+@robocat_command(verb='__unknown__', confirmation_message_id=Comment.CommandUnknown)
 class UnknownCommand(BaseCommand):
     '''Inform the user that the command is not recognized'''
 

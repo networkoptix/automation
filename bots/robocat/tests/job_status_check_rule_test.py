@@ -31,7 +31,8 @@ from automation_tools.tests.mocks.file import (
 )
 from automation_tools.tests.mocks.git_mocks import random_sha
 from robocat.award_emoji_manager import AwardEmojiManager
-from robocat.note import MessageId, NoteDetails
+from robocat.comments import Comment, Emoji
+from robocat.note import NoteDetails
 
 from tests.fixtures import (
     apidoc_approve_ruleset,
@@ -566,9 +567,9 @@ class TestJobStatusCheckRule:
             assert len(comments) == 2, f"Got comments: {comments}"
 
             is_manual_check_emoji_in_comment = (
-                f":{AwardEmojiManager.NEED_MANUAL_CHECK_EMOJI}:" in comments[0])
+                f":{Emoji.NEED_MANUAL_CHECK}:" in comments[0])
             is_message_id_right = (
-                f"{NoteDetails._ID_KEY}: {MessageId.JobStatusCheckNeedsApproval.value}"
+                f"{NoteDetails._ID_KEY}: {Comment.JobStatusCheckNeedsApproval.name}"
                 in comments[0])
             assert is_manual_check_emoji_in_comment and is_message_id_right, (
                 f"First comment is: {comments[0]}")
@@ -598,7 +599,7 @@ class TestJobStatusCheckRule:
                     "is_new": True, "raw_data": GOOD_README_RAW_DATA
                 }},
             }],
-            "emojis_list": [AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI],
+            "emojis_list": [Emoji.FOLLOWUP_MERGE_REQUEST],
             "pipelines_list": [(
                 GOOD_README_COMMIT_NEW_FILE["sha"],
                 "success",
@@ -686,10 +687,10 @@ class TestJobStatusCheckRule:
 
             comments = mr.mock_comments()
             assert len(comments) == 2, f"Got comments: {comments}"
-            assert f":{AwardEmojiManager.NEED_MANUAL_CHECK_EMOJI}:" in comments[0], (
+            assert f":{Emoji.NEED_MANUAL_CHECK}:" in comments[0], (
                 f"First comment is: {comments[0]}")
             message_details = (
-                f"{NoteDetails._ID_KEY}: {MessageId.JobStatusCheckNeedsApproval.value}")
+                f"{NoteDetails._ID_KEY}: {Comment.JobStatusCheckNeedsApproval.name}")
             assert message_details in comments[0], f"First comment is: {comments[0]}"
             assert "Update assignee list" in comments[1], f"Last comment is: {comments[1]}"
 
@@ -774,9 +775,9 @@ class TestJobStatusCheckRule:
 
         comments = mr.mock_comments()
         assert len(comments) == expected_comments_number, f"Got comments: {comments}"
-        assert f":{AwardEmojiManager.NEED_MANUAL_CHECK_EMOJI}:" in comments[-2], (
+        assert f":{Emoji.NEED_MANUAL_CHECK}:" in comments[-2], (
             f"Unexpected comment: {comments[-2]}")
-        assert f":{AwardEmojiManager.NOTIFICATION_EMOJI}:" in comments[-1], (
+        assert f":{Emoji.NOTIFICATION}:" in comments[-1], (
             f"Unexpected comment: {comments[-1]}")
 
         # Add a commit to the MR with the same "bad" file - no comments should be added.
@@ -799,7 +800,7 @@ class TestJobStatusCheckRule:
 
         comments = mr.mock_comments()
         assert len(comments) == expected_comments_number, f"Got comments: {comments}"
-        assert f":{AwardEmojiManager.NEED_MANUAL_CHECK_EMOJI}:" in comments[-2], (
+        assert f":{Emoji.NEED_MANUAL_CHECK}:" in comments[-2], (
             f"Unexpected comment: {comments[-2]}")
 
         # Add a commit to the Merge Request removing the new file - no new commits should be
@@ -812,7 +813,7 @@ class TestJobStatusCheckRule:
 
         comments = mr.mock_comments()
         assert len(comments) == expected_comments_number, f"Got comments: {comments}"
-        assert f":{AwardEmojiManager.NEED_MANUAL_CHECK_EMOJI}:" in comments[-2], (
+        assert f":{Emoji.NEED_MANUAL_CHECK}:" in comments[-2], (
             f"Unexpected comment: {comments[-2]}")
 
     # Re-check the files if the Merge Request target branch has changed.

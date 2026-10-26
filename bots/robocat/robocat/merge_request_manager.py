@@ -16,10 +16,10 @@ from gitlab.exceptions import GitlabError, GitlabMRClosedError
 
 import robocat.comments
 from robocat.action_reasons import CheckFailureReason, WaitReason
-from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.comments import Comment, Emoji
 from robocat.gitlab import Gitlab
 from robocat.merge_request import MergeRequest, MergeResult
-from robocat.note import MessageId, Note, NoteDetails, find_first_comment, find_last_comment
+from robocat.note import Note, NoteDetails, find_first_comment, find_last_comment
 from robocat.pipeline import (
     JobStatus,
     Pipeline,
@@ -137,14 +137,14 @@ class MergeRequestManager:
         if self.is_post_merging_unfinished():
             if not value:
                 self._mr.award_emoji.delete(
-                    AwardEmojiManager.UNFINISHED_POST_MERGING_EMOJI, own=False)
+                    Emoji.UNFINISHED_POST_MERGING, own=False)
         else:
             if value:
-                self._mr.award_emoji.create(AwardEmojiManager.UNFINISHED_POST_MERGING_EMOJI)
+                self._mr.award_emoji.create(Emoji.UNFINISHED_POST_MERGING)
 
     def is_post_merging_unfinished(self) -> bool:
         return bool(
-            self._mr.award_emoji.find(AwardEmojiManager.UNFINISHED_POST_MERGING_EMOJI, own=True))
+            self._mr.award_emoji.find(Emoji.UNFINISHED_POST_MERGING, own=True))
 
     def satisfies_approval_requirements(self, requirements: ApprovalRequirements) -> bool:
         result = True
@@ -185,15 +185,15 @@ class MergeRequestManager:
         # robocat.commands.commands, which imports this module back.
         from robocat.commands import parser
 
-        if self._mr.award_emoji.find(AwardEmojiManager.WATCH_EMOJI, own=True):
+        if self._mr.award_emoji.find(Emoji.WATCHING, own=True):
             return False
 
         logger.info(f"{self}: New merge request to take care of")
         base_sha = self._mr.latest_diff().base_commit_sha if self._mr.has_commits else ""
-        self._mr.award_emoji.create(AwardEmojiManager.WATCH_EMOJI)
+        self._mr.award_emoji.create(Emoji.WATCHING)
         self.add_comment(
             message=robocat.comments.Message(
-                id=MessageId.InitialMessage,
+                id=Comment.InitialMessage,
                 params={
                     "bot_gitlab_username": self._current_user,
                     "bot_revision": automation_tools.bot_info.revision(),
@@ -216,7 +216,7 @@ class MergeRequestManager:
         return True
 
     def update_merge_base(self):
-        initial_note = find_first_comment(notes=self.notes(), message_id=MessageId.InitialMessage)
+        initial_note = find_first_comment(notes=self.notes(), message_id=Comment.InitialMessage)
         if not initial_note:
             return
 
@@ -233,7 +233,7 @@ class MergeRequestManager:
             self,
             message: robocat.comments.Message,
             message_data: dict[str, Any] | None = None):
-        logger.debug(f"{self}: Adding comment with title: {message.title}")
+        logger.debug(f"{self}: Adding comment with title: {message.id.value.title}")
         data_text = str(NoteDetails(
             message_id=message.id, sha=self._mr.sha, data=(message_data or {})))
         self._mr.create_note(message.format_body(data_text))
@@ -242,7 +242,7 @@ class MergeRequestManager:
         last_pipeline = self._get_last_pipeline()
         if last_pipeline and last_pipeline.sha == self._mr.sha:
             logger.info(f"{self._mr}: Refusing to manually run pipeline with the same sha")
-            message = robocat.comments.Message(id=MessageId.RefuseRunPipelineMessage, params={
+            message = robocat.comments.Message(id=Comment.RefuseRunPipelineMessage, params={
                 "pipeline_id": last_pipeline.id,
                 "pipeline_url": last_pipeline.web_url,
                 "sha": self._mr.sha,
@@ -255,7 +255,7 @@ class MergeRequestManager:
 
         # Save the confirmation that the user command was executed.
         user_command_confirmation_comment = find_last_comment(
-            notes=self.notes(), message_id=MessageId.CommandRunPipeline, crash_if_not_found=True)
+            notes=self.notes(), message_id=Comment.CommandRunPipeline, crash_if_not_found=True)
         assert user_command_confirmation_comment is not None  # crash_if_not_found=True
         comment_data = user_command_confirmation_comment.additional_data
         comment_data["CommandExecuted"] = True
@@ -375,7 +375,7 @@ class MergeRequestManager:
     def ensure_authorized_approvers(
             self,
             approvers: list[set[str]],
-            message_id: MessageId = MessageId.AuthorizedApproversAssigned) -> bool:
+            message_id: Comment = Comment.AuthorizedApproversAssigned) -> bool:
         """For each approver set, if none of its members is already an assignee,
         reviewer, or the author, mark the whole set for assignment.
 
@@ -444,7 +444,7 @@ class MergeRequestManager:
 
         reason_msg = reason.value + ("" if not details else f" ({details})")
         message = robocat.comments.Message(
-            id=MessageId.RunPipelineMessage,
+            id=Comment.RunPipelineMessage,
             params={
                 "pipeline_id": pipeline_to_start.id,
                 "pipeline_url": pipeline_to_start.web_url,
@@ -472,15 +472,15 @@ class MergeRequestManager:
             last_pipeline = self._get_last_pipeline()
             assert last_pipeline is not None, (
                 "A failed-pipeline check failure implies a pipeline exists")
-            message_id = MessageId.FailedCheckForSuccessfulPipeline
+            message_id = Comment.FailedCheckForSuccessfulPipeline
             message_params = {
                 "last_pipeline_id": str(last_pipeline.id),
                 "last_pipeline_web_url": last_pipeline.web_url,
             }
         elif reason == CheckFailureReason.conflicts:
-            message_id = MessageId.FailedCheckForConflictsWithTargetBranch
+            message_id = Comment.FailedCheckForConflictsWithTargetBranch
         elif reason == CheckFailureReason.unresolved_threads:
-            message_id = MessageId.FailedCheckForUnresolvedThreads
+            message_id = Comment.FailedCheckForUnresolvedThreads
 
         assert message_id is not None, f"Unknown reason: {reason}"
 
@@ -491,25 +491,25 @@ class MergeRequestManager:
         self.unset_wait_state()
 
     def ensure_wait_state(self, reason) -> None:
-        if self._mr.award_emoji.find(AwardEmojiManager.WAIT_EMOJI, own=True):
+        if self._mr.award_emoji.find(Emoji.WAIT, own=True):
             logger.debug(
                 f"{self}: Setting wait reason {reason} ignored because "
-                f"{AwardEmojiManager.WAIT_EMOJI} emoji is set.")
+                f"{Emoji.WAIT} emoji is set.")
             return
 
-        self._mr.award_emoji.create(AwardEmojiManager.WAIT_EMOJI)
+        self._mr.award_emoji.create(Emoji.WAIT)
         if reason == WaitReason.no_commits:
-            message_id = MessageId.WaitingForCommits
+            message_id = Comment.WaitingForCommits
             params = None
         elif reason == WaitReason.not_approved:
-            message_id = MessageId.WaitingForApproval
+            message_id = Comment.WaitingForApproval
             params = {"approvals_left": (str(self._approvals_left())
                                          if self._approvals_left() is not None
                                          else 'unknown number')}
         elif reason == WaitReason.pipeline_running:
             last_pipeline = self._get_last_pipeline()
             assert last_pipeline is not None
-            message_id = MessageId.WaitingForPipeline
+            message_id = Comment.WaitingForPipeline
             params = {"pipeline_id": last_pipeline.id, "pipeline_url": last_pipeline.web_url}
         else:
             assert reason is None
@@ -518,7 +518,7 @@ class MergeRequestManager:
         self.add_comment(robocat.comments.Message(message_id, params))
 
     def unset_wait_state(self) -> None:
-        self._mr.award_emoji.delete(AwardEmojiManager.WAIT_EMOJI, own=True)
+        self._mr.award_emoji.delete(Emoji.WAIT, own=True)
 
     def merge(self) -> bool:
         if self._mr.is_merged:
@@ -543,7 +543,7 @@ class MergeRequestManager:
 
         try:
             message = robocat.comments.Message(
-                id=MessageId.MrMerged, params={"branch": self._mr.target_branch})
+                id=Comment.MrMerged, params={"branch": self._mr.target_branch})
             self.add_comment(message)
         except GitlabError as e:
             logger.error(f"{self}: Failed to add \"MR merged\" comment: {e}")
@@ -552,10 +552,7 @@ class MergeRequestManager:
 
     def create_thread(
             self,
-            title: str,
-            message: str,
-            emoji: str,
-            message_id: MessageId | None = None,
+            message: robocat.comments.Message,
             message_data: dict[str, Any] | None = None,
             file: str | None = None,
             line: int | None = None,
@@ -573,14 +570,12 @@ class MergeRequestManager:
         else:
             position = None
 
-        body = robocat.comments.format_body(title=title, message=message, emoji=emoji)
-        if message_id:
-            body += str(
-                NoteDetails(message_id=message_id, sha=self._mr.sha, data=(message_data or {})))
+        body = message.format_body(str(
+            NoteDetails(message_id=message.id, sha=self._mr.sha, data=(message_data or {}))))
         return self._mr.create_discussion(body=body, position=position, autoresolve=autoresolve)
 
     def is_follow_up(self):
-        if self._mr.award_emoji.find(AwardEmojiManager.FOLLOWUP_MERGE_REQUEST_EMOJI, own=True):
+        if self._mr.award_emoji.find(Emoji.FOLLOWUP_MERGE_REQUEST, own=True):
             return True
 
         if self._mr.description and self._FOLLOWUP_DESCRIPTION_RE.search(self._mr.description):
@@ -597,7 +592,7 @@ class MergeRequestManager:
             return None
 
         follow_up_initial_note = find_first_comment(
-            notes=self.notes(), message_id=MessageId.FollowUpInitialMessage)
+            notes=self.notes(), message_id=Comment.FollowUpInitialMessage)
         if not follow_up_initial_note:
             logger.warning(f"{self}: Cannot find initial follow-up comment")
             return None
@@ -609,10 +604,10 @@ class MergeRequestManager:
     def add_follow_up_creation_comment(self, branch: str, url: str, successful: bool):
         if successful:
             message = robocat.comments.Message(
-                id=MessageId.FollowUpCreationSuccessful, params={"branch": branch, "url": url})
+                id=Comment.FollowUpCreationSuccessful, params={"branch": branch, "url": url})
         else:
             message = robocat.comments.Message(
-                id=MessageId.FollowUpCreationFailed, params={"branch": branch})
+                id=Comment.FollowUpCreationFailed, params={"branch": branch})
         self.add_comment(message)
 
     def get_merged_commits(self) -> list[str]:
@@ -625,23 +620,15 @@ class MergeRequestManager:
         return [c.id[0:12] for c in self._mr.commits()]
 
     def add_workflow_problem_info(self, problem: robocat.comments.Message, is_blocker: bool):
-        if is_blocker:
-            emoji = AwardEmojiManager.BAD_ISSUE_EMOJI
-            message = robocat.comments.workflow_error_message.format(error=problem.text)
-        else:
-            emoji = AwardEmojiManager.SUSPICIOUS_ISSUE_EMOJI
-            message = problem.text
-
-        self.create_thread(
-            title=problem.title, message=message, emoji=emoji, message_id=problem.id)
+        self.create_thread(problem)
 
         if is_blocker:
-            self._mr.award_emoji.create(AwardEmojiManager.BAD_ISSUE_EMOJI)
+            self._mr.award_emoji.create(Emoji.BAD_ISSUE)
 
     def ensure_no_workflow_errors(self, error_notes: list[Note]):
-        self._mr.award_emoji.delete(AwardEmojiManager.SUSPICIOUS_ISSUE_EMOJI, own=True)
-        if self._mr.award_emoji.delete(AwardEmojiManager.BAD_ISSUE_EMOJI, own=True):
-            self.add_comment(robocat.comments.Message(id=MessageId.WorkflowOk))
+        self._mr.award_emoji.delete(Emoji.SUSPICIOUS_ISSUE, own=True)
+        if self._mr.award_emoji.delete(Emoji.BAD_ISSUE, own=True):
+            self.add_comment(robocat.comments.Message(id=Comment.WorkflowOk))
 
         for note in error_notes:
             if not note.resolvable:
@@ -669,13 +656,13 @@ class MergeRequestManager:
                 f"{self}: Cannot squash commits locally: {exc}. Most likely there is no "
                 f"{self._mr.source_branch!r} branch in {remote_url!r}")
 
-            self.add_comment(robocat.comments.Message(id=MessageId.CannotSquashLocally))
+            self.add_comment(robocat.comments.Message(id=Comment.CannotSquashLocally))
             return
 
         if not self._restore_approvals(approvers=approved_by):
             logger.warning(f"{self}: Cannot re-approve merge request.")
             message = robocat.comments.Message(
-                id=MessageId.CannotRestoreApprovals, params={"approvers": ", @".join(approved_by)})
+                id=Comment.CannotRestoreApprovals, params={"approvers": ", @".join(approved_by)})
             self.add_comment(message)
 
     def _restore_approvals(self, approvers: set[str], first_try_delay_s: int = 5) -> bool:
@@ -700,7 +687,7 @@ class MergeRequestManager:
     def add_robocat_approval(self):
         if not self._mr.ensure_approve():
             self.add_comment(robocat.comments.Message(
-                id=MessageId.CannotApproveAsUser, params={"username": self._current_user}))
+                id=Comment.CannotApproveAsUser, params={"username": self._current_user}))
 
     def remove_robocat_approval(self):
         self._mr.ensure_unapprove()
@@ -713,7 +700,7 @@ class MergeRequestManager:
 
     def add_issue_not_finalized_notification(self, issue_key: str):
         message = robocat.comments.Message(
-            id=MessageId.FollowUpIssueNotMovedToQA, params={"issue_key": issue_key})
+            id=Comment.FollowUpIssueNotMovedToQA, params={"issue_key": issue_key})
         self.add_comment(message)
 
     def last_pipeline_check_job_status(self, job_name: str) -> JobStatus | None:

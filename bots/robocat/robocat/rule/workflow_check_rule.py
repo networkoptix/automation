@@ -9,10 +9,9 @@ import automation_tools.checkers.config as automation_config
 from automation_tools.jira import GitlabBranchDescriptor, JiraAccessor, JiraIssue
 from automation_tools.jira_helpers import JIRA_STATUS_PROGRESS, JIRA_STATUS_REVIEW
 
-from robocat.comments import Message
+from robocat.comments import Comment, Message
 from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import MessageId
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.rule.helpers.stateful_checker_helpers import StoredCheckResults
@@ -32,21 +31,21 @@ ProjectIssueBranchInfo = dict[str, IssueBranchInfo]
 
 class WorkflowStoredCheckResults(StoredCheckResults):
     MESSAGE_IDS = {
-        MessageId.WorkflowOk,
-        MessageId.WorkflowBadFixVersions,
-        MessageId.WorkflowBadTargetBranch,
-        MessageId.WorkflowDifferentCommitMessage,
-        MessageId.WorkflowDifferentJiraIssueSets,
-        MessageId.WorkflowInconsistentFixVersions,
-        MessageId.WorkflowNoJiraIssueInCommitMessage,
-        MessageId.WorkflowNoJiraIssueInMr,
-        MessageId.WorkflowParenthesesNotAllowed,
-        MessageId.InconsistentAssigneesInJiraAndGitlab,
-        MessageId.UnassignedJiraIssue,
-        MessageId.SuspiciousJiraIssueStatus,
-        MessageId.FailedCheckForNoSupportedProject,
+        Comment.WorkflowOk,
+        Comment.WorkflowBadFixVersions,
+        Comment.WorkflowBadTargetBranch,
+        Comment.WorkflowDifferentCommitMessage,
+        Comment.WorkflowDifferentJiraIssueSets,
+        Comment.WorkflowInconsistentFixVersions,
+        Comment.WorkflowNoJiraIssueInCommitMessage,
+        Comment.WorkflowNoJiraIssueInMr,
+        Comment.WorkflowParenthesesNotAllowed,
+        Comment.InconsistentAssigneesInJiraAndGitlab,
+        Comment.UnassignedJiraIssue,
+        Comment.SuspiciousJiraIssueStatus,
+        Comment.FailedCheckForNoSupportedProject,
     }
-    OK_MESSAGE_IDS = {MessageId.WorkflowOk}
+    OK_MESSAGE_IDS = {Comment.WorkflowOk}
 
 
 class WorkflowCheckRuleExecutionResultClass(RuleExecutionResultClass, Enum):
@@ -109,7 +108,7 @@ class WorkflowCheckRule(BaseRule):
         if not belongs_to_supported_projects:
             related_project_problems = [
                 Message(
-                    id=MessageId.FailedCheckForNoSupportedProject,
+                    id=Comment.FailedCheckForNoSupportedProject,
                     params={"jira_projects_list": '"{}"'.format('", "'.join(self._project_keys))}),
             ]
             self._update_workflow_problems_info(
@@ -166,15 +165,15 @@ class WorkflowCheckRule(BaseRule):
             if problem.id in stored_errors_by_id:
                 continue  # Error is already reported and the discussion is not resolved.
             has_reported_suspicious_jira_status = (
-                problem.id == MessageId.SuspiciousJiraIssueStatus
-                and stored_info.has_reported_problem(MessageId.SuspiciousJiraIssueStatus))
+                problem.id == Comment.SuspiciousJiraIssueStatus
+                and stored_info.has_reported_problem(Comment.SuspiciousJiraIssueStatus))
             has_reported_inconsistent_assignees = (
-                problem.id == MessageId.InconsistentAssigneesInJiraAndGitlab
+                problem.id == Comment.InconsistentAssigneesInJiraAndGitlab
                 and stored_info.has_reported_problem(
-                    MessageId.InconsistentAssigneesInJiraAndGitlab))
+                    Comment.InconsistentAssigneesInJiraAndGitlab))
             has_reported_unassigned_jira_issue = (
-                problem.id == MessageId.UnassignedJiraIssue
-                and stored_info.has_reported_problem(MessageId.UnassignedJiraIssue))
+                problem.id == Comment.UnassignedJiraIssue
+                and stored_info.has_reported_problem(Comment.UnassignedJiraIssue))
             if (has_reported_suspicious_jira_status
                     or has_reported_inconsistent_assignees
                     or has_reported_unassigned_jira_issue):
@@ -187,7 +186,7 @@ class WorkflowCheckRule(BaseRule):
         if not mr_manager.data.issue_keys:
             logger.warning(
                 f"{mr_manager}: Can't detect attached Jira Issue for the Merge Request.")
-            jira_issue_errors = [Message(id=MessageId.WorkflowNoJiraIssueInMr)]
+            jira_issue_errors = [Message(id=Comment.WorkflowNoJiraIssueInMr)]
 
         # Iterate over all the Issues mentioned in the MR, except for the ones marked by
         # "hide_from_police" label. Note that Issues can belong to different Projects.
@@ -248,7 +247,7 @@ class WorkflowCheckRule(BaseRule):
                          for x in automation_config.ALLOWED_VERSIONS_SETS[issue.project]]))
 
         result.append(Message(
-            id=MessageId.WorkflowBadFixVersions,
+            id=Comment.WorkflowBadFixVersions,
             params={"issue_key": str(issue), "version_error_string": version_error_string}))
 
         return result
@@ -277,7 +276,7 @@ class WorkflowCheckRule(BaseRule):
                 "first_found_issue_versions": first_found_issue_data.fixVersions,
             }
             result.append(
-                Message(id=MessageId.WorkflowInconsistentFixVersions, params=parameters))
+                Message(id=Comment.WorkflowInconsistentFixVersions, params=parameters))
 
         return result
 
@@ -303,7 +302,7 @@ class WorkflowCheckRule(BaseRule):
                 f"{first_found_issue_data.fixVersions!r}")
             parameters = {"issue_key": str(issue), "target_branch": mr_manager.data.target_branch}
             result.append(
-                Message(id=MessageId.WorkflowBadTargetBranch, params=parameters))
+                Message(id=Comment.WorkflowBadTargetBranch, params=parameters))
 
         return result
 
@@ -325,7 +324,7 @@ class WorkflowCheckRule(BaseRule):
                     "actual_issue_keys": actual_issue_keys,
                     "actual_commit_issue_keys": actual_commit_issue_keys,
                 }
-                return Message(id=MessageId.WorkflowDifferentJiraIssueSets, params=parameters)
+                return Message(id=Comment.WorkflowDifferentJiraIssueSets, params=parameters)
 
         if not (mr_manager.is_follow_up() or mr_data.squash or len(commits_data.messages) > 1):
             expected_commit_message = f"{mr_data.title}\n\n{mr_data.description}".strip()
@@ -334,15 +333,15 @@ class WorkflowCheckRule(BaseRule):
                     "expected_commit_message": expected_commit_message,
                     "first_commit_message": commits_data.messages[0].strip(),
                 }
-                return Message(id=MessageId.WorkflowDifferentCommitMessage, params=parameters)
+                return Message(id=Comment.WorkflowDifferentCommitMessage, params=parameters)
 
         if mr_manager.is_follow_up() and mr_data.squash:
             if re.match(r'^(?:.+?\:)?\s*\(.+\)', mr_data.title):
-                return Message(id=MessageId.WorkflowParenthesesNotAllowed)
+                return Message(id=Comment.WorkflowParenthesesNotAllowed)
 
         if not mr_data.squash:
             if any([True for keys in commits_data.issue_keys if not keys]):
-                return Message(id=MessageId.WorkflowNoJiraIssueInCommitMessage)
+                return Message(id=Comment.WorkflowNoJiraIssueInCommitMessage)
 
         return None
 
@@ -367,7 +366,7 @@ class WorkflowCheckRule(BaseRule):
             if issue.assignee is None:
                 parameters = {"issue_key": issue_key}
                 result.append(Message(
-                    id=MessageId.UnassignedJiraIssue, params=parameters))
+                    id=Comment.UnassignedJiraIssue, params=parameters))
             elif issue.assignee.name != mr_data.author.name:
                 parameters = {
                     "issue_key": issue_key,
@@ -375,11 +374,11 @@ class WorkflowCheckRule(BaseRule):
                     "mr_assignee": mr_data.author.name,
                 }
                 result.append(Message(
-                    id=MessageId.InconsistentAssigneesInJiraAndGitlab, params=parameters))
+                    id=Comment.InconsistentAssigneesInJiraAndGitlab, params=parameters))
 
             if issue.status not in [JIRA_STATUS_PROGRESS, JIRA_STATUS_REVIEW]:
                 parameters = {"issue_key": issue_key, "issue_status": issue.raw_status}
                 result.append(Message(
-                    id=MessageId.SuspiciousJiraIssueStatus, params=parameters))
+                    id=Comment.SuspiciousJiraIssueStatus, params=parameters))
 
         return result

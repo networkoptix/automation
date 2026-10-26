@@ -8,10 +8,9 @@ from typing import Set
 from automation_tools.jira import JiraAccessor
 
 import robocat.comments
-from robocat.award_emoji_manager import AwardEmojiManager
+from robocat.comments import Comment
 from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import MessageId
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 from robocat.rule.helpers.nx_submodule_checker import NxSubmoduleChecker
@@ -36,17 +35,17 @@ class NxSubmoduleRuleExecutionResultClass(RuleExecutionResultClass, Enum):
 
 class NxSubmoduleStoredCheckResults(StoredCheckResults):
     MESSAGE_IDS = {
-        MessageId.NxSubmoduleCheckHugeDiffUncheckable,
-        MessageId.NxSubmoduleCheckPassed,
-        MessageId.InconsistentNxSubmoduleChange,
-        MessageId.NxSubmoduleConfigDeleted,
-        MessageId.NxSubmoduleConfigMalformed,
-        MessageId.NxSubmoduleConfigBadGitData,
-        MessageId.NxSubmoduleCheckUnknownError,
+        Comment.NxSubmoduleCheckHugeDiffUncheckable,
+        Comment.NxSubmoduleCheckPassed,
+        Comment.InconsistentNxSubmoduleChange,
+        Comment.NxSubmoduleConfigDeleted,
+        Comment.NxSubmoduleConfigMalformed,
+        Comment.NxSubmoduleConfigBadGitData,
+        Comment.NxSubmoduleCheckUnknownError,
     }
     OK_MESSAGE_IDS = {
-        MessageId.NxSubmoduleCheckPassed,
-        MessageId.NxSubmoduleCheckHugeDiffUncheckable,
+        Comment.NxSubmoduleCheckPassed,
+        Comment.NxSubmoduleCheckHugeDiffUncheckable,
     }
 
 
@@ -107,31 +106,21 @@ class NxSubmoduleCheckRule(CheckChangesMixin, BaseRule):
     def _create_invalid_changes_discussion(
             self, mr_manager: MergeRequestManager, error: CheckError):
         if error.type == NxSubmoduleChecker.INCONSISTENT_CONTENT:
-            error_message = robocat.comments.inconsistent_nx_submodule_change.format(
-                **error.params)
-            message_id = MessageId.InconsistentNxSubmoduleChange
+            comment = Comment.InconsistentNxSubmoduleChange
         elif error.type == NxSubmoduleChecker.CONFIG_DELETED_ERROR:
-            error_message = robocat.comments.nx_submodule_config_deleted.format(**error.params)
-            message_id = MessageId.NxSubmoduleConfigDeleted
+            comment = Comment.NxSubmoduleConfigDeleted
         elif error.type == NxSubmoduleChecker.CONFIG_MALFORMED_ERROR:
-            error_message = robocat.comments.nx_submodule_config_malformed.format(**error.params)
-            message_id = MessageId.NxSubmoduleConfigMalformed
+            comment = Comment.NxSubmoduleConfigMalformed
         elif error.type == NxSubmoduleChecker.CONFIG_BAD_GIT_DATA:
-            error_message = robocat.comments.nx_submodule_bad_git_data.format(**error.params)
-            message_id = MessageId.NxSubmoduleConfigBadGitData
+            comment = Comment.NxSubmoduleConfigBadGitData
         else:
-            error_message = robocat.comments.unknown_nx_submodule_error
-            message_id = MessageId.NxSubmoduleCheckUnknownError
+            comment = Comment.NxSubmoduleCheckUnknownError
 
         logger.warning(
-            f"{mr_manager}: Invalid changes found (id: {message_id.value}), creating discussion")
+            f"{mr_manager}: Invalid changes found (id: {comment.name}), creating discussion")
 
         mr_manager.create_thread(
-            title="Autocheck for Nx Submodule integrity failed",
-            message=robocat.comments.has_invalid_changes.format(error_message=error_message),
-            message_id=message_id,
-            message_data=asdict(error),
-            emoji=AwardEmojiManager.AUTOCHECK_FAILED_EMOJI)
+            robocat.comments.Message(comment, error.params), message_data=asdict(error))
 
     def _ensure_problems_not_found_comment(
             self, mr_manager: MergeRequestManager, error_check_result: ErrorCheckResult):
@@ -139,21 +128,10 @@ class NxSubmoduleCheckRule(CheckChangesMixin, BaseRule):
             return
 
         if self._is_diff_complete(mr_manager):
-            title = "Autocheck for Nx Submodules integrity passed"
-            message = robocat.comments.nx_submodule_autocheck_passed
-            message_id = MessageId.NxSubmoduleCheckPassed
-            emoji = AwardEmojiManager.AUTOCHECK_OK_EMOJI
+            comment = Comment.NxSubmoduleCheckPassed
             autoresolve = True
         else:
-            title = "Impossible to autocheck Nx Submodules integrity"
-            message = robocat.comments.nx_submodule_autocheck_impossible
-            message_id = MessageId.NxSubmoduleCheckHugeDiffUncheckable
-            emoji = AwardEmojiManager.AUTOCHECK_IMPOSSIBLE_EMOJI
+            comment = Comment.NxSubmoduleCheckHugeDiffUncheckable
             autoresolve = False
 
-        mr_manager.create_thread(
-            title=title,
-            message=message,
-            message_id=message_id,
-            emoji=emoji,
-            autoresolve=autoresolve)
+        mr_manager.create_thread(robocat.comments.Message(comment), autoresolve=autoresolve)

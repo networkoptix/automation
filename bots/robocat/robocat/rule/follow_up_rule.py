@@ -9,9 +9,10 @@ from automation_tools.jira_comments import JiraComment, JiraMessageId
 
 import robocat.comments
 import robocat.merge_request_actions.follow_up_actions
+from robocat.comments import Comment
 from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
-from robocat.note import MessageId, find_last_comment
+from robocat.note import find_last_comment
 from robocat.project_manager import ProjectManager
 from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
 
@@ -68,7 +69,7 @@ class FollowUpRule(BaseRule):
             # A follow-up Merge Request. Do not try to create follow-up for it.
             if mr_manager.is_follow_up():
                 logger.debug(f"{mr_manager}: The Merge Request is a follow-up itself.")
-                mr_manager.add_comment(robocat.comments.Message(MessageId.FollowUpNotNeeded))
+                mr_manager.add_comment(robocat.comments.Message(Comment.FollowUpNotNeeded))
                 return self.ExecutionResult.rule_execution_successful
 
             # Primary merge request.
@@ -80,7 +81,7 @@ class FollowUpRule(BaseRule):
                 "QA/close single-branch Jira issues and create follow-up merge requests.")
             draft_follow_up_requested_comment = find_last_comment(
                 notes=mr_manager.notes(),
-                message_id=MessageId.CommandSetDraftFollowUpMode)
+                message_id=Comment.CommandSetDraftFollowUpMode)
             robocat.merge_request_actions.follow_up_actions.create_follow_up_merge_requests(
                 jira=self.jira,
                 project_manager=self.project_manager,

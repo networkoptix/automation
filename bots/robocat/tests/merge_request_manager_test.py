@@ -6,7 +6,7 @@ import robocat.commands.parser
 import robocat.comments
 from automation_tools.mr_data_structures import ApprovalRequirements
 from automation_tools.tests.gitlab_constants import OPEN_SOURCE_APPROVER_COMMON
-from robocat.note import MessageId
+from robocat.comments import Comment
 
 from tests.fixtures import mr_manager, mr_state, project
 
@@ -69,7 +69,7 @@ class TestMergeRequestManager:
     def test_update_merge_base(self, mr_manager, previous_base_sha, is_just_rebased):
         mr_manager.add_comment(
             message=robocat.comments.Message(
-                id=MessageId.InitialMessage,
+                id=Comment.InitialMessage,
                 params={
                     "bot_gitlab_username": mr_manager._current_user,
                     "bot_revision": automation_tools.bot_info.revision(),
