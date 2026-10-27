@@ -293,7 +293,8 @@ class MergeRequest:
 
     def ensure_approve(self) -> bool:
         try:
-            self._gitlab_mr.approve()
+            # A lazy copy: python-gitlab 8 would drop our author and sha on approve().
+            self._gitlab_mr.manager.get(self.id, lazy=True).approve()
         except gitlab.exceptions.GitlabAuthenticationError:
             # If the Merge Request is already approved by the user, the GitLab API returns error
             # 401 in response for the "approve" call from the same user. Return False if it is not
@@ -307,7 +308,8 @@ class MergeRequest:
 
     def ensure_unapprove(self) -> bool:
         try:
-            self._gitlab_mr.unapprove()
+            # A lazy copy: python-gitlab 8 would drop our author and sha on unapprove().
+            self._gitlab_mr.manager.get(self.id, lazy=True).unapprove()
         except gitlab.exceptions.GitlabMRApprovalError:
             # If the Merge Request is not approved by the user, the gitlab module throws an
             # exception in response for the "unapprove" call from the same user. Return False if it
