@@ -8,7 +8,12 @@ from automation_tools.tests.gitlab_constants import (
     GOOD_README_COMMIT_NEW_FILE,
     OPEN_SOURCE_APPROVER_COMMON,
 )
-from gitlab.exceptions import GitlabError, GitlabHttpError, GitlabMRClosedError
+from gitlab.exceptions import (
+    GitlabError,
+    GitlabHttpError,
+    GitlabMRClosedError,
+    GitlabMRRebaseError,
+)
 from robocat.comments import Comment, Emoji
 from robocat.merge_request import MergeRequest, MergeResult
 from robocat.merge_request_manager import MergeRequestManager
@@ -200,3 +205,30 @@ class TestMergeRequestManagerMerge:
         with pytest.raises(GitlabHttpError):
             manager.merge()
         mock_mr.create_note.assert_not_called()
+
+
+class TestMergeRequestRebase:
+    """A rebase that GitLab cannot start now."""
+
+    @pytest.fixture
+    def merge_request(self, mr):
+        return MergeRequest(mr, BOT_USERNAME)
+
+    @pytest.mark.parametrize("mr_state", [_BASE_MR_STATE])
+    def test_locked_mr_counts_as_rebase_in_progress(self, merge_request, mr, monkeypatch):
+        """A 409 "Resource lock" means GitLab is busy with the MR: no exception."""
+        monkeypatch.setattr(mr, "rebase", MagicMock(side_effect=GitlabMRRebaseError(
+            "409 Conflict: Resource lock", response_code=409)))
+
+        merge_request.rebase()
+
+        assert merge_request.rebase_in_progress
+
+    @pytest.mark.parametrize("mr_state", [_BASE_MR_STATE])
+    def test_other_rebase_error_is_raised(self, merge_request, mr, monkeypatch):
+        """Any other rebase error stays an exception."""
+        monkeypatch.setattr(mr, "rebase", MagicMock(side_effect=GitlabMRRebaseError(
+            "403 Forbidden", response_code=403)))
+
+        with pytest.raises(GitlabMRRebaseError):
+            merge_request.rebase()

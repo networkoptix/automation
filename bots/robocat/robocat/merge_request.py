@@ -195,7 +195,14 @@ class MergeRequest:
     def rebase(self):
         logger.debug(f"{self}: Rebasing")
         self.rebase_in_progress = True
-        self._gitlab_mr.rebase()
+        try:
+            self._gitlab_mr.rebase()
+        except gitlab.exceptions.GitlabMRRebaseError as error:
+            if error.response_code != 409:
+                raise
+            logger.info(  # The next MR event goes on when GitLab has finished.
+                f"{self}: GitLab is busy with this MR (a push or another rebase), "
+                f"so it did not start the rebase: {error}")
 
     def merge(self) -> MergeResult:
         project = self.raw_gitlab_object.projects.get(self.project_id, lazy=False)
