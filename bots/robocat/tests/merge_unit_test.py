@@ -9,7 +9,7 @@ from automation_tools.tests.gitlab_constants import (
     OPEN_SOURCE_APPROVER_COMMON,
 )
 from gitlab.exceptions import GitlabError, GitlabHttpError, GitlabMRClosedError
-from robocat.comments import Comment
+from robocat.comments import Comment, Emoji
 from robocat.merge_request import MergeRequest, MergeResult
 from robocat.merge_request_manager import MergeRequestManager
 
@@ -161,3 +161,42 @@ class TestMergeRequestManagerMerge:
 
         assert result is True, (
             "Merge succeeded; failure to add the 'MR merged' comment must not mask success")
+
+    def test_gitlab_rejection_posts_comment_and_returns_false(self, manager, mock_mr):
+        """A 400 answer to the merge is explained in a comment, not raised."""
+        mock_mr.award_emoji = MagicMock()
+        mock_mr.merge.side_effect = GitlabHttpError(
+            "400 Bad request - Failed to merge", response_code=400)
+
+        result = manager.merge()
+
+        assert result is False
+        body = mock_mr.create_note.call_args.args[0]
+        assert f"Message Id: {Comment.MergeRejected.name}" in body
+        assert "400 Bad request - Failed to merge" in body
+        mock_mr.award_emoji.delete.assert_called_once_with(  # Nothing was merged.
+            Emoji.UNFINISHED_POST_MERGING, own=False)
+
+    def test_gitlab_rejection_is_explained_once_per_commit(self, manager, mock_mr):
+        """A second refusal for the same commit posts no second comment."""
+        mock_mr.award_emoji = MagicMock()
+        mock_mr.merge.side_effect = GitlabHttpError(
+            "400 Bad request - Failed to merge", response_code=400)
+        manager.merge()
+        mock_mr.notes_data.return_value = [{
+            "id": 1,
+            "author": {"username": BOT_USERNAME},
+            "created_at": "2026-10-26T12:00:00Z",
+            "body": mock_mr.create_note.call_args.args[0],
+        }]
+
+        assert manager.merge() is False
+        assert mock_mr.create_note.call_count == 1
+
+    def test_gitlab_server_error_is_raised(self, manager, mock_mr):
+        """A 5xx answer is a server failure, not a refusal: it stays an exception."""
+        mock_mr.merge.side_effect = GitlabHttpError("502 Bad Gateway", response_code=502)
+
+        with pytest.raises(GitlabHttpError):
+            manager.merge()
+        mock_mr.create_note.assert_not_called()

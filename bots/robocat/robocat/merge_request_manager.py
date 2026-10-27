@@ -12,7 +12,7 @@ import automation_tools.git
 import automation_tools.utils
 import git
 from automation_tools.mr_data_structures import ApprovalRequirements
-from gitlab.exceptions import GitlabError, GitlabMRClosedError
+from gitlab.exceptions import GitlabError, GitlabHttpError, GitlabMRClosedError
 
 import robocat.comments
 from robocat.action_reasons import CheckFailureReason, WaitReason
@@ -534,6 +534,13 @@ class MergeRequestManager:
             logger.info(f"{self}: Cannot merge the MR: {e}. Probably, rebase is required")
             self._mr.rebase()
             return False
+        except GitlabHttpError as error:
+            if error.response_code != 400:
+                raise
+            logger.info(f"{self}: GitLab rejected the merge: {error}")
+            self.update_unfinished_post_merging_flag(False)  # Nothing was merged.
+            self._explain_merge_rejection(reason=str(error.error_message))
+            return False
 
         if result == MergeResult.ADDED_TO_MERGE_TRAIN:
             logger.info(
@@ -549,6 +556,16 @@ class MergeRequestManager:
             logger.error(f"{self}: Failed to add \"MR merged\" comment: {e}")
 
         return True
+
+    def _explain_merge_rejection(self, reason: str) -> None:
+        """Post why GitLab refused the merge, once for each commit of the MR."""
+        if find_last_comment(
+                notes=self.notes(),
+                message_id=Comment.MergeRejected,
+                condition=lambda note: note.sha == self._mr.sha):
+            return
+        self.add_comment(robocat.comments.Message(Comment.MergeRejected, {
+            "reason": reason, "bot_gitlab_username": self._current_user}))
 
     def create_thread(
             self,

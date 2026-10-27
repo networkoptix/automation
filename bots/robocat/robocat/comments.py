@@ -36,6 +36,7 @@ class Emoji(StrEnum):  # No @unique: names that share an emoji become aliases of
     EXCEPTION_OCCURRED = "exclamation"
     JIRA_COMMENT_FAILED = "exclamation"
     JIRA_ISSUE_NOT_CLOSED = "warning"
+    MERGE_REJECTED = "warning"
     WATCHING = "eyes"  # Reaction: Robocat looks after the MR.
     UNFINISHED_POST_MERGING = "point_up"  # Reaction: the post-merge work is not done yet.
 
@@ -511,6 +512,16 @@ finishes.
         title="MR merged",
         emoji=Emoji.MERGED,
         text="Merge request was successfully merged into `{branch}` branch.")
+    MergeRejected = CommentTemplate(
+        title="GitLab rejected the merge",
+        emoji=Emoji.MERGE_REJECTED,
+        text="""
+GitLab refused to merge this Merge Request: {reason}.
+
+To fix it, do what the merge box of this Merge Request shows: resolve conflicts or threads, fix
+the pipeline or get the approvals. Then write `@{bot_gitlab_username} process` in a comment, and
+Robocat tries again.
+""")
     FollowUpCreationSuccessful = CommentTemplate(
         title="Follow-up merge request added",
         emoji=Emoji.FOLLOWUP_CREATED,
