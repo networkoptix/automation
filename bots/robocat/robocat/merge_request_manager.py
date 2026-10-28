@@ -12,7 +12,12 @@ import automation_tools.git
 import automation_tools.utils
 import git
 from automation_tools.mr_data_structures import ApprovalRequirements
-from gitlab.exceptions import GitlabError, GitlabHttpError, GitlabMRClosedError
+from gitlab.exceptions import (
+    GitlabError,
+    GitlabHttpError,
+    GitlabMRClosedError,
+    GitlabMRRebaseError,
+)
 
 import robocat.comments
 from robocat.action_reasons import CheckFailureReason, WaitReason
@@ -95,6 +100,11 @@ class MergeRequestCommitsData:
 # instances in order to lru_cache is working right.
 class MergeRequestManager:
     _FOLLOWUP_DESCRIPTION_RE = re.compile(r"\(cherry picked from commit (?P<sha>[a-f0-9]{40})\)")
+    _REBASE_REFUSALS = {  # GitLab's 403 reasons (RebaseService.validate); it sends one at a time.
+        "Source branch does not exist": Comment.RebaseRejectedSourceBranchMissing,
+        "Cannot push to source branch": Comment.RebaseRejectedCannotPush,
+        "Source branch is protected from force push": Comment.RebaseRejectedForcePushProtected,
+    }
 
     def __init__(self, mr: MergeRequest, current_user: str | None = None):
         logger.debug(f"Initialize MR manager for {mr.id}: '{mr.title}'")
@@ -363,7 +373,7 @@ class MergeRequestManager:
             self._mr.id, include_diverged_commits_count=True)
 
         if full_mr_data.diverged_commits_count:
-            self._mr.rebase()
+            self._rebase()
             return True
 
         return False
@@ -532,14 +542,14 @@ class MergeRequestManager:
             # This is a workaround for unexpected "mergeable" value in "detailed_merge_status"
             # field instead of "need_rebase". TODO: Remove this as soon as possible.
             logger.info(f"{self}: Cannot merge the MR: {e}. Probably, rebase is required")
-            self._mr.rebase()
+            self._rebase()
             return False
         except GitlabHttpError as error:
             if error.response_code != 400:
                 raise
             logger.info(f"{self}: GitLab rejected the merge: {error}")
             self.update_unfinished_post_merging_flag(False)  # Nothing was merged.
-            self._explain_merge_rejection(reason=str(error.error_message))
+            self._explain_gitlab_rejection(Comment.MergeRejected, reason=str(error.error_message))
             return False
 
         if result == MergeResult.ADDED_TO_MERGE_TRAIN:
@@ -557,15 +567,29 @@ class MergeRequestManager:
 
         return True
 
-    def _explain_merge_rejection(self, reason: str) -> None:
-        """Post why GitLab refused the merge, once for each commit of the MR."""
+    def _explain_gitlab_rejection(self, comment: Comment, **params: str) -> None:
+        """Post why GitLab refused the merge or rebase, once for each commit of the MR."""
         if find_last_comment(
                 notes=self.notes(),
-                message_id=Comment.MergeRejected,
+                message_id=comment,
                 condition=lambda note: note.sha == self._mr.sha):
             return
-        self.add_comment(robocat.comments.Message(Comment.MergeRejected, {
-            "reason": reason, "bot_gitlab_username": self._current_user}))
+        self.add_comment(robocat.comments.Message(comment, {
+            **params, "bot_gitlab_username": self._current_user}))
+
+    def _rebase(self) -> None:
+        """Ask GitLab to rebase the MR; explain a 403 refusal (e.g. a fork) instead of raising."""
+        try:
+            self._mr.rebase()
+        except GitlabMRRebaseError as error:
+            if error.response_code != 403:
+                raise
+            logger.info(f"{self}: GitLab rejected the rebase: {error}")
+            reason = str(error.error_message)
+            comment = next(
+                (comment for text, comment in self._REBASE_REFUSALS.items() if text in reason),
+                Comment.RebaseRejected)
+            self._explain_gitlab_rejection(comment, reason=reason)
 
     def create_thread(
             self,
@@ -760,7 +784,7 @@ class MergeRequestManager:
         self.squash_locally_if_needed(repo)
 
         if self._mr.is_rebase_needed:
-            self._mr.rebase()
+            self._rebase()
             return False
 
         if self._mr.is_pipeline_run_needed:
@@ -772,7 +796,7 @@ class MergeRequestManager:
         self._mr.refresh()
 
         if self._mr.is_rebase_needed:
-            self._mr.rebase()
+            self._rebase()
             return False
 
         if self._mr.is_pipeline_run_needed:

@@ -37,6 +37,7 @@ class Emoji(StrEnum):  # No @unique: names that share an emoji become aliases of
     JIRA_COMMENT_FAILED = "exclamation"
     JIRA_ISSUE_NOT_CLOSED = "warning"
     MERGE_REJECTED = "warning"
+    REBASE_REJECTED = "warning"
     WATCHING = "eyes"  # Reaction: Robocat looks after the MR.
     UNFINISHED_POST_MERGING = "point_up"  # Reaction: the post-merge work is not done yet.
 
@@ -521,6 +522,45 @@ GitLab refused to merge this Merge Request: {reason}.
 To fix it, do what the merge box of this Merge Request shows: resolve conflicts or threads, fix
 the pipeline or get the approvals. Then write `@{bot_gitlab_username} process` in a comment, and
 Robocat tries again.
+""")
+    RebaseRejected = CommentTemplate(
+        title="GitLab rejected the rebase",
+        emoji=Emoji.REBASE_REJECTED,
+        text="""
+GitLab refused to rebase this Merge Request: {reason}.
+
+To fix it, rebase the branch yourself. Robocat tries again after the push.
+""")
+    RebaseRejectedSourceBranchMissing = CommentTemplate(
+        title="GitLab rejected the rebase",
+        emoji=Emoji.REBASE_REJECTED,
+        text="""
+GitLab refused to rebase this Merge Request: {reason}.
+
+To fix it, push the source branch again. Robocat tries again after the push.
+""")
+    RebaseRejectedCannotPush = CommentTemplate(
+        title="GitLab rejected the rebase",
+        emoji=Emoji.REBASE_REJECTED,
+        text="""
+GitLab refused to rebase this Merge Request: {reason}.
+
+To fix it, do one of these:
+- If the source branch is in a fork, turn on "Allow commits from members who can merge to the
+  target branch" in this Merge Request. Then write `@{bot_gitlab_username} process` in a
+  comment, and Robocat tries again.
+- Rebase the branch yourself. Robocat tries again after the push.
+""")
+    RebaseRejectedForcePushProtected = CommentTemplate(
+        title="GitLab rejected the rebase",
+        emoji=Emoji.REBASE_REJECTED,
+        text="""
+GitLab refused to rebase this Merge Request: {reason}.
+
+To fix it, do one of these:
+- Allow force push for the source branch. Then write `@{bot_gitlab_username} process` in a
+  comment, and Robocat tries again.
+- Rebase the branch yourself. Robocat tries again after the push.
 """)
     FollowUpCreationSuccessful = CommentTemplate(
         title="Follow-up merge request added",

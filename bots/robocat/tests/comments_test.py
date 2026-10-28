@@ -29,7 +29,9 @@ STORED_NAMES = [
     "CommitMessageAuthorizedApproversAssigned", "RunPipelineMessage", "WaitingForCommits",
     "WaitingForApproval", "WaitingForPipeline", "MrMerged", "FollowUpCreationSuccessful",
     "FollowUpCreationFailed", "CannotSquashLocally", "CannotRestoreApprovals",
-    "FollowUpInitialMessage", "MergeRejected",
+    "FollowUpInitialMessage", "MergeRejected", "RebaseRejected",
+    "RebaseRejectedSourceBranchMissing", "RebaseRejectedCannotPush",
+    "RebaseRejectedForcePushProtected",
 ]
 
 
