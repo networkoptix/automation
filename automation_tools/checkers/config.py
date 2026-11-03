@@ -86,9 +86,13 @@ ALLOWED_VERSIONS_SETS = {
     ],
     "DOCDB": [
         AllowedVersionSet(
-            {'master (1.0)'},
+            {'master (1.1)'},
             "Ongoing release development"
-        )
+        ),
+        AllowedVersionSet(
+            {'docdb_1.0 (1.0)', 'master (1.1)'},
+            "Next release development/ongoing development"
+        ),
     ],
 }
 
