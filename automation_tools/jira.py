@@ -241,6 +241,27 @@ class JiraIssue:
     def raw_status(self) -> str:
         return self._raw_issue.fields.status.name
 
+    def has_status(self, status: str) -> bool:
+        """Whether the issue has a standard status; the names compare without case ("OPEN")."""
+        name = self._project_status_name(status)
+        return name is not None and self.raw_status.casefold() == name.casefold()
+
+    def status_name(self, status: str) -> str | None:
+        """The Jira name of a standard status in the project of the issue."""
+        return self._project_status_name(status)
+
+    def move_to(self, status: str) -> bool:
+        """Move the issue to a standard status by a transition that leads there; False if none."""
+        name = (self._project_status_name(status) or "").casefold()
+        transition = next(
+            (t["name"] for t in self._jira.transitions(self._raw_issue)
+             if str(t["to"]["name"]).casefold() == name),
+            None)
+        if transition is None:
+            return False
+        self._jira.transition_issue(self._raw_issue, transition)
+        return True
+
     @property
     def resolution(self) -> str | None:
         raw_issue = self._raw_issue

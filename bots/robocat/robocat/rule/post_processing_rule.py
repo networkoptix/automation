@@ -17,22 +17,21 @@ from robocat.comments import Comment
 from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.project_manager import ProjectManager
-from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
+from robocat.rule.base_rule import (
+    ActionRuleExecutionResultClass,
+    BaseRule,
+    RuleExecutionResultClass,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class PostProcessingRuleExecutionResultClass(RuleExecutionResultClass, Enum):
+class PostProcessingRuleExecutionResultClass(ActionRuleExecutionResultClass, Enum):
     # Members are created by `create()`.
-    rule_execution_successful: "PostProcessingRuleExecutionResultClass"
-    not_eligible: "PostProcessingRuleExecutionResultClass"
     rule_execution_failed: "PostProcessingRuleExecutionResultClass"
 
     def __bool__(self):
         return self in [self.rule_execution_successful, self.filtered_out]
-
-    def __str__(self):
-        return str(self.value)
 
 
 class PostProcessingRule(BaseRule):

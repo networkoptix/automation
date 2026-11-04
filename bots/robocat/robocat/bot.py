@@ -61,7 +61,8 @@ class Bot(threading.Thread):
     NETWORK_ERROR_RETRY_S = 30  # GitLab or Jira gets time to recover before the next try.
     NETWORK_ERROR_RETRIES = 5  # Then the next event of the MR tries again.
 
-    PRE_MERGE_RULES = ["essential", "nx_submodule", "commit_message", "job_status", "workflow"]
+    PRE_MERGE_RULES = [
+        "essential", "nx_submodule", "commit_message", "job_status", "jira_status", "workflow"]
     POST_MERGE_RULES = ["follow_up", "post_processing"]
 
     @property

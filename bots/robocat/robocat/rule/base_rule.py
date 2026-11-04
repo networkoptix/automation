@@ -49,6 +49,18 @@ class RuleExecutionResultClass(Enum):
         return cls(class_name, class_values)
 
 
+class ActionRuleExecutionResultClass(RuleExecutionResultClass, Enum):
+    """The results of a rule that acts on the MR (follow-up, Jira) instead of checking it."""
+
+    # Members are created by `create()`.
+    rule_execution_successful: "ActionRuleExecutionResultClass"
+    not_eligible: "ActionRuleExecutionResultClass"
+
+    def __str__(self):
+        """The description of the result, without the merge verdict of a check."""
+        return str(self.value)
+
+
 class BaseRule(metaclass=ABCMeta):
     # Defined by every concrete rule.
     identifier: str

@@ -3,6 +3,7 @@
 from .commit_message_check_rule import CommitMessageCheckRule
 from .essential_rule import EssentialRule
 from .follow_up_rule import FollowUpRule
+from .jira_status_rule import JiraStatusRule
 from .job_status_check_rule import JobStatusCheckRule
 from .nx_submodule_check_rule import NxSubmoduleCheckRule
 from .post_processing_rule import PostProcessingRule
@@ -12,6 +13,7 @@ ALL_RULES = [
     CommitMessageCheckRule,
     EssentialRule,
     FollowUpRule,
+    JiraStatusRule,
     JobStatusCheckRule,
     NxSubmoduleCheckRule,
     PostProcessingRule,

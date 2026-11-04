@@ -29,6 +29,7 @@ from robocat.project_manager import ProjectManager
 from robocat.rule.commit_message_check_rule import CommitMessageCheckRule
 from robocat.rule.essential_rule import EssentialRule
 from robocat.rule.follow_up_rule import FollowUpRule
+from robocat.rule.jira_status_rule import JiraStatusRule
 from robocat.rule.job_status_check_rule import JobStatusCheckRule
 from robocat.rule.nx_submodule_check_rule import NxSubmoduleCheckRule
 from robocat.rule.post_processing_rule import PostProcessingRule
@@ -204,6 +205,11 @@ def follow_up_rule(bot_config, project, project_manager, jira, monkeypatch):
 def post_processing_rule(bot_config, project_manager, jira, monkeypatch):
     monkeypatch.setenv("BOT_NAME", "Robocat")
     return PostProcessingRule(bot_config, project_manager, jira)
+
+
+@pytest.fixture
+def jira_status_rule(bot_config, project_manager, jira):
+    return JiraStatusRule(bot_config, project_manager, jira)
 
 
 @pytest.fixture

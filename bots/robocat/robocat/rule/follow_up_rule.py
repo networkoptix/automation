@@ -14,22 +14,21 @@ from robocat.config import Config
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import find_last_comment
 from robocat.project_manager import ProjectManager
-from robocat.rule.base_rule import BaseRule, RuleExecutionResultClass
+from robocat.rule.base_rule import (
+    ActionRuleExecutionResultClass,
+    BaseRule,
+    RuleExecutionResultClass,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class FollowUpRuleExecutionResultClass(RuleExecutionResultClass, Enum):
+class FollowUpRuleExecutionResultClass(ActionRuleExecutionResultClass, Enum):
     # Members are created by `create()`.
-    rule_execution_successful: "FollowUpRuleExecutionResultClass"
-    not_eligible: "FollowUpRuleExecutionResultClass"
     rule_execution_failed: "FollowUpRuleExecutionResultClass"
 
     def __bool__(self):
         return self in [self.rule_execution_successful, self.filtered_out]
-
-    def __str__(self):
-        return str(self.value)
 
 
 class FollowUpRule(BaseRule):
