@@ -58,6 +58,8 @@ MR_POLL_RATE_S = 30
 class Bot(threading.Thread):
     LONG_EVENT_PROCESSING_THRESHOLD_S = 20
     LONG_WAIT_THRESHOLD_S = 30
+    NETWORK_ERROR_RETRY_S = 30  # GitLab or Jira gets time to recover before the next try.
+    NETWORK_ERROR_RETRIES = 5  # Then the next event of the MR tries again.
 
     PRE_MERGE_RULES = ["essential", "nx_submodule", "commit_message", "job_status", "workflow"]
     POST_MERGE_RULES = ["follow_up", "post_processing"]
@@ -311,8 +313,28 @@ class Bot(threading.Thread):
                 self.event_handler[event_data.event_type](
                     payload=event_data.payload, mr_manager=mr_manager)
             _log_processing_end()
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as error:
+            self._retry_after_network_error(event_data, error)
         except Exception as e:
             create_exception_comment(event_data=event_data, exception=e, mr_manager=mr_manager)
+
+    def _retry_after_network_error(self, event_data: GitlabEventData, error: Exception):
+        """Log a GitLab or Jira network error and process the event again later; no comment."""
+        retries = event_data.network_retries
+        if retries >= self.NETWORK_ERROR_RETRIES:
+            logger.warning(f"{event_data}: Connection error again: {error}; no more retries.")
+            return
+
+        logger.warning(
+            f"{event_data}: Connection error: {error}; retry {retries + 1} of "
+            f"{self.NETWORK_ERROR_RETRIES} in {self.NETWORK_ERROR_RETRY_S} s.")
+        timer = threading.Timer(
+            self.NETWORK_ERROR_RETRY_S,
+            lambda: self._mr_queue.put(GitlabEventData(  # New priority: no queue jumping.
+                payload=event_data.payload, event_type=event_data.event_type,
+                network_retries=retries + 1)))
+        timer.daemon = True  # Robocat can stop while it waits.
+        timer.start()
 
     def _create_mr_manager_by_event_data(
             self, event_data: GitlabEventData) -> MergeRequestManager | None:
@@ -445,8 +467,8 @@ class Bot(threading.Thread):
                 logger.warning(f"{mr_manager}: Git error: {e}")
             except PlayPipelineError as e:
                 logger.warning(f"{mr_manager}: Pipeline error: {e}")
-            except requests.exceptions.ConnectionError as e:
-                logger.warning(f"{mr_manager}: Connection error: {e}")
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                logger.warning(f"{mr_manager}: Connection error: {e}")  # The next poll retries.
             except Exception as exception:
                 stack_trace_repr, exc_info = automation_tools.utils.get_exception_info(exception)
                 logger.warning(f"{mr_manager}: Unknown error: {exc_info}; \n{stack_trace_repr}")

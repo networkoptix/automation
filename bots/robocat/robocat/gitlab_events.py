@@ -55,6 +55,7 @@ class GitlabEventData:
     receive_time: float = field(compare=False, default_factory=time.time)
     # Lower value means higher priority, hence older events are processed first.
     priority: int = field(default_factory=time.time_ns)
+    network_retries: int = field(compare=False, default=0)  # Tries again after network errors.
 
     def as_string_dict(self) -> dict[str, str]:
         return {k: str(v) for k, v in asdict(self).items()}
