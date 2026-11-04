@@ -203,7 +203,7 @@ class JiraIssue:
         current_user_comment_texts = (
             c.body
             for c in self._jira.comments(self._raw_issue)
-            if c.author.emailAddress == current_user.email)
+            if getattr(getattr(c, "author", None), "accountId", None) == current_user.username)
         for comment_text in current_user_comment_texts:
             try:
                 comment = JiraComment.from_string(comment_text)
@@ -386,7 +386,9 @@ class JiraIssue:
         if assignee is None:
             return None
         return automation_tools.utils.User(
-            name=assignee.displayName, email=assignee.emailAddress, username=assignee.accountId)
+            name=assignee.displayName,
+            email=getattr(assignee, "emailAddress", ""),  # Jira sends none if the user hides it.
+            username=assignee.accountId)
 
 
 class JiraAccessor:
@@ -499,5 +501,5 @@ def get_current_jira_user(jira_object: jira.JIRA) -> automation_tools.utils.User
     user_info = jira_object.myself()
     return automation_tools.utils.User(
         name=user_info["displayName"],
-        email=user_info["emailAddress"],
+        email=user_info.get("emailAddress", ""),
         username=user_info["accountId"])
