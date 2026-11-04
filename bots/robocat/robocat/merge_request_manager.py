@@ -79,6 +79,7 @@ class MergeRequestData:
     url: str
     is_merged: bool
     has_commits: bool
+    is_prepared: bool
     has_conflicts: bool
     work_in_progress: bool
     blocking_discussions_resolved: bool

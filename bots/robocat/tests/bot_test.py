@@ -22,6 +22,7 @@ from automation_tools.tests.gitlab_constants import (
     USERS,
 )
 from automation_tools.tests.mocks.git_mocks import BranchMock, CommitMock
+from automation_tools.tests.mocks.merge_request import VersionsManagerMock
 from automation_tools.tests.mocks.project import ProjectMock
 from automation_tools.utils import merge_dicts, parse_config_file
 from robocat.award_emoji_manager import AwardEmojiManager
@@ -105,6 +106,26 @@ class TestBotInit:
 
 
 class TestBot:
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"]}], {}),  # One commit.
+    ])
+    def test_new_mr_waits_until_gitlab_has_its_diff(self, bot, mr, monkeypatch):
+        """GitLab makes the diff of a new MR later (AUT-281): no comment; the next event works."""
+        event = GitlabEventData(
+            payload=GitlabMrEventData(mr_id=mr.iid, mr_state="opened"),
+            event_type=GitlabEventType.merge_request)
+        with monkeypatch.context() as no_diff_yet:  # As GitLab answers in these seconds.
+            no_diff_yet.setattr(mr, "prepared_at", None, raising=False)
+            no_diff_yet.setattr(VersionsManagerMock, "list", lambda _self, **_: [])
+            bot.process_event(event)
+
+        assert mr.mock_comments() == []
+        assert Emoji.WATCHING not in [e.name for e in mr.awardemojis.list()]
+
+        mr.prepared_at = "2026-10-28T15:42:30.293+03:00"  # GitLab has made the diff.
+        bot.process_event(event)
+        assert Emoji.WATCHING in [e.name for e in mr.awardemojis.list()]
+
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         # Return to development on the second handle iteration if essential rule is ok but
         # open source rule check is failed and merge request is not approved by an eligible user.

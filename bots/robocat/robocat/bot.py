@@ -158,6 +158,10 @@ class Bot(threading.Thread):
 
     def _do_pre_processing_actions(self, mr_manager: MergeRequestManager) -> bool:
         logger.debug(f"{mr_manager}: Pre-processing")
+        if mr_manager.data.has_commits and not mr_manager.data.is_prepared:  # No diff yet.
+            logger.info(f"{mr_manager}: GitLab still makes the diff; the next event handles it.")
+            return False
+
         mr_manager.update_merge_base()
 
         # Check if we have un-run pipeline requested by user.

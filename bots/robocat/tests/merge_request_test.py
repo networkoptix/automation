@@ -315,3 +315,23 @@ class TestMergeRejectedByGitLab:
             manager.merge()
         assert error.value.response_code == status
         assert server.notes == []
+
+
+class TestMergeRequestPrepared:
+    """GitLab sets prepared_at once it has made the diff of a new MR (AUT-281)."""
+
+    @pytest.mark.parametrize(("fields", "prepared"), [
+        ({"prepared_at": None}, False),  # A new MR: GitLab still makes the diff.
+        ({"prepared_at": "2026-10-28T15:42:30.293+03:00"}, True),  # dev/nx!41374.
+        ({}, True),  # A GitLab without the field: handled as before.
+    ])
+    def test_prepared(self, fields, prepared):
+        """The MR of the real python-gitlab class reads prepared_at as GitLab sends it."""
+        session = requests.Session()
+        session.mount(GITLAB_URL, FakeGitLabServer({}))  # Answers the threads that are read.
+        manager = gitlab.Gitlab(GITLAB_URL, private_token="token", session=session).projects.get(
+            1, lazy=True).mergerequests
+        merge_request = MergeRequest(
+            ProjectMergeRequest(manager, {**MERGE_REQUEST_DATA, **fields}), BOT_USERNAME)
+
+        assert merge_request.is_prepared is prepared

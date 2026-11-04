@@ -145,6 +145,11 @@ class MergeRequest:
         return bool(self.sha)
 
     @property
+    def is_prepared(self) -> bool:
+        """Whether GitLab has made the diff of the MR (it takes a few seconds after a new MR)."""
+        return getattr(self._gitlab_mr, "prepared_at", "") is not None  # Older GitLab: no field.
+
+    @property
     def project_id(self) -> int:
         return self._gitlab_mr.project_id
 
