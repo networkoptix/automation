@@ -17,6 +17,7 @@ from robocat.comments import Comment, Emoji
 from robocat.merge_request import MergeRequest
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import NoteDetails
+from robocat.rule.workflow_check_rule import MAX_DESCRIPTION_LENGTH
 
 MERGE_REQUEST_DATA = {  # The fields of the merge request GET that the tests read.
     "iid": 5,
@@ -44,6 +45,9 @@ MISSING_BRANCH_REBASE = "403 Forbidden - Source branch does not exist"  # Rebase
 PROTECTED_BRANCH_REBASE = "403 Forbidden - Source branch is protected from force push"  # Same.
 LOCKED_REBASE = "409 Conflict: Resource lock"  # GitLab's text (nx!41278).
 REJECTED_MERGE = "400 Bad request - Failed to merge"  # GitLab's text (cloud_portal!11053).
+LONG_DESCRIPTION = (  # At Robocat's limit, but over 15,000 characters in a URL query.
+    "Шаг 1: проверить merge → master.\n" * MAX_DESCRIPTION_LENGTH)[:MAX_DESCRIPTION_LENGTH]
+URL_QUERY_LIMIT = 10_240  # GitLab drops a longer URL query (cloud_portal!11777).
 
 
 class TestApprovalKeepsMergeRequestData:
@@ -93,17 +97,20 @@ class FakeGitLabServer(BaseAdapter):
         self.award_emoji: list[dict[str, Any]] = [{  # Robocat sets it before it merges.
             "id": 7, "name": Emoji.UNFINISHED_POST_MERGING, "user": {"username": BOT_USERNAME}}]
         self.calls: list[tuple[str, str]] = []
+        self.requests: list[requests.PreparedRequest] = []  # With the URL query and the body.
 
     def send(self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None):
         """Answer one request like GitLab; fail the test on a request it does not expect."""
         method = str(request.method)
         path = urllib.parse.urlsplit(str(request.url)).path.removeprefix("/api/v4")
         self.calls.append((method, path))
+        self.requests.append(request)
         if (method, path) == ("GET", f"{MERGE_REQUEST_PATH}/discussions"):
             return mock_gitlab_response(request, 200, [
                 {"id": f"discussion-{note['id']}", "individual_note": True, "notes": [note]}
                 for note in self.notes])
-        if (method, path) == ("POST", f"{MERGE_REQUEST_PATH}/notes"):
+        if method == "POST" and path in (
+                f"{MERGE_REQUEST_PATH}/notes", f"{MERGE_REQUEST_PATH}/discussions"):
             sent = request.body
             assert isinstance(sent, bytes | str), f"Unexpected note request body: {sent!r}"
             note = {
@@ -112,11 +119,23 @@ class FakeGitLabServer(BaseAdapter):
                 "author": {"username": BOT_USERNAME},
                 "created_at": f"2026-10-28T12:00:{len(self.notes):02d}.000Z",
                 "system": False,
+                "resolvable": path.endswith("/discussions"),  # A thread blocks the merge.
+                "resolved": False,
             }
             self.notes.append(note)
-            return mock_gitlab_response(request, 201, note)
+            if path.endswith("/notes"):
+                return mock_gitlab_response(request, 201, note)
+            return mock_gitlab_response(request, 201, {
+                "id": f"discussion-{note['id']}", "individual_note": False, "notes": [note]})
         if (method, path) == ("GET", f"{MERGE_REQUEST_PATH}/award_emoji"):
             return mock_gitlab_response(request, 200, self.award_emoji)
+        if (method, path) == ("POST", f"{MERGE_REQUEST_PATH}/award_emoji"):
+            sent = request.body
+            assert isinstance(sent, bytes | str), f"Unexpected emoji request body: {sent!r}"
+            emoji = {"id": 100 + len(self.award_emoji), "name": json.loads(sent)["name"],
+                     "user": {"username": BOT_USERNAME}}
+            self.award_emoji.append(emoji)
+            return mock_gitlab_response(request, 201, emoji)
         if method == "DELETE" and path.startswith(f"{MERGE_REQUEST_PATH}/award_emoji/"):
             emoji_id = int(path.rsplit("/", 1)[1])
             self.award_emoji = [emoji for emoji in self.award_emoji if emoji["id"] != emoji_id]
@@ -314,6 +333,68 @@ class TestMergeRejectedByGitLab:
         with pytest.raises(GitlabHttpError) as error:
             manager.merge()
         assert error.value.response_code == status
+        assert server.notes == []
+
+
+class TestSquashCommitMessage:
+    """Robocat sends the squash commit message in the body of the merge request (AUT-282)."""
+
+    @staticmethod
+    def server(merge_status: int = 200, merge_answer: Any = None) -> FakeGitLabServer:
+        """A GitLab without merge trains where the merge gets this answer."""
+        return FakeGitLabServer({
+            ("GET", "/projects/1"): (200, {"id": 1, "merge_trains_enabled": False}),
+            ("PUT", f"{MERGE_REQUEST_PATH}/merge"): (merge_status, merge_answer or {
+                **OPEN_MERGE_REQUEST_DATA, "state": "merged", "target_branch": "master"}),
+            ("PUT", f"{MERGE_REQUEST_PATH}/rebase"): (202, {"rebase_in_progress": True}),
+        })
+
+    @staticmethod
+    def sent_merge(server: FakeGitLabServer) -> tuple[str, dict[str, Any]]:
+        """The URL query and the JSON body of the one merge request that Robocat sent."""
+        merges = [request for request in server.requests if str(request.url).split("?")[0]
+                  == f"{GITLAB_URL}/api/v4{MERGE_REQUEST_PATH}/merge"]
+        assert len(merges) == 1
+        body = merges[0].body or "{}"
+        assert isinstance(body, bytes | str), f"Unexpected merge request body: {body!r}"
+        return urllib.parse.urlsplit(str(merges[0].url)).query, json.loads(body)
+
+    def test_long_squash_message_is_in_the_body(self):
+        """A description too long for a URL query goes in the body; the MR is merged."""
+        server = self.server()
+        manager = merge_request_manager(server, {
+            **OPEN_MERGE_REQUEST_DATA, "squash": True, "description": LONG_DESCRIPTION})
+
+        assert manager.merge() is True
+
+        query, body = self.sent_merge(server)
+        assert query == ""
+        assert len(urllib.parse.urlencode(body)) > URL_QUERY_LIMIT  # A real case, not a toy.
+        assert body == {"squash_commit_message": (
+            f"{OPEN_MERGE_REQUEST_DATA['title']}\n\n{LONG_DESCRIPTION}")}
+        assert posted_comments(server) == [Comment.MrMerged]
+        assert manager.merge() is True  # Robocat read GitLab's answer: "merged", no second PUT.
+        self.sent_merge(server)
+
+    def test_merge_without_squash_sends_no_message(self):
+        """Without squash, GitLab makes the merge commit message itself."""
+        server = self.server()
+        manager = merge_request_manager(server, {
+            **OPEN_MERGE_REQUEST_DATA, "squash": False, "description": LONG_DESCRIPTION})
+
+        assert manager.merge() is True
+
+        assert self.sent_merge(server) == ("", {})
+
+    def test_refused_merge_still_starts_a_rebase(self):
+        """A refused merge still makes Robocat rebase, as with python-gitlab's merge()."""
+        server = self.server(405, {"message": "405 Method Not Allowed"})
+        manager = merge_request_manager(server, {
+            **OPEN_MERGE_REQUEST_DATA, "squash": True, "description": LONG_DESCRIPTION})
+
+        assert manager.merge() is False
+
+        assert ("PUT", f"{MERGE_REQUEST_PATH}/rebase") in server.calls
         assert server.notes == []
 
 

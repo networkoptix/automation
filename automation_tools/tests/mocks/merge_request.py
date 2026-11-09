@@ -442,6 +442,11 @@ class MergeRequestMock:
         self.state = "merged"
         self.squash_commit_sha = self.commits_list[-1]["sha"]
 
+    def _update_attrs(self, new_attributes: dict[str, Any]) -> None:
+        """Take the fields of a GitLab answer, as python-gitlab does."""
+        for name, value in new_attributes.items():
+            setattr(self, name, value)
+
     def changes(self):
         files = {}
         for c in self.commits_list:

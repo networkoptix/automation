@@ -267,6 +267,15 @@ Parentheses right after the Jira Issue ref (or at the beginning, if no Jira Issu
 the title of the squashed follow-up Merge Request are not allowed.
 
 """)
+    WorkflowDescriptionTooLong = CommentTemplate(
+        title="Merge request title/description does not comply with the rules",
+        emoji=Emoji.BAD_ISSUE,
+        text="""Workflow violation detected:
+
+Description Message too long! Please shorten it! The Merge Request description has
+{description_length} characters, the maximum is {max_description_length}.
+
+""")
     InconsistentAssigneesInJiraAndGitlab = CommentTemplate(
         title="Possible workflow violation",
         emoji=Emoji.SUSPICIOUS_ISSUE,

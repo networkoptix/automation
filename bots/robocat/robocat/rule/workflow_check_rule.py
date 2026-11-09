@@ -18,6 +18,8 @@ from robocat.rule.helpers.stateful_checker_helpers import StoredCheckResults
 
 logger = logging.getLogger(__name__)
 
+MAX_DESCRIPTION_LENGTH = 5000  # Characters of the MR description (AUT-282).
+
 
 @dataclass
 class IssueBranchInfo:
@@ -40,6 +42,7 @@ class WorkflowStoredCheckResults(StoredCheckResults):
         Comment.WorkflowNoJiraIssueInCommitMessage,
         Comment.WorkflowNoJiraIssueInMr,
         Comment.WorkflowParenthesesNotAllowed,
+        Comment.WorkflowDescriptionTooLong,
         Comment.InconsistentAssigneesInJiraAndGitlab,
         Comment.UnassignedJiraIssue,
         Comment.SuspiciousJiraIssueStatus,
@@ -313,6 +316,11 @@ class WorkflowCheckRule(BaseRule):
 
     def _get_mr_description_error(self, mr_manager: MergeRequestManager) -> Message | None:
         mr_data = mr_manager.data
+        if len(mr_data.description) > MAX_DESCRIPTION_LENGTH:
+            return Message(id=Comment.WorkflowDescriptionTooLong, params={
+                "description_length": len(mr_data.description),
+                "max_description_length": MAX_DESCRIPTION_LENGTH})
+
         commits_data = mr_manager.get_commits_data()
 
         if not mr_data.squash:

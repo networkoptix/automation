@@ -236,10 +236,19 @@ class MergeRequest:
             return MergeResult.ADDED_TO_MERGE_TRAIN
 
         logger.debug(f"{self}: Merging")
-        squash_commit_message = None
-        if self._gitlab_mr.squash:
-            squash_commit_message = f"{self._gitlab_mr.title}\n\n{self._gitlab_mr.description}"
-        self._gitlab_mr.merge(squash_commit_message=squash_commit_message)
+        merge_data: dict[str, str] = {}
+        if self._gitlab_mr.squash:  # In the body: GitLab drops a URL query over 10 KB.
+            merge_data["squash_commit_message"] = (
+                f"{self._gitlab_mr.title}\n\n{self._gitlab_mr.description}")
+        try:  # Not merge(): it puts an option it does not know in the URL query.
+            server_data = self._gitlab_mr.manager.gitlab.http_put(
+                f"/projects/{self.project_id}/merge_requests/{self._gitlab_mr.iid}/merge",
+                post_data=merge_data)
+        except GitlabHttpError as error:  # The same error as python-gitlab's merge() raises.
+            raise gitlab.exceptions.GitlabMRClosedError(
+                error.error_message, error.response_code, error.response_body) from error
+        assert isinstance(server_data, dict)
+        self._gitlab_mr._update_attrs(server_data)  # As merge() does: the MR is merged now.
         return MergeResult.MERGED
 
     def create_discussion(

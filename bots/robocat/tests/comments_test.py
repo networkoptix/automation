@@ -31,7 +31,7 @@ STORED_NAMES = [
     "FollowUpCreationFailed", "CannotSquashLocally", "CannotRestoreApprovals",
     "FollowUpInitialMessage", "MergeRejected", "RebaseRejected",
     "RebaseRejectedSourceBranchMissing", "RebaseRejectedCannotPush",
-    "RebaseRejectedForcePushProtected",
+    "RebaseRejectedForcePushProtected", "WorkflowDescriptionTooLong",
 ]
 
 
