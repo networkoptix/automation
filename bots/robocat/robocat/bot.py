@@ -414,7 +414,8 @@ class Bot(threading.Thread):
         if job.status not in [JobStatus.failed, JobStatus.succeeded]:
             return
 
-        if job.status == JobStatus.failed and not job.allow_failure:
+        if (job.status == JobStatus.failed and not job.allow_failure
+                and not job.failed_without_result):
             add_failed_pipeline_comment_if_needed(mr_manager=mr_manager, job_name=job.name)
 
         autorun_stage = self.config.pipeline.autorun_stage if self.config.pipeline else None

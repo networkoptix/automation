@@ -143,7 +143,8 @@ async def job_event(event):
         name=build_name,
         status=build_status,
         stage=event.data["build_stage"],
-        allow_failure=event.data["build_allow_failure"])
+        allow_failure=event.data["build_allow_failure"],
+        failure_reason=event.data.get("build_failure_reason"))
     mr_queue.put(GitlabEventData(event_type=GitlabEventType.job, payload=payload))
     logger.info(
         f'Queuing Job event: status={build_status!r}, name={build_name!r}, '

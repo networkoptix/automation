@@ -748,6 +748,8 @@ class MergeRequestManager:
     def last_pipeline_check_job_status(self, job_name: str) -> JobStatus | None:
         if pipeline := self._get_last_pipeline(include_skipped=True):
             if job := pipeline.get_job_by_name(job_name):
+                if job.failed_without_result:
+                    return JobStatus.other  # No check result: wait for the job to run again.
                 return job.status
         return None
 

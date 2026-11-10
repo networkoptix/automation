@@ -14,6 +14,7 @@ if "pytest" in sys.modules:
     from automation_tools.tests.mocks.pipeline import JobMock
 
 IGNORED_JOB_SUFFIX = 'no-bot-start'
+SCRIPT_FAILURE = "script_failure"
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,7 @@ class Job:
         self._allow_failure = source.allow_failure
         self._pipeline_id = source.pipeline["id"]
         self._project_id = source.project_id
+        self._failure_reason = getattr(source, "failure_reason", None)  # Only failed jobs have it.
 
     @__init__.register
     def _from_job_event(self, source: dict):
@@ -84,6 +86,7 @@ class Job:
         self._stage = source["stage"]
         self._pipeline_id = source["pipeline_id"]
         self._project_id = source["project_id"]
+        self._failure_reason = source.get("failure_reason")  # From build_failure_reason.
 
     @property
     def name(self) -> str:
@@ -117,6 +120,17 @@ class Job:
         if raw_status == "manual":
             return JobStatus.manual
         return JobStatus.other
+
+    @property
+    def failure_reason(self) -> str | None:
+        """Return GitLab's reason why the job failed; None if not failed or not known."""
+        return self._failure_reason
+
+    @property
+    def failed_without_result(self) -> bool:
+        """Return True if the job failed before its commands gave a result (e.g. broken runner)."""
+        known = self._failure_reason not in (None, SCRIPT_FAILURE)  # None: an older GitLab answer.
+        return self.status == JobStatus.failed and known
 
     @property
     def pipeline_location(self) -> PipelineLocation:

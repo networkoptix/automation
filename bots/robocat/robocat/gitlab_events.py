@@ -45,6 +45,7 @@ class GitlabJobEventData(TypedDict):
     status: str
     stage: str
     allow_failure: bool
+    failure_reason: NotRequired[str | None]
 
 
 @dataclass(order=True)
