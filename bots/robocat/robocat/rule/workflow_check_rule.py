@@ -18,7 +18,7 @@ from robocat.rule.helpers.stateful_checker_helpers import StoredCheckResults
 
 logger = logging.getLogger(__name__)
 
-MAX_DESCRIPTION_LENGTH = 5000  # Characters of the MR description (AUT-282).
+MAX_DESCRIPTION_LENGTH = 1000  # Characters of the MR description (AUT-282).
 
 
 @dataclass
