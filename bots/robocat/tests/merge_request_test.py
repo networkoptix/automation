@@ -17,6 +17,7 @@ from robocat.comments import Comment, Emoji
 from robocat.merge_request import MergeRequest
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import NoteDetails
+from robocat.rule.workflow_check_rule import MAX_DESCRIPTION_LENGTH
 
 MERGE_REQUEST_DATA = {  # The fields of the merge request GET that the tests read.
     "iid": 5,
@@ -44,8 +45,8 @@ MISSING_BRANCH_REBASE = "403 Forbidden - Source branch does not exist"  # Rebase
 PROTECTED_BRANCH_REBASE = "403 Forbidden - Source branch is protected from force push"  # Same.
 LOCKED_REBASE = "409 Conflict: Resource lock"  # GitLab's text (nx!41278).
 REJECTED_MERGE = "400 Bad request - Failed to merge"  # GitLab's text (cloud_portal!11053).
-LONG_DESCRIPTION = (  # Over 15,000 characters in a URL query; repos without the workflow
-    "Шаг 1: проверить merge → master.\n" * 5000)[:5000]  # check have no description limit.
+LONG_DESCRIPTION = (  # At Robocat's limit, but over 15,000 characters in a URL query.
+    "Шаг 1: проверить merge → master.\n" * MAX_DESCRIPTION_LENGTH)[:MAX_DESCRIPTION_LENGTH]
 URL_QUERY_LIMIT = 10_240  # GitLab drops a longer URL query (cloud_portal!11777).
 
 
