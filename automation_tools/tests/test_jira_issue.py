@@ -51,8 +51,7 @@ def server() -> FakeJiraServer:
 @pytest.fixture
 def issue(server: FakeJiraServer) -> JiraIssue:
     """NXLIB-434 read with the real jira client from the fake server."""
-    client = jira.JIRA(server=JIRA_URL, get_server_info=False)
-    client._session.mount(JIRA_URL, server)
+    client = jira_client_on(server)(server=JIRA_URL)
     return JiraIssue(jira_handler=client, issue=client.issue("NXLIB-434"), branch_mapping={})
 
 

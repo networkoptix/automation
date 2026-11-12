@@ -45,6 +45,13 @@ NXLIB_ISSUE = {  # NXLIB writes its status names in its own case: "OPEN", "In Pr
         "fixVersions": [],
     },
 }
+ROBOCAT = {  # Robocat's Jira account, as Jira sends it: with its email address.
+    "accountId": "65660dbf14ddd6374cf258fe",
+    "displayName": "CI Service Account",
+    "emailAddress": "robocat@example.com",
+    "active": True,
+    "accountType": "atlassian",
+}
 NXLIB_START_DEVELOPMENT = Transition("31", "start development", "In Progress")
 NXLIB_TRANSITIONS = {  # The transitions of NXLIB-434 as Jira answered them.
     "NXLIB": {
@@ -76,12 +83,16 @@ class FakeJiraServer(BaseAdapter):
             self,
             issues: list[dict[str, Any]],
             transitions: dict[str, dict[str, list[Transition]]],
-            project_versions: dict[str, list[dict[str, Any]]] | None = None):
-        """Keep the Issues, the transitions per project and status, and the project versions."""
+            project_versions: dict[str, list[dict[str, Any]]] | None = None,
+            existing_comments: dict[str, list[dict[str, Any]]] | None = None,
+            myself: dict[str, Any] = ROBOCAT):
+        """Keep the Issues, transitions, versions, comments per Issue and Robocat's account."""
         super().__init__()
         self.issues = {issue["key"]: copy.deepcopy(issue) for issue in issues}
         self._transitions = transitions
         self._project_versions = project_versions or {}
+        self._existing_comments = existing_comments or {}  # As Jira lists them, per Issue key.
+        self.myself = myself
         self.requests: list[tuple[str, str]] = []
         self.transitions_made: list[Transition] = []
         self.comments: list[tuple[str, str]] = []  # The Issue key and text of each new comment.
@@ -102,6 +113,8 @@ class FakeJiraServer(BaseAdapter):
         self.requests.append((method, path))
         if self.failure is not None:
             raise self.failure
+        if (method, path) == ("GET", "/rest/api/2/myself"):
+            return jira_answer(request, 200, self.myself)
         if method == "GET" and (versions := re.fullmatch(r"/rest/api/2/project/(\w+)/versions",
                                                          path)):
             return jira_answer(request, 200, self._project_versions.get(versions.group(1), []))
@@ -115,6 +128,12 @@ class FakeJiraServer(BaseAdapter):
             issue["fields"]["project"]["key"], {}).get(self.status(issue["key"]), [])}
         if method == "GET" and not found.group(2):
             return jira_answer(request, 200, issue)
+        if (method, found.group(2)) == ("GET", "/comment"):
+            listed = self._existing_comments.get(issue["key"], []) + [
+                {"id": f"added-{number}", "body": body, "author": self.myself}
+                for number, (key, body) in enumerate(self.comments) if key == issue["key"]]
+            return jira_answer(request, 200, {"comments": listed, "startAt": 0,
+                                              "maxResults": len(listed), "total": len(listed)})
         if (method, found.group(2)) == ("POST", "/comment"):
             sent = request.body
             assert isinstance(sent, bytes | str), f"Unexpected comment request body: {sent!r}"
