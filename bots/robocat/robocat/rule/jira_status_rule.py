@@ -9,6 +9,7 @@ from automation_tools.jira_helpers import (
     JIRA_STATUS_OPEN,
     JIRA_STATUS_PROGRESS,
     JIRA_STATUS_REVIEW,
+    JiraStatus,
 )
 from jira.exceptions import JIRAError
 from requests.exceptions import RequestException
@@ -52,7 +53,7 @@ class JiraStatusRule(BaseRule):
         })
 
     EPIC_TYPE = "Epic"  # Epics stay as they are: their status follows their Issues.
-    MOVES = {  # (MR state, Issue status) -> the status Robocat moves the Issue to.
+    MOVES: dict[tuple[MergeRequestState, JiraStatus], JiraStatus] = {  # The status to move to.
         (MergeRequestState.Draft, JIRA_STATUS_OPEN): JIRA_STATUS_PROGRESS,
         (MergeRequestState.Open, JIRA_STATUS_OPEN): JIRA_STATUS_PROGRESS,  # Then on to In Review.
         (MergeRequestState.Open, JIRA_STATUS_PROGRESS): JIRA_STATUS_REVIEW,

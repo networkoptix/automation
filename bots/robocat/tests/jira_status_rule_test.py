@@ -8,6 +8,13 @@ import automation_tools.jira
 import pytest
 import requests
 from automation_tools.checkers.config import AllowedVersionSet
+from automation_tools.jira_helpers import (
+    JIRA_STATUS_CLOSED,
+    JIRA_STATUS_OPEN,
+    JIRA_STATUS_PROGRESS,
+    JIRA_STATUS_REVIEW,
+    JiraProjectConfigOverride,
+)
 from automation_tools.tests.fake_jira_server import (
     JIRA_URL,
     NXLIB_ISSUE,
@@ -15,10 +22,10 @@ from automation_tools.tests.fake_jira_server import (
     NXLIB_TRANSITIONS,
     FakeJiraServer,
     Transition,
+    jira_client_on,
 )
 from automation_tools.tests.fixtures import repo_accessor, repo_versions
 from automation_tools.tests.gitlab_constants import DEFAULT_JIRA_ISSUE_KEY, DEFAULT_USER
-from jira import JIRA
 from robocat.bot import Bot
 from robocat.comments import Emoji
 from robocat.rule.base_rule import BaseRule
@@ -45,6 +52,23 @@ VMS_MASTER = {  # A Fix Version of VMS as Jira answers it: the description names
 PROJECT_VERSIONS = {  # Robocat caches them for 10 minutes for all accessors: one answer for all.
     "VMS": [VMS_MASTER],
     "NXLIB": [],
+    "INFRA": [],
+    "SRE": [],
+    "NXUN": [],
+}
+PROJECT_CONFIGS: dict[str, JiraProjectConfigOverride] = {  # Names as in robocat_config.
+    "INFRA": {},  # The standard names, like most Projects.
+    "SRE": {"statuses": {
+        JIRA_STATUS_OPEN: "To Do",
+        JIRA_STATUS_PROGRESS: "In Progress",
+        JIRA_STATUS_REVIEW: "Review",
+        JIRA_STATUS_CLOSED: "Done",
+    }},
+    "NXUN": {"statuses": {
+        JIRA_STATUS_OPEN: "To Do",
+        JIRA_STATUS_PROGRESS: "In Development",
+        JIRA_STATUS_CLOSED: "Done",
+    }},
 }
 ASSIGNEE = {  # The Jira user of the MR author: the workflow rule compares the names.
     "accountId": DEFAULT_USER["username"], "displayName": DEFAULT_USER["name"],
@@ -53,6 +77,10 @@ ASSIGNEE = {  # The Jira user of the MR author: the workflow rule compares the n
 VMS_START_DEVELOPMENT = Transition("11", "Start Development", "In progress")
 VMS_READY_TO_REVIEW = Transition("31", "Ready to Review", "In Review")
 VMS_REVIEW_FAILED = Transition("41", "Review Failed", "In progress")
+INFRA_STOP_WORK = Transition("4", "Stop work", "Open")
+INFRA_CLOSE = Transition("51", "Close", "Closed")
+SRE_DONE = Transition("31", "Done", "Done")
+NXUN_READY_FOR_REVIEW = Transition("18", "MR created and ready for review", "In Review")
 TRANSITIONS = {  # From each status, as Jira answered for VMS Bugs and for NXLIB-434.
     "VMS": {
         "Open": [  # VMS-63480.
@@ -79,6 +107,23 @@ TRANSITIONS = {  # From each status, as Jira answered for VMS Bugs and for NXLIB
             Transition("61", "Merged", "Waiting for QA"),
         ],
     },
+    "INFRA": {"In Review": [INFRA_STOP_WORK, INFRA_CLOSE]},  # INFRA-723.
+    "SRE": {"Review": [  # SRE-2285: all transitions of SRE are global.
+        Transition("3", "Blocked", "Blocked"),
+        Transition("4", "Abandoned", "Abandoned"),
+        Transition("11", "To Do", "To Do"),
+        Transition("21", "In Progress", "In Progress"),
+        SRE_DONE,
+        Transition("32", "Needs Info", "Needs Info"),
+        Transition("33", "Review", "Review"),
+    ]},
+    "NXUN": {"In Development": [  # NXUN-1604.
+        Transition("5", "abandoned", "abandoned"),
+        Transition("32", "Dev Blocked", "Dev Blocked"),
+        Transition("11", "pause development", "To Do"),
+        NXUN_READY_FOR_REVIEW,
+        Transition("25", "not seeing the issue", "Waiting for QA"),
+    ]},
     **NXLIB_TRANSITIONS,
 }
 
@@ -109,17 +154,10 @@ def jira_server(jira_issues) -> FakeJiraServer:
 @pytest.fixture
 def jira_accessor(jira_server, monkeypatch) -> automation_tools.jira.JiraAccessor:
     """Robocat's real JiraAccessor and jira client; they talk to the fake server."""
-    def client_on_fake_server(**options) -> JIRA:
-        """The real jira client without the server info request."""
-        client = JIRA(**options, get_server_info=False)
-        assert client._session is not None  # The client makes its session at once.
-        client._session.mount(JIRA_URL, jira_server)
-        return client
-
-    monkeypatch.setattr("jira.JIRA", client_on_fake_server)
+    monkeypatch.setattr("jira.JIRA", jira_client_on(jira_server))
     return automation_tools.jira.JiraAccessor(
         url=JIRA_URL, login="robocat", password="token", timeout=10, retries=0,
-        project_keys=set(PROJECT_VERSIONS))
+        project_keys=set(PROJECT_VERSIONS), custom_project_configs=PROJECT_CONFIGS)
 
 
 @pytest.fixture
@@ -290,3 +328,42 @@ class TestJiraStatusRule:
         assert jira_server.transitions_made == [VMS_START_DEVELOPMENT, VMS_READY_TO_REVIEW]
         assert jira_server.status(DEFAULT_JIRA_ISSUE_KEY) == "In Review"
         assert not any("has status" in comment for comment in mr.mock_comments())
+
+
+def task(key: str, status: str) -> dict[str, Any]:
+    """A Task of another Jira Project, without Fix Versions, as Jira answers it."""
+    project = key.partition("-")[0]
+    return vms_issue(status, key, project={"key": project, "name": project},
+                     issuetype={"name": "Task", "subtask": False}, fixVersions=[])
+
+
+class TestProjectWorkflows:
+    """The status names of each Jira Project (AUT-59): Robocat moves the Issues by these names."""
+
+    @pytest.mark.parametrize(("jira_issues", "transition"), [
+        ([task("SRE-2285", "Review")], SRE_DONE),  # SRE's own names: "Review" and "Done".
+        ([task("INFRA-723", "In Review")], INFRA_CLOSE),  # The standard names, without QA.
+    ])
+    def test_merged_issue_goes_to_the_done_status_of_its_project(
+            self, jira_accessor, jira_server, jira_issues, transition):
+        """After the merge, the Issue moves by the transition to the done status of its Project."""
+        key = jira_issues[0]["key"]
+
+        assert jira_accessor.get_issue(key).try_finalize() is True
+
+        assert jira_server.transitions_made == [transition]
+        assert jira_server.status(key) == transition.status
+        assert [issue_key for issue_key, _ in jira_server.comments] == [key]
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        ([task("NXUN-1604", "In Development")], {"title": "NXUN-1604: Ready work"}),
+    ])
+    def test_ready_mr_moves_the_issue_by_the_names_of_its_project(
+            self, bot_config, project_manager, jira_accessor, jira_server, mr_manager):
+        """NXUN calls its progress status "In Development": a ready MR moves the Issue on."""
+        bot_config.jira.project_mapping["NXUN"] = "nx-connect-ui"  # As for dev/nx-connect-ui.
+
+        JiraStatusRule(bot_config, project_manager, jira_accessor).execute(mr_manager)
+
+        assert jira_server.transitions_made == [NXUN_READY_FOR_REVIEW]
+        assert jira_server.status("NXUN-1604") == "In Review"

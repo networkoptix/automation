@@ -3,7 +3,7 @@
 import datetime
 import logging
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -31,6 +31,8 @@ from automation_tools.jira_helpers import (
     JIRA_TRANSITION_WORKFLOW_FAILURE,
     JiraError,
     JiraProjectConfig,
+    JiraProjectConfigOverride,
+    JiraStatus,
     JiraStatusChangeError,
 )
 
@@ -92,11 +94,12 @@ class JiraIssue:
         },
         "transitions": {
             JIRA_TRANSITION_WORKFLOW_FAILURE: "Workflow failure",
-        }
+        },
+        "moves": {},
     }
 
     @classmethod
-    def _project_status_name(cls, key: str) -> str | None:
+    def _project_status_name(cls, key: JiraStatus) -> str | None:
         return cls._project_config["statuses"].get(key)
 
     @classmethod
@@ -228,7 +231,7 @@ class JiraIssue:
         return {v.name: mapping.get(v.name, []) for v in (issue.fields.fixVersions or [])}
 
     @property
-    def status(self) -> str | None:
+    def status(self) -> JiraStatus | None:
         return next(
             (
                 standard_name
@@ -241,25 +244,27 @@ class JiraIssue:
     def raw_status(self) -> str:
         return self._raw_issue.fields.status.name
 
-    def has_status(self, status: str) -> bool:
+    def has_status(self, status: JiraStatus) -> bool:
         """Whether the issue has a standard status; the names compare without case ("OPEN")."""
         name = self._project_status_name(status)
         return name is not None and self.raw_status.casefold() == name.casefold()
 
-    def status_name(self, status: str) -> str | None:
+    def status_name(self, status: JiraStatus) -> str | None:
         """The Jira name of a standard status in the project of the issue."""
         return self._project_status_name(status)
 
-    def move_to(self, status: str) -> bool:
+    def move_to(self, status: JiraStatus) -> bool:
         """Move the issue to a standard status by a transition that leads there; False if none."""
         name = (self._project_status_name(status) or "").casefold()
-        transition = next(
-            (t["name"] for t in self._jira.transitions(self._raw_issue)
-             if str(t["to"]["name"]).casefold() == name),
+        configured = self._configured_transition_name(status)
+        transition_name = next(
+            (transition["name"] for transition in self._jira.transitions(self._raw_issue)
+             if str(transition["to"]["name"]).casefold() == name
+             and (configured is None or transition["name"] == configured)),
             None)
-        if transition is None:
+        if transition_name is None:
             return False
-        self._jira.transition_issue(self._raw_issue, transition)
+        self._jira.transition_issue(self._raw_issue, transition_name)
         return True
 
     @property
@@ -343,7 +348,7 @@ class JiraIssue:
 
         return True
 
-    def _set_status(self, target_status: str, no_throw=False) -> bool:
+    def _set_status(self, target_status: JiraStatus, no_throw=False) -> bool:
         review_transition_name = self._get_transition_name(target_status)
         if review_transition_name is None:
             if no_throw:
@@ -356,11 +361,19 @@ class JiraIssue:
         self._jira.transition_issue(self._raw_issue, review_transition_name)
         return True
 
-    def _get_transition_name(self, target_status: str) -> str:
+    def _get_transition_name(self, target_status: JiraStatus) -> str:
+        configured = self._configured_transition_name(target_status)
         transitions = [
-            t for t in self._jira.transitions(self._raw_issue)
-            if t["to"]["name"] == self._project_status_name(target_status)]
+            transition for transition in self._jira.transitions(self._raw_issue)
+            if transition["to"]["name"] == self._project_status_name(target_status)
+            and (configured is None or transition["name"] == configured)]
         return transitions[0]["name"] if transitions else None
+
+    def _configured_transition_name(self, target_status: JiraStatus) -> str | None:
+        """The transition that the project config names for this move; None: any one to it."""
+        if (status := self.status) is None:
+            return None
+        return self._project_config["moves"].get((status, target_status))
 
     def return_issue(self, reason: str):
         issue = self._raw_issue
@@ -421,7 +434,7 @@ class JiraAccessor:
             timeout: int,
             retries: int,
             project_keys: set[str],
-            custom_project_configs: dict[str, dict] = None):
+            custom_project_configs: Mapping[str, JiraProjectConfigOverride] | None = None):
         try:
             self._jira = jira.JIRA(
                 server=url, basic_auth=(login, password), max_retries=retries, timeout=timeout)
@@ -430,8 +443,15 @@ class JiraAccessor:
             # configuration (custom statuses, transitions, etc.).
             # TODO: Check, why we need _custom_issue_classes field - it is not used anywhere.
             if custom_project_configs:
+                standard = JiraIssue._project_config
                 self._custom_issue_classes = {
-                    key: type(f"JiraIssue{key}", (JiraIssue,), {'_project_config': config})
+                    key: type(f"JiraIssue{key}", (JiraIssue,), {'_project_config': {
+                        # A project config has only the names that differ from the standard.
+                        "statuses": {**standard["statuses"], **config.get("statuses", {})},
+                        "transitions": {
+                            **standard["transitions"], **config.get("transitions", {})},
+                        "moves": {**standard["moves"], **config.get("moves", {})},
+                    }})
                     for key, config in custom_project_configs.items()}
             else:
                 self._custom_issue_classes = dict()

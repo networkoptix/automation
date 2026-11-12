@@ -39,6 +39,7 @@ def jira(monkeypatch, jira_issues, repo_versions):
                 "transitions": {
                     JIRA_TRANSITION_WORKFLOW_FAILURE: "back to development",
                 },
+                "moves": {},
             },
         }
         this._custom_issue_classes = {

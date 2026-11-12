@@ -5,10 +5,12 @@ import http
 import json
 import re
 import urllib.parse
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
 import requests
+from jira import JIRA
 from requests.adapters import BaseAdapter
 
 JIRA_URL = "https://jira.example.com"
@@ -82,6 +84,7 @@ class FakeJiraServer(BaseAdapter):
         self._project_versions = project_versions or {}
         self.requests: list[tuple[str, str]] = []
         self.transitions_made: list[Transition] = []
+        self.comments: list[tuple[str, str]] = []  # The Issue key and text of each new comment.
         self.failure: Exception | None = None  # Not None: every request raises it (no network).
 
     def status(self, key: str) -> str:
@@ -102,7 +105,7 @@ class FakeJiraServer(BaseAdapter):
         if method == "GET" and (versions := re.fullmatch(r"/rest/api/2/project/(\w+)/versions",
                                                          path)):
             return jira_answer(request, 200, self._project_versions.get(versions.group(1), []))
-        found = re.fullmatch(r"/rest/api/2/issue/([A-Z]+-\d+)(/transitions)?", path)
+        found = re.fullmatch(r"/rest/api/2/issue/([A-Z]+-\d+)(/transitions|/comment)?", path)
         if found is None:
             raise AssertionError(f"Unexpected Jira request: {method} {path}")
         issue = self.issues.get(found.group(1))
@@ -112,10 +115,16 @@ class FakeJiraServer(BaseAdapter):
             issue["fields"]["project"]["key"], {}).get(self.status(issue["key"]), [])}
         if method == "GET" and not found.group(2):
             return jira_answer(request, 200, issue)
-        if method == "GET":
+        if (method, found.group(2)) == ("POST", "/comment"):
+            sent = request.body
+            assert isinstance(sent, bytes | str), f"Unexpected comment request body: {sent!r}"
+            self.comments.append((issue["key"], json.loads(sent)["body"]))
+            return jira_answer(request, 201, {"id": str(len(self.comments)),
+                                              "body": self.comments[-1][1]})
+        if (method, found.group(2)) == ("GET", "/transitions"):
             return jira_answer(
                 request, 200, {"transitions": [item.as_json() for item in offered.values()]})
-        if method == "POST":
+        if (method, found.group(2)) == ("POST", "/transitions"):
             sent = request.body
             assert isinstance(sent, bytes | str), f"Unexpected transition request body: {sent!r}"
             transition_id = json.loads(sent)["transition"]["id"]
@@ -127,3 +136,15 @@ class FakeJiraServer(BaseAdapter):
 
     def close(self):
         """Nothing to close."""
+
+
+def jira_client_on(server: FakeJiraServer) -> Callable[..., JIRA]:
+    """A maker of real jira clients that talk to the fake server, for monkeypatching jira.JIRA."""
+    def client_on_fake_server(**options) -> JIRA:
+        """The real jira client without the server info request."""
+        client = JIRA(**options, get_server_info=False)
+        assert client._session is not None  # The client makes its session at once.
+        client._session.mount(JIRA_URL, server)
+        return client
+
+    return client_on_fake_server

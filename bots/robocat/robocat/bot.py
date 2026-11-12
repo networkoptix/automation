@@ -41,12 +41,14 @@ from robocat.pipeline import Job, JobStatus, Pipeline, PipelineStatus, PlayPipel
 from robocat.project_manager import ProjectManager
 from robocat.rule import ALL_RULES
 
-# Per-repo config lives in the proprietary section (bots/robocat/robocat_config) and is baked
-# into the deployment image. Open-source builds don't ship it, so all repos fall back to the
-# global config.
+# Per-repo config and the Jira workflow names of each Jira Project live in the proprietary
+# section (bots/robocat/robocat_config) and are baked into the deployment image. Open-source
+# builds don't ship it, so all repos fall back to the global config and the standard names.
 try:
+    from robocat_config.jira_projects import JIRA_PROJECT_CONFIGS
     from robocat_config.repo_configs import PROJECT_ID_TO_REPO, REPO_CONFIGS
 except ImportError:
+    JIRA_PROJECT_CONFIGS = {}
     PROJECT_ID_TO_REPO = {}
     REPO_CONFIGS = {}
 
@@ -122,7 +124,8 @@ class Bot(threading.Thread):
             password=self.config.jira.password,
             timeout=self.config.jira.timeout,
             retries=self.config.jira.retries,
-            project_keys=project_keys)
+            project_keys=project_keys,
+            custom_project_configs=JIRA_PROJECT_CONFIGS)
 
         # If no rules are listed as enabled, fall back to enabling all rules. This is to preserve
         # the original behavior on branches without this config option.
