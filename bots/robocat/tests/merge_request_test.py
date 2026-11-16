@@ -17,6 +17,7 @@ from robocat.comments import Comment, Emoji
 from robocat.merge_request import MergeRequest
 from robocat.merge_request_manager import MergeRequestManager
 from robocat.note import NoteDetails
+from robocat.project import Project
 from robocat.rule.workflow_check_rule import MAX_DESCRIPTION_LENGTH
 
 MERGE_REQUEST_DATA = {  # The fields of the merge request GET that the tests read.
@@ -416,3 +417,64 @@ class TestMergeRequestPrepared:
             ProjectMergeRequest(manager, {**MERGE_REQUEST_DATA, **fields}), BOT_USERNAME)
 
         assert merge_request.is_prepared is prepared
+
+
+class TestForkMergeRequestCommits:
+    """The target has a fork's new commit seconds after the push; until then the fork (AUT-301)."""
+
+    FORK_ID = 50  # The developer's fork of project 1 (dev/nx!41606: vbreus/nx).
+    HEAD = OPEN_MERGE_REQUEST_DATA["sha"]
+    LAST_PIPELINE_SHA = "abcdef0123456789abcdef0123456789abcdef01"  # The head before the push.
+    FORK_DATA = {**OPEN_MERGE_REQUEST_DATA, "source_project_id": FORK_ID, "target_project_id": 1}
+    NOT_FOUND = (404, {"message": "404 Commit Not Found"})  # GitLab's text (dev/nx!41606).
+    DIFF = [{"old_path": "a.cpp", "new_path": "a.cpp", "diff": "@@ -1 +1 @@\n-old\n+new\n"}]
+
+    @pytest.fixture(autouse=True)
+    def empty_commit_cache(self):
+        """Project caches commits per project id and SHA in the process: start each test empty."""
+        Project.get_commit_message.cache_clear()
+        Project.get_commit_diff_hash.cache_clear()
+
+    def commit(self, sha: str) -> tuple[int, dict[str, str]]:
+        """GitLab's answer for one commit of the MR."""
+        return 200, {"id": sha, "message": "VMS-1: Fix the bug\n"}
+
+    def server(self) -> FakeGitLabServer:
+        """Right after the push: the fork has the head, the target has only the older commit."""
+        return FakeGitLabServer({
+            ("GET", f"/projects/1/repository/commits/{self.HEAD}"): self.NOT_FOUND,
+            ("GET", f"/projects/{self.FORK_ID}/repository/commits/{self.HEAD}"):
+                self.commit(self.HEAD),
+            ("GET", f"/projects/{self.FORK_ID}/repository/commits/{self.HEAD}/diff"):
+                (200, self.DIFF),
+            ("GET", f"/projects/1/repository/commits/{self.LAST_PIPELINE_SHA}"):
+                self.commit(self.LAST_PIPELINE_SHA),
+            ("GET", f"/projects/1/repository/commits/{self.LAST_PIPELINE_SHA}/diff"):
+                (200, self.DIFF),
+            ("GET", f"/projects/{self.FORK_ID}/repository/commits/{self.LAST_PIPELINE_SHA}"):
+                self.NOT_FOUND,  # A cleanup of the fork can remove an old commit.
+        })
+
+    def test_head_commit_message_is_read_from_the_fork(self):
+        """While the target answers 404 for the new head, Robocat reads it from the fork."""
+        manager = merge_request_manager(self.server(), self.FORK_DATA)
+
+        assert manager.last_commit_message() == "VMS-1: Fix the bug\n"
+
+    def test_last_pipeline_commit_is_read_from_the_target(self):
+        """The comparison with the last pipeline reads the old commit from the target project."""
+        manager = merge_request_manager(self.server(), self.FORK_DATA)
+
+        changes = manager._difference_to_previous_state(self.LAST_PIPELINE_SHA)
+
+        assert changes.is_rebased and not changes.is_message_changed
+
+    def test_fork_is_not_asked_when_the_target_has_the_head(self):
+        """The usual case: the target has the head; Robocat never reads the fork (no new right)."""
+        server = self.server()
+        server.answers[("GET", f"/projects/1/repository/commits/{self.HEAD}")] = (
+            self.commit(self.HEAD))
+        manager = merge_request_manager(server, self.FORK_DATA)
+
+        assert manager.last_commit_message() == "VMS-1: Fix the bug\n"
+        assert not [path for _method, path in server.calls if f"/projects/{self.FORK_ID}/" in path]

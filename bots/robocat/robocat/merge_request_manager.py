@@ -14,6 +14,7 @@ import git
 from automation_tools.mr_data_structures import ApprovalRequirements
 from gitlab.exceptions import (
     GitlabError,
+    GitlabGetError,
     GitlabHttpError,
     GitlabMRClosedError,
     GitlabMRRebaseError,
@@ -364,10 +365,24 @@ class MergeRequestManager:
         return self._get_commit_message(self._mr.sha)
 
     def _get_commit_message(self, sha: str):
-        return self._get_project().get_commit_message(sha)
+        try:
+            return self._get_project().get_commit_message(sha)
+        except GitlabGetError as error:
+            return self._fork_with_new_head(sha, error).get_commit_message(sha)
 
     def _get_commit_diff_hash(self, sha: str):
-        return self._get_project().get_commit_diff_hash(sha, include_line_numbers=False)
+        try:
+            return self._get_project().get_commit_diff_hash(sha, include_line_numbers=False)
+        except GitlabGetError as error:
+            return self._fork_with_new_head(sha, error).get_commit_diff_hash(
+                sha, include_line_numbers=False)
+
+    def _fork_with_new_head(self, sha: str, error: GitlabGetError):
+        """The fork, if the target does not have its new head yet; else raise the error again."""
+        is_fork = self._mr.source_branch_project_id != self._mr.project_id
+        if error.response_code != 404 or sha != self._mr.sha or not is_fork:
+            raise error
+        return self._get_project(self._mr.source_branch_project_id)  # Target has it seconds later.
 
     def ensure_rebase(self) -> bool:
         full_mr_data = self._get_project().get_raw_mr_by_id(
