@@ -502,6 +502,10 @@ class MergeRequestManager:
         self.unset_wait_state()
 
     def ensure_wait_state(self, reason) -> None:
+        if reason == WaitReason.not_approved and self._approvals_left() is None:
+            logger.info(f"{self}: GitLab still syncs the approvals; the next event checks them.")
+            return  # GitLab answers so for about 15 s after a push or a rebase (GitLab 19.4).
+
         if self._mr.award_emoji.find(Emoji.WAIT, own=True):
             logger.debug(
                 f"{self}: Setting wait reason {reason} ignored because "
@@ -514,9 +518,7 @@ class MergeRequestManager:
             params = None
         elif reason == WaitReason.not_approved:
             message_id = Comment.WaitingForApproval
-            params = {"approvals_left": (str(self._approvals_left())
-                                         if self._approvals_left() is not None
-                                         else 'unknown number')}
+            params = {"approvals_left": str(self._approvals_left())}
         elif reason == WaitReason.pipeline_running:
             last_pipeline = self._get_last_pipeline()
             assert last_pipeline is not None
