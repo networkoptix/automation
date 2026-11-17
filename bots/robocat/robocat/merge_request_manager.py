@@ -801,9 +801,8 @@ class MergeRequestManager:
         if self._mr.is_merged:
             return True
 
-        self.squash_locally_if_needed(repo)
-
         if self._mr.is_rebase_needed:
+            self.squash_locally_if_needed(repo)  # Else GitLab squashes: no new pipeline.
             self._rebase()
             return False
 

@@ -291,9 +291,11 @@ class TestBot:
             "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
             "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
             "mock_base_commit_sha": "0123457789AB",
+            "detailed_merge_status": "need_rebase",
         }),
     ])
-    def test_merge_with_local_squash(self, bot, mr, mr_manager, project, repo_accessor):
+    def test_rebase_with_local_squash(self, bot, mr, mr_manager, project, repo_accessor):
+        """Robocat squashes an MR that needs a rebase: the rebase runs a new pipeline anyway."""
         repo_accessor.repo.mock_reset_commands_log()
         base_commit_mock = CommitMock(
             repo_accessor.repo, sha="0123457789AB", message="base commit")
@@ -302,8 +304,8 @@ class TestBot:
             repo_accessor.repo, name=mr.source_branch, commits=[base_commit_mock])
 
         bot.handle(mr_manager)
-        assert mr.state == "merged"
-        assert not mr.mock_rebased
+        assert mr.state != "merged"
+        assert mr.mock_rebased
 
         local_git_actions = repo_accessor.repo.mock_read_commands_log()
         assert len(local_git_actions) == 7, f"Local git actions: {local_git_actions}"
@@ -340,6 +342,31 @@ class TestBot:
         assert not any(
             e for e in emojis if e.name == Emoji.UNFINISHED_POST_MERGING), (
             "The Unfinished Processing flag should not be set.")
+
+    @pytest.mark.parametrize(("jira_issues", "mr_state"), [
+        # Two commits, squashing is required, the MR does not need a rebase.
+        ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"], "state": "In progress"}], {
+            "blocking_discussions_resolved": True,
+            "needed_approvers_number": 0,
+            "commits_list": [{
+                "sha": DEFAULT_COMMIT["sha"],
+                "message": "msg",
+                "files": {},
+            }, GOOD_README_COMMIT_NEW_FILE],
+            "approvers_list": [OPEN_SOURCE_APPROVER_COMMON],
+            "pipelines_list": [(FILE_COMMITS_SHA["good_dontreadme"], "success")],
+        }),
+    ])
+    def test_merge_without_local_squash(self, bot, mr, mr_manager, repo_accessor):
+        """Without a rebase, GitLab squashes in the merge: no push, so no new pipeline."""
+        repo_accessor.repo.mock_reset_commands_log()
+
+        bot.handle(mr_manager)
+        assert mr.state == "merged"
+        assert not mr.mock_rebased
+
+        local_git_actions = repo_accessor.repo.mock_read_commands_log()
+        assert not local_git_actions, f"Local git actions: {local_git_actions}"
 
     @pytest.mark.parametrize(("jira_issues", "mr_state"), [
         ([{"key": DEFAULT_JIRA_ISSUE_KEY, "branches": ["master"], "state": "In progress"}], {
