@@ -90,6 +90,7 @@ PROJECT_WORKFLOWS: dict[str, tuple[Workflow, ...]] = {  # The issue types seen i
     "FT": (NO_REVIEW,),
     "CLT": (CLT,),
     "DOCDB": (DOCDB,),
+    "VI": (STANDARD_BUG,),  # VI-77, VI-80: the "In Review" transitions of VMS-63404.
 }
 REPO_PROJECT_WORKFLOWS = [  # Every Jira Project of every repo, with each of its workflows.
     pytest.param(project, workflow, id=f"{repo}:{project}:{workflow.name}")
