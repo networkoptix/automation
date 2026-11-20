@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+import time
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Dict, List
@@ -28,6 +29,9 @@ class MergeRequestDiffData:
 
 class Project:
     RESOURCE_CREATION_CONFLICT_CODE = 409
+    UNKNOWN_SOURCE_BRANCH_ERROR = str({"source_branch": ["does not exist"]})
+    UNKNOWN_SOURCE_BRANCH_RETRIES = 3
+    UNKNOWN_SOURCE_BRANCH_DELAY_S = 10
     DIFF_LINE_NUMBER_REMOVER_RE = re.compile(r'^^\@\@ -\d+,\d+ \+\d+,\d+ \@\@\s+', re.MULTILINE)
 
     def __init__(self, gitlab_project):
@@ -128,23 +132,30 @@ class Project:
 
         target_project_id = self.id if target_project_id is None else target_project_id
 
-        try:
-            raw_mr = self._gitlab_project.mergerequests.create({
-                "source_branch": source_branch,
-                "target_branch": target_branch,
-                "title": title,
-                "description": description,
-                "squash": squash,
-                "remove_source_branch": True,
-                "target_project_id": target_project_id,
-                "assignee_ids": list(set(assignee_ids))})
-        except gitlab.exceptions.GitlabCreateError as e:
-            if e.response_code == self.RESOURCE_CREATION_CONFLICT_CODE:
-                raise MergeRequestAlreadyExistsError(
-                    source=source_branch, target=target_branch) from e
-            raise e
-
-        return raw_mr.iid
+        retries_left = self.UNKNOWN_SOURCE_BRANCH_RETRIES
+        while True:
+            try:
+                raw_mr = self._gitlab_project.mergerequests.create({
+                    "source_branch": source_branch,
+                    "target_branch": target_branch,
+                    "title": title,
+                    "description": description,
+                    "squash": squash,
+                    "remove_source_branch": True,
+                    "target_project_id": target_project_id,
+                    "assignee_ids": list(set(assignee_ids))})
+                return raw_mr.iid
+            except gitlab.exceptions.GitlabCreateError as e:
+                if e.response_code == self.RESOURCE_CREATION_CONFLICT_CODE:
+                    raise MergeRequestAlreadyExistsError(
+                        source=source_branch, target=target_branch) from e
+                if retries_left == 0 or str(e.error_message) != self.UNKNOWN_SOURCE_BRANCH_ERROR:
+                    raise e
+                retries_left -= 1
+                logger.info(
+                    f"GitLab does not know the branch {source_branch!r} yet: try again in "
+                    f"{self.UNKNOWN_SOURCE_BRANCH_DELAY_S} s")
+                time.sleep(self.UNKNOWN_SOURCE_BRANCH_DELAY_S)
 
     def get_reset_approvals_on_push_flag(self) -> bool:
         return self._gitlab_project.approvals.get().reset_approvals_on_push

@@ -10,7 +10,7 @@ import gitlab
 import pytest
 import requests
 from automation_tools.tests.gitlab_constants import BOT_USERNAME
-from gitlab.exceptions import GitlabHttpError, GitlabMRRebaseError
+from gitlab.exceptions import GitlabCreateError, GitlabHttpError, GitlabMRRebaseError
 from gitlab.v4.objects import ProjectMergeRequest
 from requests.adapters import BaseAdapter
 from robocat.comments import Comment, Emoji
@@ -478,3 +478,49 @@ class TestForkMergeRequestCommits:
 
         assert manager.last_commit_message() == "VMS-1: Fix the bug\n"
         assert not [path for _method, path in server.calls if f"/projects/{self.FORK_ID}/" in path]
+
+
+class TestMergeRequestCreation:
+    """GitLab knows a pushed branch only some seconds after the push (dev/nx!41443)."""
+
+    MERGE_REQUESTS_PATH = "/projects/1/merge_requests"
+    UNKNOWN_BRANCH = (400, {"message": {"source_branch": ["does not exist"]}})
+
+    @staticmethod
+    def create(server: FakeGitLabServer) -> int:
+        """Create an MR with the real Project class on the fake GitLab server."""
+        session = requests.Session()
+        session.mount(GITLAB_URL, server)
+        raw_gitlab = gitlab.Gitlab(GITLAB_URL, private_token="token", session=session)
+        return Project(raw_gitlab.projects.get(1, lazy=True)).create_merge_request(
+            source_branch="VMS-1_fix_vms_6.1", target_branch="vms_6.1",
+            title="VMS-1: (master->vms_6.1) Fix the bug", description="", squash=False,
+            assignee_ids=[1])
+
+    def test_merge_request_is_created_when_gitlab_knows_the_branch(self, monkeypatch):
+        """GitLab knows the branch after the first wait: Robocat creates the MR."""
+        server = FakeGitLabServer({("POST", self.MERGE_REQUESTS_PATH): self.UNKNOWN_BRANCH})
+        waits = []
+
+        def wait(seconds: float):
+            """GitLab handles the push while Robocat waits."""
+            waits.append(seconds)
+            server.answers[("POST", self.MERGE_REQUESTS_PATH)] = (201, {"iid": 7})
+
+        monkeypatch.setattr("robocat.project.time.sleep", wait)
+
+        assert self.create(server) == 7
+        assert waits == [Project.UNKNOWN_SOURCE_BRANCH_DELAY_S]
+
+    @pytest.mark.parametrize(("answer", "request_count"), [
+        (UNKNOWN_BRANCH, 1 + Project.UNKNOWN_SOURCE_BRANCH_RETRIES),
+        ((400, {"message": {"title": ["can't be blank"]}}), 1),
+    ])
+    def test_last_retry_or_other_error_is_raised(self, monkeypatch, answer, request_count):
+        """Robocat stops after the last retry and does not retry other errors."""
+        monkeypatch.setattr("robocat.project.time.sleep", lambda _seconds: None)
+        server = FakeGitLabServer({("POST", self.MERGE_REQUESTS_PATH): answer})
+
+        with pytest.raises(GitlabCreateError):
+            self.create(server)
+        assert server.calls.count(("POST", self.MERGE_REQUESTS_PATH)) == request_count
