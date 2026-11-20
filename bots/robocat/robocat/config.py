@@ -29,6 +29,9 @@ class RepoConfig(BaseModel):
     url: str = Field(description="Git URL to the repository.")
     need_code_owner_approval: bool = Field(
         description="If code owner approval is needed for merging.", default=False)
+    unassign_after_days: int = Field(
+        description="Robocat unassigns itself from an MR created this many days ago or more.",
+        default=90, ge=1)
 
 
 class ApprovalRuleConfig(BaseModel):

@@ -3,7 +3,7 @@
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import namedtuple
 from typing import Any, Optional
 
@@ -258,6 +258,7 @@ class MergeRequestMock:
     has_conflicts: bool = False
     work_in_progress: bool = False
     blocking_discussions_resolved: bool = True
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     assignees: list = field(default_factory=lambda: [{"username": BOT_USERNAME}])
     reviewers: list = field(default_factory=list)
     squash: bool = True

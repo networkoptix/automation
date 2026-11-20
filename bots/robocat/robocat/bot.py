@@ -373,6 +373,8 @@ class Bot(threading.Thread):
             return
 
         if current_mr_state == "opened":
+            if mr_manager.unassign_from_old_mr(self.config.repo.unassign_after_days):
+                return
             self.handle(mr_manager)
 
     def _process_comment_event(

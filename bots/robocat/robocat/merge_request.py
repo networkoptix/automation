@@ -2,6 +2,7 @@
 
 import logging
 import re
+from datetime import datetime
 from enum import Enum, auto
 from typing import Any
 
@@ -355,6 +356,17 @@ class MergeRequest:
         # parameter to enforce this, but "assignee_ids" must be of type "list".
         self._gitlab_mr.assignee_ids = list(assignee_ids)
         self._gitlab_mr.save()
+
+    @property
+    def created_at(self) -> datetime:
+        """When the MR was created."""
+        return datetime.fromisoformat(self._gitlab_mr.created_at)
+
+    def unassign_current_user(self) -> None:
+        """Remove the current user from the assignees of the MR."""
+        self.set_assignees_by_ids({
+            assignee["id"] for assignee in self._gitlab_mr.assignees
+            if assignee["username"] != self._current_user})
 
     def latest_diff(self) -> ProjectMergeRequestDiff:
         lateset_diffs_list = self._gitlab_mr.diffs.list(per_page=1)

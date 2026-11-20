@@ -3,6 +3,7 @@
 import http
 import json
 import urllib.parse
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -524,3 +525,53 @@ class TestMergeRequestCreation:
         with pytest.raises(GitlabCreateError):
             self.create(server)
         assert server.calls.count(("POST", self.MERGE_REQUESTS_PATH)) == request_count
+
+
+class TestUnassignFromOldMergeRequest:
+    """Robocat unassigns itself once from an MR created 90 days ago or more."""
+
+    MAX_AGE_DAYS = 90
+    DEVELOPER_ID = 586
+
+    def server_and_manager(self, age_days: int) -> tuple[FakeGitLabServer, MergeRequestManager]:
+        """GitLab with one MR of this age, assigned to Robocat and the developer."""
+        data = {
+            **OPEN_MERGE_REQUEST_DATA,
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=age_days)).isoformat(),
+            "assignees": [
+                {"id": 78, "username": BOT_USERNAME},
+                {"id": self.DEVELOPER_ID, "username": "developer"},
+            ],
+        }
+        server = FakeGitLabServer({("PUT", MERGE_REQUEST_PATH): (200, data)})
+        return server, merge_request_manager(server, data)
+
+    @staticmethod
+    def sent_assignee_ids(server: FakeGitLabServer) -> list[list[int]]:
+        """The assignee ids of each MR update that Robocat sent."""
+        assignee_ids = []
+        for request in server.requests:
+            if request.method == "PUT":
+                sent = request.body
+                assert isinstance(sent, bytes | str), f"Unexpected update body: {sent!r}"
+                assignee_ids.append(json.loads(sent)["assignee_ids"])
+        return assignee_ids
+
+    @pytest.mark.parametrize(("age_days", "unassigned"), [(90, True), (89, False)])
+    def test_old_mr_is_unassigned(self, age_days: int, unassigned: bool):
+        """An MR of 90 days or more loses Robocat and gets the note; a younger MR keeps both."""
+        server, manager = self.server_and_manager(age_days)
+
+        assert manager.unassign_from_old_mr(self.MAX_AGE_DAYS) is unassigned
+
+        assert self.sent_assignee_ids(server) == ([[self.DEVELOPER_ID]] if unassigned else [])
+        assert posted_comments(server) == (
+            [Comment.UnassignedFromOldMr] if unassigned else [])
+
+    def test_mr_assigned_again_keeps_robocat(self):
+        """After the note, a person can assign Robocat again: Robocat does not unassign again."""
+        server, manager = self.server_and_manager(91)
+        manager.unassign_from_old_mr(self.MAX_AGE_DAYS)
+
+        assert not manager.unassign_from_old_mr(self.MAX_AGE_DAYS)
+        assert self.sent_assignee_ids(server) == [[self.DEVELOPER_ID]]

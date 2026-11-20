@@ -4,6 +4,7 @@ import dataclasses
 import logging
 import re
 import time
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from typing import Any
 
@@ -781,6 +782,19 @@ class MergeRequestManager:
     @property
     def is_mr_assigned_to_current_user(self) -> bool:
         return self._current_user in self._mr.assignees
+
+    def unassign_from_old_mr(self, max_age_days: int) -> bool:
+        """Unassign Robocat once from an MR created max_age_days ago or more; True if it did."""
+        if datetime.now(timezone.utc) - self._mr.created_at < timedelta(days=max_age_days):
+            return False
+        if find_last_comment(notes=self.notes(), message_id=Comment.UnassignedFromOldMr):
+            return False
+
+        logger.info(f"{self}: The MR was created {max_age_days} or more days ago; unassigning.")
+        self._mr.unassign_current_user()
+        self.add_comment(robocat.comments.Message(
+            id=Comment.UnassignedFromOldMr, params={"days": max_age_days}))
+        return True
 
     def update_comment_data(self, note_id: int, data: dict[str, Any]) -> bool:
         if not (note_data := self._mr.note_data(note_id)):

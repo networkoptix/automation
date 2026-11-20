@@ -38,6 +38,7 @@ class Emoji(StrEnum):  # No @unique: names that share an emoji become aliases of
     JIRA_ISSUE_NOT_CLOSED = "warning"
     MERGE_REJECTED = "warning"
     REBASE_REJECTED = "warning"
+    UNASSIGNED = "wave"
     WATCHING = "eyes"  # Reaction: Robocat looks after the MR.
     UNFINISHED_POST_MERGING = "point_up"  # Reaction: the post-merge work is not done yet.
 
@@ -96,6 +97,13 @@ the comment with the following format:
 where "command" is one of:
 - {command_list}
 
+""")
+    UnassignedFromOldMr = CommentTemplate(
+        title="Robocat stops looking after this MR",
+        emoji=Emoji.UNASSIGNED,
+        text="""
+This Merge Request was created {days} or more days ago, so Robocat unassigned itself. Assign
+Robocat again if you still want it to process this Merge Request, or close the Merge Request.
 """)
 
     # Job status check.
